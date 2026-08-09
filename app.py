@@ -39,8 +39,8 @@ owned_paints = [find_by_name(CATALOG, name) for name in picked]
 # --- Main: recipe loader ---
 recipes = load_all()
 recipe_by_name = {r.name: r for r in recipes}
-choice = st.selectbox("Load recipe", ["(none)"] + list(recipe_by_name))
-if st.button("Load recipe") and choice != "(none)":
+choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
+if st.button("Load") and choice != "(none)":
     pal = to_palette(recipe_by_name[choice])
     st.session_state["n"] = len(pal)
     for i, p in enumerate(pal):
