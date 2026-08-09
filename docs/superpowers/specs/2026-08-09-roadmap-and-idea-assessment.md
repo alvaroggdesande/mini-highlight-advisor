@@ -170,3 +170,16 @@ non-trivial UI project, the recommended next move is to **pivot to the other
 foundation first — own-palette input (#4)** — which has zero region risk, delivers
 value immediately, and unsticks mixing (#3) + brand DB (#5). Manual-region support
 becomes its own later design.
+
+**Design note for the future manual-region feature — lasso precision vs edge-highlight
+correctness.** A concern: a hand-drawn lasso won't be pixel-perfect. It doesn't need to
+be. **The lasso only assigns *which paints/technique* apply to an area; it does NOT
+place the highlights — luminance does.** Each band (including the edge highlight) is the
+brightest-quantile of luminance *within* the region, i.e. it reads the light the sculpt
+actually catches. So edge highlights *inside* a region are robust to a loose lasso. The
+only sensitivity is at **region seams**: a lasso that bleeds into a neighbour can put one
+region's edge-highlight colour on the other's bright rim. Mitigations: (a) add/subtract
+refine brush; (b) edge-snap the lasso to the sculpt's own luminance/depth edge; (c)
+exclusive pixel assignment + feathered boundaries. Note the seam is *semantically* where
+a separating edge highlight belongs (edge-highlight-as-region-separation), so it is a
+feature to exploit, not only a defect to fix.
