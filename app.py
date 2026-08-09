@@ -5,7 +5,6 @@ from collections import Counter
 import streamlit as st
 
 from mini_highlight_advisor.catalog import load_catalog, find_by_name, find_by_code
-from mini_highlight_advisor.collection import annotate_ownership
 from mini_highlight_advisor import collection
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_names
@@ -38,7 +37,7 @@ def _swatch(hexv: str, size: str = "1em") -> str:
 tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
 
 # NOTE: st.tabs runs BOTH bodies every rerun, in code order. Fill the Paints
-# tab FIRST so owned_names / owned_paints are finalised before the Miniature
+# tab FIRST so owned_codes / owned_paints are finalised before the Miniature
 # tab renders its ownership badges. Display order (Miniature first) is fixed by
 # the label list above, not by code order — do not reorder the labels.
 
@@ -70,7 +69,7 @@ with tab_mini:
     # --- recipe loader ---
     recipes = load_all()
     recipe_by_name = {r.name: r for r in recipes}
-    name_counts = Counter(p.name for p in CATALOG)  # add: from collections import Counter
+    name_counts = Counter(p.name for p in CATALOG)
     choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
     if st.button("Load") and choice != "(none)":
         pal = to_palette(recipe_by_name[choice])
@@ -118,8 +117,7 @@ with tab_mini:
             paint = find_by_code(CATALOG, sel)
             c2.markdown(_swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
             palette.append(paint)
-            status = annotate_ownership([paint], owned_paints)[0]
-            c3.write("✅ owned" if status.owned else "⚠️ not owned")
+            c3.write("✅ owned" if paint.code in set(picked) else "⚠️ not owned")
 
     # --- Save current palette as a recipe ---
     with st.expander("Save as recipe"):

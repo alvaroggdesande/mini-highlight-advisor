@@ -21,7 +21,7 @@ def load(path: Path = COLLECTION_PATH, catalog: list[PaintColor] | None = None) 
         return stored
     codes = {p.code for p in catalog}
     name_counts = Counter(p.name for p in catalog)
-    by_name = {p.name: p.code for p in catalog}
+    by_name = {p.name: p.code for p in catalog}  # only read when name_counts[entry] == 1, so collisions never matter
     result: set[str] = set()
     for entry in stored:
         if entry in codes:
