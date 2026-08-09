@@ -106,14 +106,12 @@ def test_last_step_has_no_exact_image():
 
 
 def test_nonactive_interior_pixel_is_dimmed():
-    rgb, bands, mask, colors = _fixture()
+    rgb, bands, mask, colors = _fixture()  # uniform 100 input
     steps = per_band_images(rgb, bands, mask, colors, alpha=1.0)
-    # pixel (0,0) is band 0: non-active in the last step (band 2) and not
-    # adjacent to any band-2 pixel, so it is neither painted nor on the outline.
+    # (0,0) is band 0: non-active in the last step (band 2), never painted.
+    # Background = greyscale(100) * 0.4 = 40 per channel.
     out = steps[2].cumulative_rgb
-    assert out[0, 0].sum() < rgb[0, 0].sum()
-    # tighten to verify exact 0.25 dim factor: 100 * 0.25 = 25 per channel
-    assert np.allclose(out[0, 0], [25, 25, 25])
+    assert tuple(out[0, 0]) == (40, 40, 40)
 
 
 def test_output_shape_and_dtype_match_input():
@@ -121,3 +119,70 @@ def test_output_shape_and_dtype_match_input():
     steps = per_band_images(rgb, bands, mask, colors, alpha=1.0)
     assert steps[0].cumulative_rgb.shape == rgb.shape
     assert steps[0].cumulative_rgb.dtype == np.uint8
+
+
+def _non_grey(img):
+    return (img[..., 0] != img[..., 1]) | (img[..., 1] != img[..., 2])
+
+
+def test_every_step_has_zone_rgb_with_matching_shape():
+    rgb, bands, mask, colors = _fixture()
+    steps = per_band_images(rgb, bands, mask, colors)
+    assert all(s.zone_rgb is not None for s in steps)
+    assert all(s.zone_rgb.shape == rgb.shape for s in steps)
+    assert all(s.zone_rgb.dtype == np.uint8 for s in steps)
+
+
+def test_zone_accent_region_equals_cumulative_region():
+    # uniform-grey input => background stays grey (R==G==B); accent-painted
+    # pixels become non-grey, so the non-grey region marks the active zone.
+    rgb, bands, mask, colors = _fixture()
+    steps = per_band_images(rgb, bands, mask, colors)
+    for k, s in enumerate(steps):
+        assert np.array_equal(_non_grey(s.zone_rgb), (bands >= k) & mask)
+
+
+def test_step_background_is_greyscale_and_dimmed():
+    # colored uniform input; luma = 0.299*100 + 0.587*40 + 0.114*20 = 55.66
+    # background = int(55.66 * 0.4) = 22 per channel.
+    bands = np.array(
+        [[0, 0, 1, 2],
+         [0, 0, 1, 2],
+         [-1, -1, -1, -1],
+         [0, 1, 1, 2]],
+        dtype=np.int32,
+    )
+    mask = bands >= 0
+    rgb = np.empty((4, 4, 3), np.uint8)
+    rgb[:] = (100, 40, 20)
+    colors = [np.array([255, 0, 0], np.float32),
+              np.array([0, 255, 0], np.float32),
+              np.array([0, 0, 255], np.float32)]
+    steps = per_band_images(rgb, bands, mask, colors, alpha=1.0)
+    # row 2 is off-mask => non-active in every step => greyscale-dimmed
+    bg_pixel = steps[0].cumulative_rgb[2, 0]
+    assert bg_pixel[0] == bg_pixel[1] == bg_pixel[2]  # desaturated
+    assert tuple(bg_pixel) == (22, 22, 22)            # exact dim value
+
+
+def test_no_pure_white_outline_pixels():
+    # guards outline removal: with a non-white input and non-white paints,
+    # no pixel in any step image should be pure white.
+    bands = np.array(
+        [[0, 0, 1, 2],
+         [0, 0, 1, 2],
+         [-1, -1, -1, -1],
+         [0, 1, 1, 2]],
+        dtype=np.int32,
+    )
+    mask = bands >= 0
+    rgb = np.empty((4, 4, 3), np.uint8)
+    rgb[:] = (100, 40, 20)
+    colors = [np.array([255, 0, 0], np.float32),
+              np.array([0, 255, 0], np.float32),
+              np.array([0, 0, 255], np.float32)]
+    steps = per_band_images(rgb, bands, mask, colors, alpha=1.0)
+    for s in steps:
+        for img in (s.zone_rgb, s.cumulative_rgb, s.exact_rgb):
+            if img is not None:
+                assert not np.any(np.all(img == 255, axis=-1))
