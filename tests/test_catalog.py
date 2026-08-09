@@ -1,4 +1,3 @@
-import numpy as np
 from mini_highlight_advisor.catalog import load_catalog, find_by_name
 from mini_highlight_advisor.palette import DEFAULT_PALETTE
 

@@ -34,7 +34,7 @@ picked = st.sidebar.multiselect(
 )
 if set(picked) != owned_names:
     collection.save(set(picked))
-owned_paints = [find_by_name(CATALOG, name) for name in picked]
+owned_paints = [p for name in picked if (p := find_by_name(CATALOG, name)) is not None]
 
 # --- Main: recipe loader ---
 recipes = load_all()
@@ -42,8 +42,8 @@ recipe_by_name = {r.name: r for r in recipes}
 choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
 if st.button("Load") and choice != "(none)":
     pal = to_palette(recipe_by_name[choice])
-    st.session_state["n"] = len(pal)
-    for i, p in enumerate(pal):
+    st.session_state["n"] = max(3, min(5, len(pal)))
+    for i, p in enumerate(pal[:st.session_state["n"]]):
         st.session_state[f"slot_name_{i}"] = p.name if p.name in CATALOG_NAMES else CUSTOM
         st.session_state[f"slot_hex_{i}"] = p.hex
     st.rerun()
@@ -75,6 +75,9 @@ for i in range(n):
         palette.append(PaintColor(f"Custom {i + 1}", hexv))
     else:
         paint = find_by_name(CATALOG, sel)
+        if paint is None:
+            seeded_hex = st.session_state.get(f"slot_hex_{i}", DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)].hex)
+            paint = PaintColor(sel, seeded_hex)
         c2.color_picker(f"hex {i + 1}", value=paint.hex, key=f"view_hex_{i}",
                         disabled=True, label_visibility="collapsed")
         palette.append(paint)
