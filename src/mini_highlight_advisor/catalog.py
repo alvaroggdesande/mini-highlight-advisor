@@ -1,15 +1,47 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from .palette import PaintColor
 
 CATALOG_PATH = Path(__file__).parent / "data" / "vallejo_paints.json"
 
+_HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def validate_catalog(paints: list[dict]) -> None:
+    """Raise ValueError on the first invalid entry; return None if all are valid.
+
+    Checks, in order per entry: required keys present, hex well-formed,
+    name unique. Error messages identify *which* entry is wrong so a hand-edit
+    typo is actionable instead of crashing deep in the stack.
+    """
+    seen: set[str] = set()
+    for i, p in enumerate(paints):
+        if "name" not in p or "hex" not in p:
+            missing = "name" if "name" not in p else "hex"
+            present_name = p.get("name")
+            label = f" (name={present_name!r})" if present_name is not None else ""
+            raise ValueError(
+                f"Catalogue entry at index {i}{label} is missing required key {missing!r}."
+            )
+        name = p["name"]
+        hexv = p["hex"]
+        if not _HEX_RE.match(hexv):
+            raise ValueError(
+                f"Catalogue paint {name!r} has invalid hex {hexv!r}; expected #rrggbb."
+            )
+        if name in seen:
+            raise ValueError(f"Duplicate catalogue paint name {name!r}.")
+        seen.add(name)
+
 
 def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
+    paints = data["paints"]
+    validate_catalog(paints)
     return [
         PaintColor(
             name=p["name"],
@@ -17,7 +49,7 @@ def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
             brand=p.get("brand"),
             paint_range=p.get("range"),
         )
-        for p in data["paints"]
+        for p in paints
     ]
 
 
