@@ -12,30 +12,28 @@ _HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def validate_catalog(paints: list[dict]) -> None:
-    """Raise ValueError on the first invalid entry; return None if all are valid.
+    """Raise ValueError on the first invalid entry; return None if all valid.
 
-    Checks, in order per entry: required keys present, hex well-formed,
-    name unique. Error messages identify *which* entry is wrong so a hand-edit
-    typo is actionable instead of crashing deep in the stack.
+    Per entry: required keys (code, name, hex) present, hex well-formed,
+    code unique. Names MAY repeat across ranges. Errors identify the entry.
     """
-    seen: set[str] = set()
+    seen_codes: set[str] = set()
     for i, p in enumerate(paints):
-        if "name" not in p or "hex" not in p:
-            missing = "name" if "name" not in p else "hex"
-            present_name = p.get("name")
-            label = f" (name={present_name!r})" if present_name is not None else ""
-            raise ValueError(
-                f"Catalogue entry at index {i}{label} is missing required key {missing!r}."
-            )
-        name = p["name"]
-        hexv = p["hex"]
+        for key in ("code", "name", "hex"):
+            if key not in p:
+                present = p.get("name") or p.get("code")
+                label = f" ({present!r})" if present is not None else ""
+                raise ValueError(
+                    f"Catalogue entry at index {i}{label} is missing required key {key!r}."
+                )
+        code, name, hexv = p["code"], p["name"], p["hex"]
         if not _HEX_RE.match(hexv):
             raise ValueError(
-                f"Catalogue paint {name!r} has invalid hex {hexv!r}; expected #rrggbb."
+                f"Catalogue paint {name!r} ({code}) has invalid hex {hexv!r}; expected #rrggbb."
             )
-        if name in seen:
-            raise ValueError(f"Duplicate catalogue paint name {name!r}.")
-        seen.add(name)
+        if code in seen_codes:
+            raise ValueError(f"Duplicate catalogue paint code {code!r} (name {name!r}).")
+        seen_codes.add(code)
 
 
 def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:

@@ -40,38 +40,53 @@ def test_shipped_seed_passes_validation():
 
 
 def test_missing_required_key_raises_naming_index():
-    paints = [{"name": "Black", "hex": "#1b1b1b"}, {"name": "No Hex Here"}]
-    with pytest.raises(ValueError) as exc:
-        validate_catalog(paints)
-    msg = str(exc.value)
-    assert "1" in msg          # names the offending index
-    assert "No Hex Here" in msg  # names the entry when name is present
-    assert "hex" in msg          # names the missing key
-
-
-def test_bad_hex_raises_quoting_value_and_name():
-    paints = [{"name": "Bad Red", "hex": "#12"}]
-    with pytest.raises(ValueError) as exc:
-        validate_catalog(paints)
-    msg = str(exc.value)
-    assert "Bad Red" in msg
-    assert "#12" in msg
-
-
-def test_duplicate_name_raises_naming_duplicate():
     paints = [
-        {"name": "Neutral Grey", "hex": "#6d7173"},
-        {"name": "Neutral Grey", "hex": "#6d7174"},
+        {"code": "70.950", "name": "Black", "hex": "#1b1b1b"},
+        {"code": "70.999", "name": "No Hex Here"},
     ]
     with pytest.raises(ValueError) as exc:
         validate_catalog(paints)
-    assert "Neutral Grey" in str(exc.value)
+    msg = str(exc.value)
+    assert "1" in msg and "No Hex Here" in msg and "hex" in msg
+
+
+def test_missing_code_raises():
+    paints = [{"name": "Black", "hex": "#1b1b1b"}]
+    with pytest.raises(ValueError) as exc:
+        validate_catalog(paints)
+    assert "code" in str(exc.value)
+
+
+def test_bad_hex_raises_quoting_value_and_name():
+    paints = [{"code": "70.957", "name": "Bad Red", "hex": "#12"}]
+    with pytest.raises(ValueError) as exc:
+        validate_catalog(paints)
+    msg = str(exc.value)
+    assert "Bad Red" in msg and "#12" in msg
+
+
+def test_duplicate_code_raises():
+    paints = [
+        {"code": "70.991", "name": "Neutral Grey", "hex": "#6d7173"},
+        {"code": "70.991", "name": "Other Grey", "hex": "#6d7174"},
+    ]
+    with pytest.raises(ValueError) as exc:
+        validate_catalog(paints)
+    assert "70.991" in str(exc.value)
+
+
+def test_duplicate_name_is_allowed():
+    paints = [
+        {"code": "70.951", "name": "Dead White", "hex": "#f3f3ee"},
+        {"code": "72.001", "name": "Dead White", "hex": "#ffffff"},
+    ]
+    assert validate_catalog(paints) is None
 
 
 def test_valid_paints_pass_validation():
     paints = [
-        {"name": "Black", "hex": "#1b1b1b", "brand": "Vallejo", "range": "Model Color"},
-        {"name": "Dead White", "hex": "#F3F3EE"},  # brand/range optional, hex case-insensitive
+        {"code": "70.950", "name": "Black", "hex": "#1b1b1b", "brand": "Vallejo", "range": "Model Color"},
+        {"code": "70.951", "name": "Dead White", "hex": "#F3F3EE"},
     ]
     assert validate_catalog(paints) is None
 
