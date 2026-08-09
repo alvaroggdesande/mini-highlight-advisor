@@ -25,105 +25,130 @@ CATALOG = load_catalog()
 CATALOG_NAMES = [p.name for p in CATALOG]
 CUSTOM = "(custom target)"
 
-# --- Sidebar: My paints (owned collection) ---
-st.sidebar.markdown("**My paints** (Vallejo)")
-owned_names = collection.load()
-picked = st.sidebar.multiselect(
-    "Paints you own", CATALOG_NAMES, default=sorted(owned_names & set(CATALOG_NAMES)),
-    key="owned",
-)
-if set(picked) != owned_names:
-    collection.save(set(picked))
-owned_paints = [p for name in picked if (p := find_by_name(CATALOG, name)) is not None]
+tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
 
-# --- Main: recipe loader ---
-recipes = load_all()
-recipe_by_name = {r.name: r for r in recipes}
-choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
-if st.button("Load") and choice != "(none)":
-    pal = to_palette(recipe_by_name[choice])
-    st.session_state["n"] = max(3, min(5, len(pal)))
-    for i, p in enumerate(pal[:st.session_state["n"]]):
-        st.session_state[f"slot_name_{i}"] = p.name if p.name in CATALOG_NAMES else CUSTOM
-        st.session_state[f"slot_hex_{i}"] = p.hex
-    st.rerun()
+# NOTE: st.tabs runs BOTH bodies every rerun, in code order. Fill the Paints
+# tab FIRST so owned_names / owned_paints are finalised before the Miniature
+# tab renders its ownership badges. Display order (Miniature first) is fixed by
+# the label list above, not by code order — do not reorder the labels.
 
-# --- Palette slots (dark to light) ---
-# Seed "n" before the slider widget is created so the widget can own the value via key=
-# without a conflicting value= argument causing a session_state warning.
-st.session_state.setdefault("n", 5)
-n = st.slider("Number of layers", 3, 5, key="n")
-st.markdown("**Palette** (dark to light)")
-palette = []
-for i in range(n):
-    default = DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)]
-    # Seed slot keys before the widgets that own them are created.
-    st.session_state.setdefault(f"slot_name_{i}", default.name)
-    st.session_state.setdefault(f"slot_hex_{i}", default.hex)
-    default_name = st.session_state[f"slot_name_{i}"]
-    if default_name not in CATALOG_NAMES:
-        default_name = CUSTOM
-    c1, c2, c3 = st.columns([3, 1, 1])
-    sel = c1.selectbox(
-        f"Layer {i + 1}", CATALOG_NAMES + [CUSTOM],
-        index=(CATALOG_NAMES + [CUSTOM]).index(default_name), key=f"slot_name_{i}",
+# --- 🎨 Paints tab: inventory ---
+with tab_paints:
+    st.markdown("**My paints** (Vallejo)")
+    owned_names = collection.load()
+    picked = st.multiselect(
+        "Paints you own", CATALOG_NAMES,
+        default=sorted(owned_names & set(CATALOG_NAMES)),
+        key="owned",
     )
-    if sel == CUSTOM:
-        hexv = c2.color_picker(
-            f"hex {i + 1}", key=f"slot_hex_{i}", label_visibility="collapsed",
+    if set(picked) != owned_names:
+        collection.save(set(picked))
+    owned_paints = [p for name in picked if (p := find_by_name(CATALOG, name)) is not None]
+
+    st.markdown("**Owned paints**")
+    if not owned_paints:
+        st.caption("No paints selected yet — tick the paints you own above.")
+    for p in owned_paints:
+        swatch = (
+            f"<span style='display:inline-block;width:1em;height:1em;"
+            f"background-color:{p.hex};border:1px solid #888;"
+            f"vertical-align:middle;margin-right:0.5em'></span>"
         )
-        palette.append(PaintColor(f"Custom {i + 1}", hexv))
-    else:
-        paint = find_by_name(CATALOG, sel)
-        if paint is None:
-            seeded_hex = st.session_state.get(f"slot_hex_{i}", DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)].hex)
-            paint = PaintColor(sel, seeded_hex)
-        c2.color_picker(f"hex {i + 1}", value=paint.hex, key=f"view_hex_{i}",
-                        disabled=True, label_visibility="collapsed")
-        palette.append(paint)
-    # owned badge for this slot
-    status = annotate_ownership([palette[-1]], owned_paints)[0]
-    c3.write("✅ owned" if status.owned else "⚠️ not owned")
+        rng = p.paint_range or ""
+        st.markdown(f"{swatch}{p.name} · {rng}", unsafe_allow_html=True)
 
-# --- Save current palette as a recipe ---
-with st.expander("Save as recipe"):
-    rname = st.text_input("Recipe name", key="save_name")
-    if st.button("Save recipe") and rname.strip():
-        steps = [RecipeStep(label=r, hex=p.hex, paint_ref=(p.name if p.name in CATALOG_NAMES else None))
-                 for r, p in zip(role_names(n), palette)]
-        save_user(Recipe(rname.strip(), steps))
-        st.success(f"Saved recipe '{rname.strip()}'.")
+    st.caption(f"Catalogue: {len(CATALOG)} paints (Vallejo Model Color + Game Color)")
 
-uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
-if uploaded is not None:
-    suffix = os.path.splitext(uploaded.name)[1]
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(uploaded.getbuffer())
-        tmp_path = tmp.name
-    try:
-        with st.spinner("Analyzing (first run downloads the depth model if no alpha channel)..."):
-            rgb, alpha = load_image(tmp_path)
-            result = analyze(rgb, alpha, palette)
-        st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_container_width=True)
-        st.subheader("Layer guide (paint dark to light)")
-        for role, paint, cov in zip(result.roles, palette, result.coverage):
-            st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
-        st.subheader("Paint-along steps")
-        st.caption("Work dark to light. 'Where to paint' = the whole zone for this paint "
-                   "(bright marker); 'Apply across' = that same whole zone in the paint colour; "
-                   "'Stays this colour' = the smaller slice that remains this colour after you paint "
-                   "the lighter layers over the rest.")
-        for step, role, paint, cov in zip(result.steps, result.roles, palette, result.coverage):
-            cum_cov = sum(result.coverage[step.index:])
-            st.markdown(f"**Step {step.index + 1} — {role} · {paint.name}**")
-            if step.is_last:
-                c1, c2 = st.columns(2)
-                c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-                c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
-            else:
-                c1, c2, c3 = st.columns(3)
-                c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-                c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
-                c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
-    finally:
-        os.unlink(tmp_path)
+# --- 🖌️ Miniature tab: build the plan (unchanged behaviour) ---
+with tab_mini:
+    # --- recipe loader ---
+    recipes = load_all()
+    recipe_by_name = {r.name: r for r in recipes}
+    choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
+    if st.button("Load") and choice != "(none)":
+        pal = to_palette(recipe_by_name[choice])
+        st.session_state["n"] = max(3, min(5, len(pal)))
+        for i, p in enumerate(pal[:st.session_state["n"]]):
+            st.session_state[f"slot_name_{i}"] = p.name if p.name in CATALOG_NAMES else CUSTOM
+            st.session_state[f"slot_hex_{i}"] = p.hex
+        st.rerun()
+
+    # --- Palette slots (dark to light) ---
+    # Seed "n" before the slider widget is created so the widget can own the value via key=
+    # without a conflicting value= argument causing a session_state warning.
+    st.session_state.setdefault("n", 5)
+    n = st.slider("Number of layers", 3, 5, key="n")
+    st.markdown("**Palette** (dark to light)")
+    palette = []
+    for i in range(n):
+        default = DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)]
+        # Seed slot keys before the widgets that own them are created.
+        st.session_state.setdefault(f"slot_name_{i}", default.name)
+        st.session_state.setdefault(f"slot_hex_{i}", default.hex)
+        default_name = st.session_state[f"slot_name_{i}"]
+        if default_name not in CATALOG_NAMES:
+            default_name = CUSTOM
+        c1, c2, c3 = st.columns([3, 1, 1])
+        sel = c1.selectbox(
+            f"Layer {i + 1}", CATALOG_NAMES + [CUSTOM],
+            index=(CATALOG_NAMES + [CUSTOM]).index(default_name), key=f"slot_name_{i}",
+        )
+        if sel == CUSTOM:
+            hexv = c2.color_picker(
+                f"hex {i + 1}", key=f"slot_hex_{i}", label_visibility="collapsed",
+            )
+            palette.append(PaintColor(f"Custom {i + 1}", hexv))
+        else:
+            paint = find_by_name(CATALOG, sel)
+            if paint is None:
+                seeded_hex = st.session_state.get(f"slot_hex_{i}", DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)].hex)
+                paint = PaintColor(sel, seeded_hex)
+            c2.color_picker(f"hex {i + 1}", value=paint.hex, key=f"view_hex_{i}",
+                            disabled=True, label_visibility="collapsed")
+            palette.append(paint)
+        # owned badge for this slot
+        status = annotate_ownership([palette[-1]], owned_paints)[0]
+        c3.write("✅ owned" if status.owned else "⚠️ not owned")
+
+    # --- Save current palette as a recipe ---
+    with st.expander("Save as recipe"):
+        rname = st.text_input("Recipe name", key="save_name")
+        if st.button("Save recipe") and rname.strip():
+            steps = [RecipeStep(label=r, hex=p.hex, paint_ref=(p.name if p.name in CATALOG_NAMES else None))
+                     for r, p in zip(role_names(n), palette)]
+            save_user(Recipe(rname.strip(), steps))
+            st.success(f"Saved recipe '{rname.strip()}'.")
+
+    uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
+    if uploaded is not None:
+        suffix = os.path.splitext(uploaded.name)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(uploaded.getbuffer())
+            tmp_path = tmp.name
+        try:
+            with st.spinner("Analyzing (first run downloads the depth model if no alpha channel)..."):
+                rgb, alpha = load_image(tmp_path)
+                result = analyze(rgb, alpha, palette)
+            st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_container_width=True)
+            st.subheader("Layer guide (paint dark to light)")
+            for role, paint, cov in zip(result.roles, palette, result.coverage):
+                st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
+            st.subheader("Paint-along steps")
+            st.caption("Work dark to light. 'Where to paint' = the whole zone for this paint "
+                       "(bright marker); 'Apply across' = that same whole zone in the paint colour; "
+                       "'Stays this colour' = the smaller slice that remains this colour after you paint "
+                       "the lighter layers over the rest.")
+            for step, role, paint, cov in zip(result.steps, result.roles, palette, result.coverage):
+                cum_cov = sum(result.coverage[step.index:])
+                st.markdown(f"**Step {step.index + 1} — {role} · {paint.name}**")
+                if step.is_last:
+                    c1, c2 = st.columns(2)
+                    c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
+                    c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
+                else:
+                    c1, c2, c3 = st.columns(3)
+                    c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
+                    c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
+                    c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
+        finally:
+            os.unlink(tmp_path)
