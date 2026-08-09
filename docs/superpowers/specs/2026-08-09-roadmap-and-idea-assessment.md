@@ -156,5 +156,17 @@ future opt-in toggle — a small swap on top, not a rewrite.
 both the offline and future-API versions, so it must be validated either way. The
 only open question: **does SAM produce usable region blobs on a *monochrome primed*
 mini, or does the lack of colour starve it?** De-risked by `spikes/sam_spike.py`
-(spike #5) on the `skaven-hero` fixture pair. Everything region-related waits on that
-result.
+(spike #5) on the `skaven-hero` fixture pair.
+
+**SPIKE RESULT (2026-08-09): NO — SAM regions are off the table.** SAM is an *object*
+segmenter, not a *part* segmenter: every click on the body (torso/arm/head/robe) grew
+the same whole-figure mask; only detached objects (blade, base) separated. The input
+was a good grey-primer photo, so this is fundamental, not input quality. SAM gives us
+only what depth/alpha already give (whole silhouette) + detached objects.
+
+**Revised region plan:** internal regions require **manual brush/lasso** (works on any
+photo, zero ML risk); SAM auto/assist is dropped. Because manual regions are now a
+non-trivial UI project, the recommended next move is to **pivot to the other
+foundation first — own-palette input (#4)** — which has zero region risk, delivers
+value immediately, and unsticks mixing (#3) + brand DB (#5). Manual-region support
+becomes its own later design.

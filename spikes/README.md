@@ -89,10 +89,21 @@ colour starve it? This is the one open unknown in the offline **"SAM + manual la
 plan (see `docs/superpowers/specs/2026-08-09-roadmap-and-idea-assessment.md`): SAM proposes masks
 locally, the user names them.
 
-**Result: PENDING** — run it on the `skaven-hero` fixture pair. GOOD = big blobs land on real parts
-(blade, robe, limb, base, head) with sensible boundaries → regions can be SAM-assisted. BAD = noise
-confetti / one blob eats the whole figure / boundaries ignore the sculpt → regions must be fully
-manual. Result decides the region-feature design.
+**Result: NO — SAM cannot carve internal regions on a monochrome mini (2026-08-09).**
+- *auto mode*: found only the bright detached blade + the base; the whole body was starved.
+- *prompt mode* (grey primer, CLAHE-enhanced, 4 body clicks): **every** body click — torso, arm,
+  head, robe — grew the **same single whole-figure mask**. The base separated (detached), the
+  blade separated (detached + not clicked); nothing internal did.
+- Root cause: **SAM segments whole *objects*, not sub-parts of one object.** A mini is one
+  connected object; robe/arm/cloak/skin share no object boundary. On a monochrome primer there are
+  no colour/material cues to override that. The grey-primer input was GOOD → this is **fundamental,
+  not input quality**. Contrast/exposure/grid-density do not fix it.
+
+**Consequence:** SAM gives us only what depth/alpha already give (whole silhouette) plus detached
+objects (blade, base). Internal material regions must come from another route: (a) **manual
+brush/lasso** (works on any photo, zero ML), (b) depth-curvature part segmentation (research), or
+(c) interactive positive+negative-point refinement (fiddly, uncertain, needs a UI). **Region
+auto-detect is off the table.**
 
 Run:
 ```
