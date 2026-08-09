@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 
+import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -13,11 +15,48 @@ _COVERAGE_NOTES = {
     "Edge Highlight": "sharpest top edges only",
 }
 
+_DIM = 0.25
+_OUTLINE = np.array([255, 255, 255], np.float32)
+
+
+@dataclass
+class BandStep:
+    index: int
+    cumulative_rgb: np.ndarray
+    exact_rgb: np.ndarray | None
+    is_last: bool
+
+
+def _outline_ring(active_mask: np.ndarray) -> np.ndarray:
+    a = active_mask.astype(np.uint8)
+    dil = cv2.dilate(a, np.ones((3, 3), np.uint8), iterations=1)
+    return (dil > 0) & (~active_mask)
+
+
+def _render_step(rgb, active_mask, color, alpha) -> np.ndarray:
+    base = rgb.astype(np.float32)
+    out = base.copy()
+    out[~active_mask] = out[~active_mask] * _DIM
+    out[active_mask] = (1 - alpha) * base[active_mask] + alpha * color
+    out[_outline_ring(active_mask)] = _OUTLINE
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def per_band_images(rgb, bands, mask, colors, alpha: float = 0.78) -> list[BandStep]:
+    n = len(colors)
+    steps: list[BandStep] = []
+    for k, color in enumerate(colors):
+        is_last = k == n - 1
+        cumulative = _render_step(rgb, (bands >= k) & mask, color, alpha)
+        exact = None if is_last else _render_step(rgb, (bands == k) & mask, color, alpha)
+        steps.append(BandStep(index=k, cumulative_rgb=cumulative, exact_rgb=exact, is_last=is_last))
+    return steps
+
 
 def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
     base = rgb.astype(np.float32)
     out = base.copy()
-    out[~mask] = out[~mask] * 0.25
+    out[~mask] = out[~mask] * _DIM
     for b, color in enumerate(colors):
         m = (bands == b) & mask
         out[m] = (1 - alpha) * base[m] + alpha * color

@@ -24,3 +24,18 @@ def test_analyze_edge_band_covers_less_than_shadow():
     rgb, alpha = load_image(FIXTURE)
     result = analyze(rgb, alpha, DEFAULT_PALETTE)
     assert result.coverage[-1] < result.coverage[0]  # curved banding: edge < shadow
+
+
+def test_analyze_populates_per_band_steps():
+    from mini_highlight_advisor.palette import PaintColor
+
+    rgb = np.random.default_rng(0).integers(0, 255, (32, 32, 3), dtype=np.uint8)
+    alpha = np.full((32, 32), 255, dtype=np.uint8)  # full-model alpha, fast path
+    palette = [PaintColor("A", "#202020"), PaintColor("B", "#808080"), PaintColor("C", "#f0f0f0")]
+
+    result = analyze(rgb, alpha, palette)
+
+    assert len(result.steps) == len(palette)
+    assert result.steps[-1].is_last is True
+    assert result.steps[-1].exact_rgb is None
+    assert result.steps[0].cumulative_rgb.shape == rgb.shape
