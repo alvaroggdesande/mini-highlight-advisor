@@ -82,21 +82,35 @@ layer.
 - `guide.py` — LLM prompt → written per-region instructions.
 - UI layer (Streamlit) — thin orchestration + display only.
 
-## 6. The lighting core (novel + riskiest)
+## 6. The lighting core (novel + riskiest) — REVISED after spike
 
-Per region:
+**Spike finding (2026-08-09):** the originally-planned "monocular depth → surface normals →
+light" pipeline does **not** work on its own. Depth-Anything V2 (Small) captures figure-ground and
+gross form well, but *smooths away the fine relief* (armour edges, pauldron tops, helmet crest)
+that painters actually highlight — estimated normals varied only at the silhouette. See
+`spikes/depth_spike.py` and the finding in `spikes/README.md`.
 
-1. **Normals → intensity.** `intensity = max(0, dot(normal, light_dir))`, `light_dir` pointing
-   down-from-above (zenithal). Optionally blend a weaker fill light so shapes don't go pure-black.
-   Yields a smooth 0-1 map.
-2. **Band the intensity** into N bands (N = region's recommended layer count), boundaries per a
+**Refined approach that passed the spike:** **depth for the MASK, image luminance for the RELIEF.**
+A grey/black-primed mini photographed under normal light is itself a shading map — pixel brightness
+≈ how much light each surface catches. So:
+
+1. **Mask.** Run depth estimation, Otsu-threshold + largest-connected-component → clean figure mask.
+2. **Light map from luminance.** Convert the photo to grayscale, apply CLAHE (local contrast) so
+   fine relief survives, contrast-stretch *within the mask*. This yields a per-pixel 0-1 light map
+   with real per-detail structure. (For a zenithal-primed model this map is essentially the answer.)
+3. **Band** the light map into N bands (N = region's recommended layer count), boundaries per a
    per-technique curve (not necessarily equal-width).
-3. **Map bands → palette.** Darkest = shadow paint, brightest = edge highlight.
-4. **Draw.** Recolor each band's pixels semi-transparently + legend chip: paint name + coverage
-   note ("top ~15% / raised edges only").
+4. **Map bands → palette.** Darkest = shadow paint, brightest = edge highlight.
+5. **Draw.** Recolor each band's pixels semi-transparently onto the photo + legend chip: paint name
+   + coverage note ("top ~15% / raised edges only").
 
-Trustworthy because it is the same physics as zenithal priming — a technique painters already
-trust their eyes on; we compute it instead of spray-can-guessing.
+Trustworthy because it reads the light the sculpt *actually* catches, rather than guessing geometry
+from a single view. Aligns with real workflow: highlights are planned at the primed/undercoat stage.
+
+**Important scope consequence:** luminance-as-relief assumes a roughly **monochrome primed/undercoat
+surface**. On an already-multicolour-basecoated mini, luminance conflates dark paint with shadow.
+v1 therefore targets the **primed/zenithal-primed stage**. Colored-mini support (depth mask +
+high-pass local-contrast, or per-region normalization) is deferred to v2.
 
 ## 7. Decisions locked in
 
@@ -117,15 +131,16 @@ trust their eyes on; we compute it instead of spray-can-guessing.
 
 ## 9. Risks & de-risking
 
-- **Depth/normals may be noisy on small, oddly-lit phone photos.** → **De-risk FIRST** with a
-  throwaway spike: feed one real mini photo through a monocular depth model (Depth-Anything),
-  derive normals, eyeball the intensity map. If it is garbage on minis, rethink before building
-  anything else. This is the make-or-break test — hence it is task #1.
+- **Depth/normals may be noisy on small, oddly-lit phone photos.** → **RESOLVED by spike
+  (2026-08-09).** Confirmed the naive depth→normals→light approach fails (too smooth); pivoted to
+  depth-mask + luminance-relief, which passed on a real primed-mini photo. See Section 6.
+- **Luminance-relief only valid on monochrome primed surfaces.** → v1 scoped to the primed/undercoat
+  stage (Section 6); colored-mini support deferred to v2.
 - **LLM region masks are rough in v1.** → Accepted; manual override + SAM upgrade path.
 - **Color accuracy under camera lighting.** → v1 guides *placement* only; exact color-matching is
   explicitly out of scope for v1.
 - **2D overlay guiding a 3D object.** → Framed as *guidance*, not paint-by-numbers; encourage a
-  zenithal-primed reference photo.
+  zenithal-primed reference photo (which also gives the cleanest luminance signal).
 
 ## 10. Testing strategy
 
