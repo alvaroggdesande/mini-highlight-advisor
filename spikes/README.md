@@ -81,6 +81,28 @@ python spikes/preview_spike.py spikes/input/<mini>.png --bands 5 --alpha-thresh 
 python spikes/preview_spike.py <img> --palette "Abaddon Black:#14151a,Leadbelcher:#4b4f54,Dawnstone:#71767b,Administratum Grey:#a9adb0,White Scar:#eef0f2"
 ```
 
+## 5. `sam_spike.py` — SAM automatic region segmentation on a primed mini
+
+**Question:** does Segment Anything (a **local** CV model — no API/no network) carve a
+*monochrome primed* mini into usable region blobs (blade / robe / arm / base), or does the lack of
+colour starve it? This is the one open unknown in the offline **"SAM + manual labelling"** region
+plan (see `docs/superpowers/specs/2026-08-09-roadmap-and-idea-assessment.md`): SAM proposes masks
+locally, the user names them.
+
+**Result: PENDING** — run it on the `skaven-hero` fixture pair. GOOD = big blobs land on real parts
+(blade, robe, limb, base, head) with sensible boundaries → regions can be SAM-assisted. BAD = noise
+confetti / one blob eats the whole figure / boundaries ignore the sculpt → regions must be fully
+manual. Result decides the region-feature design.
+
+Run:
+```
+.venv/Scripts/python spikes/sam_spike.py fixtures/skaven-hero/primed.png
+# denser grid = more/finer masks but slower on CPU:
+.venv/Scripts/python spikes/sam_spike.py fixtures/skaven-hero/primed.png --points-per-side 24
+```
+First run downloads the SAM checkpoint (`facebook/sam-vit-base`, ~375MB) to the HF cache. Output:
+`spikes/out/<name>_sam_overlay.png`.
+
 ## Environment
 
 CPU-only PyTorch + transformers + opencv + matplotlib, in `.venv` (Python 3.11).

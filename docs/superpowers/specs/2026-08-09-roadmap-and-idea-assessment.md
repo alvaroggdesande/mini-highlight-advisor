@@ -132,3 +132,29 @@ Two strategic directions, can't do both at once:
 Recommendation: do the **enabler arc (palette + reference-labeled regions)** first —
 it serves the niche *and* de-risks the widen-the-funnel bet, because reference-labeling
 and region support are prerequisites for colored-mini anyway.
+
+## Decision addendum (2026-08-09, session 2)
+
+**Locked: the tool stays OFFLINE / FREE. Region support = "SAM + manual".**
+
+Clarified the SAM-vs-Claude confusion. The two halves of region support are solved by
+different models:
+
+- **Geometry ("where are the regions") → SAM** — a *local* CV model (same category as
+  the depth model the app already runs). Offline, free per image, no API. Produces
+  *unlabeled* blobs; it does not know what a "robe" is.
+- **Semantics ("what is each blob") → a vision LLM (Claude)** — an *API* call: online,
+  costs money per upload. The current app has **zero LLM in it** and we're keeping it
+  that way for now.
+
+**Chosen approach = B (SAM + manual):** SAM proposes region blobs locally; the *user*
+names each blob and picks its palette (the painted reference helps the user decide,
+but no automatic labeling). Auto-labeling with Claude (approach A) is deferred to a
+future opt-in toggle — a small swap on top, not a rewrite.
+
+**Remaining unknown → one spike.** SAM proposing blobs is the shared foundation under
+both the offline and future-API versions, so it must be validated either way. The
+only open question: **does SAM produce usable region blobs on a *monochrome primed*
+mini, or does the lack of colour starve it?** De-risked by `spikes/sam_spike.py`
+(spike #5) on the `skaven-hero` fixture pair. Everything region-related waits on that
+result.
