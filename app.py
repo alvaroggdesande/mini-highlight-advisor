@@ -42,19 +42,21 @@ if uploaded is not None:
         for role, paint, cov in zip(result.roles, palette, result.coverage):
             st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
         st.subheader("Paint-along steps")
-        st.caption("Work dark to light. 'Where to paint' = the zone for this paint "
-                   "(bright marker); 'Apply across' = that zone in the paint colour; "
-                   "'Ends up here' = the slice that stays this colour after you highlight over it.")
+        st.caption("Work dark to light. 'Where to paint' = the whole zone for this paint "
+                   "(bright marker); 'Apply across' = that same whole zone in the paint colour; "
+                   "'Stays this colour' = the smaller slice that remains this colour after you paint "
+                   "the lighter layers over the rest.")
         for step, role, paint, cov in zip(result.steps, result.roles, palette, result.coverage):
-            st.markdown(f"**Step {step.index + 1} — {role} · {paint.name}**  ·  ~{cov:.0f}% of the model")
+            cum_cov = sum(result.coverage[step.index:])
+            st.markdown(f"**Step {step.index + 1} — {role} · {paint.name}**")
             if step.is_last:
                 c1, c2 = st.columns(2)
                 c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-                c2.image(step.cumulative_rgb, caption="Apply across", use_container_width=True)
+                c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
             else:
                 c1, c2, c3 = st.columns(3)
                 c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-                c2.image(step.cumulative_rgb, caption="Apply across", use_container_width=True)
-                c3.image(step.exact_rgb, caption="Ends up here", use_container_width=True)
+                c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
+                c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
     finally:
         os.unlink(tmp_path)
