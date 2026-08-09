@@ -1,5 +1,6 @@
 import os
 import tempfile
+from collections import Counter
 
 import streamlit as st
 
@@ -22,7 +23,6 @@ st.caption(
 )
 
 CATALOG = load_catalog()
-CATALOG_NAMES = [p.name for p in CATALOG]  # used by Miniature tab (Task 7 will rewrite)
 CUSTOM = "(custom target)"
 CODE_LABEL = {p.code: f"{p.name} · {p.paint_range or ''} · {p.code}" for p in CATALOG}
 CATALOG_CODES = [p.code for p in CATALOG]
@@ -70,12 +70,15 @@ with tab_mini:
     # --- recipe loader ---
     recipes = load_all()
     recipe_by_name = {r.name: r for r in recipes}
+    name_counts = Counter(p.name for p in CATALOG)  # add: from collections import Counter
     choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
     if st.button("Load") and choice != "(none)":
         pal = to_palette(recipe_by_name[choice])
         st.session_state["n"] = max(3, min(5, len(pal)))
         for i, p in enumerate(pal[:st.session_state["n"]]):
-            st.session_state[f"slot_name_{i}"] = p.name if p.name in CATALOG_NAMES else CUSTOM
+            match = find_by_name(CATALOG, p.name)
+            unique = name_counts.get(p.name) == 1
+            st.session_state[f"slot_code_{i}"] = match.code if (match and unique) else CUSTOM
             st.session_state[f"slot_hex_{i}"] = p.hex
         st.rerun()
 
@@ -86,41 +89,43 @@ with tab_mini:
     n = st.slider("Number of layers", 3, 5, key="n")
     st.markdown("**Palette** (dark to light)")
     palette = []
+    options = CATALOG_CODES + [CUSTOM]
     for i in range(n):
         default = DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)]
-        # Seed slot keys before the widgets that own them are created.
-        st.session_state.setdefault(f"slot_name_{i}", default.name)
+        st.session_state.setdefault(f"slot_code_{i}", default.code)
         st.session_state.setdefault(f"slot_hex_{i}", default.hex)
-        default_name = st.session_state[f"slot_name_{i}"]
-        if default_name not in CATALOG_NAMES:
-            default_name = CUSTOM
+        default_code = st.session_state[f"slot_code_{i}"]
+        if default_code != CUSTOM and find_by_code(CATALOG, default_code) is None:
+            default_code = CUSTOM
         c1, c2, c3 = st.columns([3, 1, 1])
         sel = c1.selectbox(
-            f"Layer {i + 1}", CATALOG_NAMES + [CUSTOM],
-            index=(CATALOG_NAMES + [CUSTOM]).index(default_name), key=f"slot_name_{i}",
+            f"Layer {i + 1}", options,
+            index=options.index(default_code),
+            format_func=lambda c: CUSTOM if c == CUSTOM else CODE_LABEL.get(c, c),
+            key=f"slot_code_{i}",
         )
         if sel == CUSTOM:
             hexv = c2.color_picker(
                 f"hex {i + 1}", key=f"slot_hex_{i}", label_visibility="collapsed",
             )
-            palette.append(PaintColor(f"Custom {i + 1}", hexv))
-        else:
-            paint = find_by_name(CATALOG, sel)
-            if paint is None:
-                seeded_hex = st.session_state.get(f"slot_hex_{i}", DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)].hex)
-                paint = PaintColor(sel, seeded_hex)
-            c2.color_picker(f"hex {i + 1}", value=paint.hex, key=f"view_hex_{i}",
-                            disabled=True, label_visibility="collapsed")
+            paint = PaintColor(f"Custom {i + 1}", hexv)
             palette.append(paint)
-        # owned badge for this slot
-        status = annotate_ownership([palette[-1]], owned_paints)[0]
-        c3.write("✅ owned" if status.owned else "⚠️ not owned")
+            near = collection.nearest_paint(paint.rgb, CATALOG)
+            if near is not None:
+                owned_badge = "✅ owned" if near.code in set(picked) else "⚠️ not owned"
+                c3.caption(f"Closest: {near.name} · {near.paint_range or ''} · {near.code} ({owned_badge})")
+        else:
+            paint = find_by_code(CATALOG, sel)
+            c2.markdown(_swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
+            palette.append(paint)
+            status = annotate_ownership([paint], owned_paints)[0]
+            c3.write("✅ owned" if status.owned else "⚠️ not owned")
 
     # --- Save current palette as a recipe ---
     with st.expander("Save as recipe"):
         rname = st.text_input("Recipe name", key="save_name")
         if st.button("Save recipe") and rname.strip():
-            steps = [RecipeStep(label=r, hex=p.hex, paint_ref=(p.name if p.name in CATALOG_NAMES else None))
+            steps = [RecipeStep(label=r, hex=p.hex, paint_ref=(p.name if p.code else None))
                      for r, p in zip(role_names(n), palette)]
             save_user(Recipe(rname.strip(), steps))
             st.success(f"Saved recipe '{rname.strip()}'.")
