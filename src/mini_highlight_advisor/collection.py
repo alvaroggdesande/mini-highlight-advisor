@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,11 +12,24 @@ from .palette import PaintColor
 COLLECTION_PATH = Path(__file__).resolve().parents[2] / "user_data" / "collection.json"
 
 
-def load(path: Path = COLLECTION_PATH) -> set[str]:
+def load(path: Path = COLLECTION_PATH, catalog: list[PaintColor] | None = None) -> set[str]:
     path = Path(path)
     if not path.exists():
         return set()
-    return set(json.loads(path.read_text(encoding="utf-8")).get("owned", []))
+    stored = set(json.loads(path.read_text(encoding="utf-8")).get("owned", []))
+    if catalog is None:
+        return stored
+    codes = {p.code for p in catalog}
+    name_counts = Counter(p.name for p in catalog)
+    by_name = {p.name: p.code for p in catalog}
+    result: set[str] = set()
+    for entry in stored:
+        if entry in codes:
+            result.add(entry)
+        elif name_counts.get(entry) == 1:
+            result.add(by_name[entry])
+        # otherwise: unknown or ambiguous legacy name -> drop
+    return result
 
 
 def save(owned: set[str], path: Path = COLLECTION_PATH) -> None:
