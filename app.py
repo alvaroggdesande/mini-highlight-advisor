@@ -3,7 +3,7 @@ import tempfile
 
 import streamlit as st
 
-from mini_highlight_advisor.catalog import load_catalog, find_by_name
+from mini_highlight_advisor.catalog import load_catalog, find_by_name, find_by_code
 from mini_highlight_advisor.collection import annotate_ownership
 from mini_highlight_advisor import collection
 from mini_highlight_advisor.masking import load_image
@@ -22,8 +22,18 @@ st.caption(
 )
 
 CATALOG = load_catalog()
-CATALOG_NAMES = [p.name for p in CATALOG]
+CATALOG_NAMES = [p.name for p in CATALOG]  # used by Miniature tab (Task 7 will rewrite)
 CUSTOM = "(custom target)"
+CODE_LABEL = {p.code: f"{p.name} · {p.paint_range or ''} · {p.code}" for p in CATALOG}
+CATALOG_CODES = [p.code for p in CATALOG]
+
+
+def _swatch(hexv: str, size: str = "1em") -> str:
+    return (
+        f"<span style='display:inline-block;width:{size};height:{size};"
+        f"background-color:{hexv};border:1px solid #888;"
+        f"vertical-align:middle;margin-right:0.5em'></span>"
+    )
 
 tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
 
@@ -35,27 +45,23 @@ tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
 # --- 🎨 Paints tab: inventory ---
 with tab_paints:
     st.markdown("**My paints** (Vallejo)")
-    owned_names = collection.load()
+    owned_codes = collection.load(catalog=CATALOG)
     picked = st.multiselect(
-        "Paints you own", CATALOG_NAMES,
-        default=sorted(owned_names & set(CATALOG_NAMES)),
+        "Paints you own", CATALOG_CODES,
+        default=sorted(owned_codes & set(CATALOG_CODES)),
+        format_func=lambda c: CODE_LABEL.get(c, c),
         key="owned",
     )
-    if set(picked) != owned_names:
+    if set(picked) != owned_codes:
         collection.save(set(picked))
-    owned_paints = [p for name in picked if (p := find_by_name(CATALOG, name)) is not None]
+    owned_paints = [p for c in picked if (p := find_by_code(CATALOG, c)) is not None]
 
     st.markdown("**Owned paints**")
     if not owned_paints:
         st.caption("No paints selected yet — tick the paints you own above.")
     for p in owned_paints:
-        swatch = (
-            f"<span style='display:inline-block;width:1em;height:1em;"
-            f"background-color:{p.hex};border:1px solid #888;"
-            f"vertical-align:middle;margin-right:0.5em'></span>"
-        )
         rng = p.paint_range or ""
-        st.markdown(f"{swatch}{p.name} · {rng}", unsafe_allow_html=True)
+        st.markdown(f"{_swatch(p.hex)}{p.name} · {rng} · {p.code}", unsafe_allow_html=True)
 
     st.caption(f"Catalogue: {len(CATALOG)} paints (Vallejo Model Color + Game Color)")
 
