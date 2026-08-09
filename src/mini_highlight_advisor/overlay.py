@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+import os
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+_COVERAGE_NOTES = {
+    "Shadow": "deepest recesses",
+    "Base": "the main body of the surface",
+    "Midtone": "flat, gently-lit panels",
+    "Highlight": "raised areas facing the light",
+    "Edge Highlight": "sharpest top edges only",
+}
+
+
+def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
+    base = rgb.astype(np.float32)
+    out = base.copy()
+    out[~mask] = out[~mask] * 0.25
+    for b, color in enumerate(colors):
+        m = (bands == b) & mask
+        out[m] = (1 - alpha) * base[m] + alpha * color
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def _font(size: int):
+    for path in (r"C:\Windows\Fonts\segoeui.ttf", r"C:\Windows\Fonts\arial.ttf"):
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
+
+
+def render_legend(colors, names, roles, coverage, height: int, width: int = 430) -> Image.Image:
+    img = Image.new("RGB", (width, height), (26, 27, 32))
+    d = ImageDraw.Draw(img)
+    title_f, role_f, body_f, small_f = _font(26), _font(21), _font(18), _font(15)
+    d.text((20, 18), "Highlight plan", font=title_f, fill=(240, 240, 245))
+    d.text((20, 52), "dark to light  (paint in this order)", font=small_f, fill=(150, 152, 160))
+    n = len(colors)
+    top, sw = 92, 54
+    row_h = min(96, (height - top - 16) // max(n, 1))
+    for i in range(n):
+        y = top + i * row_h
+        rgb = tuple(int(v) for v in colors[i])
+        d.rectangle([20, y, 20 + sw, y + sw], fill=rgb, outline=(70, 72, 80), width=2)
+        d.text((20, y + sw + 2), str(i + 1), font=small_f, fill=(150, 152, 160))
+        tx = 20 + sw + 18
+        d.text((tx, y), roles[i], font=role_f, fill=(235, 236, 240))
+        d.text((tx, y + 26), names[i], font=body_f, fill=(190, 192, 200))
+        note = _COVERAGE_NOTES.get(roles[i], "")
+        d.text((tx, y + 50), f"~{coverage[i]:.0f}% - {note}", font=small_f, fill=(150, 152, 160))
+    return img
+
+
+def compose_panel(original_rgb, preview_rgb, legend: Image.Image, gap: int = 10) -> Image.Image:
+    imgs = [Image.fromarray(original_rgb), Image.fromarray(preview_rgb), legend]
+    h = max(i.height for i in imgs)
+    w = sum(i.width for i in imgs) + gap * (len(imgs) - 1)
+    canvas = Image.new("RGB", (w, h), (26, 27, 32))
+    x = 0
+    for im in imgs:
+        canvas.paste(im, (x, (h - im.height) // 2))
+        x += im.width + gap
+    return canvas
