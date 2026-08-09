@@ -56,7 +56,7 @@ def per_band_images(rgb, bands, mask, colors, alpha: float = 0.78) -> list[BandS
 def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
     base = rgb.astype(np.float32)
     out = base.copy()
-    out[~mask] = out[~mask] * 0.25
+    out[~mask] = out[~mask] * _DIM
     for b, color in enumerate(colors):
         m = (bands == b) & mask
         out[m] = (1 - alpha) * base[m] + alpha * color

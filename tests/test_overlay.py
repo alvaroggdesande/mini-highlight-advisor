@@ -112,6 +112,8 @@ def test_nonactive_interior_pixel_is_dimmed():
     # adjacent to any band-2 pixel, so it is neither painted nor on the outline.
     out = steps[2].cumulative_rgb
     assert out[0, 0].sum() < rgb[0, 0].sum()
+    # tighten to verify exact 0.25 dim factor: 100 * 0.25 = 25 per channel
+    assert np.allclose(out[0, 0], [25, 25, 25])
 
 
 def test_output_shape_and_dtype_match_input():
