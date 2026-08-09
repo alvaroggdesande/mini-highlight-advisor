@@ -1,0 +1,24 @@
+{
+  "recipes": [
+    {
+      "name": "NMM Copper",
+      "steps": [
+        {"label": "Shadow", "hex": "#3D2A25", "paint_ref": "Charred Brown"},
+        {"label": "Base", "hex": "#A75A38", "paint_ref": "Orange Brown"},
+        {"label": "Midtone", "hex": "#E15E32", "paint_ref": "Bright Orange"},
+        {"label": "Highlight", "hex": "#EAA88C", "paint_ref": "Beige Red"},
+        {"label": "Edge Highlight", "hex": "#F5F5F3", "paint_ref": "Off-White"}
+      ]
+    },
+    {
+      "name": "NMM Gold",
+      "steps": [
+        {"label": "Shadow", "hex": "#3C2E2B", "paint_ref": "German Camouflage Black Brown"},
+        {"label": "Deep Shadow", "hex": "#B35928", "paint_ref": "Parasite Brown"},
+        {"label": "Midtone", "hex": "#FFCE00", "paint_ref": "Gold Yellow"},
+        {"label": "Highlight", "hex": "#EBE06E", "paint_ref": "Toxic Yellow"},
+        {"label": "Extreme Edge Highlight", "hex": "#F5F5F3", "paint_ref": "Off-White"}
+      ]
+    }
+  ]
+}

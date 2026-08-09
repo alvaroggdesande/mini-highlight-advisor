@@ -18,6 +18,9 @@ spikes/input/
 *.png
 !docs/**/*.png
 
+# Local user data (owned paints + saved recipes)
+user_data/
+
 # OS
 Thumbs.db
 .DS_Store

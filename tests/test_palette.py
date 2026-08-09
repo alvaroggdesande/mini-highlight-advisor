@@ -32,3 +32,33 @@ def test_coverage_pct_counts_within_mask():
     pct = coverage_pct(bands, mask, 2)
     assert abs(pct[0] - 100 / 3) < 1e-6
     assert abs(pct[1] - 200 / 3) < 1e-6
+
+
+def test_paintcolor_optional_brand_range():
+    p = PaintColor("Neutral Grey", "#6d7173", brand="Vallejo", paint_range="Model Color")
+    assert p.brand == "Vallejo"
+    assert p.paint_range == "Model Color"
+
+
+def test_paintcolor_still_constructs_with_name_hex_only():
+    p = PaintColor("White", "#ffffff")
+    assert p.brand is None and p.paint_range is None
+    assert np.allclose(p.rgb, [255, 255, 255])
+
+
+def test_default_palette_is_vallejo():
+    assert len(DEFAULT_PALETTE) == 5
+    assert all(c.brand == "Vallejo" for c in DEFAULT_PALETTE)
+    lums = [c.rgb.mean() for c in DEFAULT_PALETTE]
+    assert lums == sorted(lums)  # dark to light
+
+
+def test_paintcolor_has_code_default_empty():
+    from mini_highlight_advisor.palette import PaintColor
+    p = PaintColor("Custom 1", "#123456")
+    assert p.code == ""
+
+
+def test_default_palette_entries_have_codes():
+    from mini_highlight_advisor.palette import DEFAULT_PALETTE
+    assert all(p.code for p in DEFAULT_PALETTE)
