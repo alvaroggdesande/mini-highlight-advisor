@@ -99,7 +99,11 @@ A grey/black-primed mini photographed under normal light is itself a shading map
    fine relief survives, contrast-stretch *within the mask*. This yields a per-pixel 0-1 light map
    with real per-detail structure. (For a zenithal-primed model this map is essentially the answer.)
 3. **Band** the light map into N bands (N = region's recommended layer count), boundaries per a
-   per-technique curve (not necessarily equal-width).
+   per-technique curve (not necessarily equal-width). **Confirmed necessary by the preview spike
+   (2026-08-09):** equal-width bands over-allocate the top layers (one mini put ~34% of its surface
+   in "Highlight" and ~16% in "Edge Highlight" — far too much for sharp top edges). Upper bands must
+   be made progressively thinner (gamma/quantile curve), and coverage may need per-region
+   normalization.
 4. **Map bands → palette.** Darkest = shadow paint, brightest = edge highlight.
 5. **Draw.** Recolor each band's pixels semi-transparently onto the photo + legend chip: paint name
    + coverage note ("top ~15% / raised edges only").

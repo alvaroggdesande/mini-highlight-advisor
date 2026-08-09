@@ -57,6 +57,30 @@ Run:
 python spikes/shading_spike.py spikes/input/<mini>.png --bands 5 --alpha-thresh 200
 ```
 
+## 4. Paint-labelled preview — "what the tool would output"
+
+`preview_spike.py` turns the abstract bands into a painter-facing mockup: mask + luminance light
+→ band → paint each band with a **real named paint colour** → render `original | painted preview |
+legend`. The legend shows, per layer (dark→light): swatch, role (Shadow/Base/Midtone/Highlight/
+Edge Highlight), paint name, coverage %, and a plain-English note.
+
+**Result: the palette + legend concept works and reads convincingly** across all three working
+minis (static Infinity figure, crouched creature, leaping creature w/ scenic base). Recesses land
+in shadow, raised plates rise through the mids, sharp top edges get the edge-highlight colour.
+
+**Validated learning — banding needs a per-technique curve, not equal width.** With equal-width
+intensity bands the Infinity mini put ~34% of its surface in the Highlight band and ~16% in Edge
+Highlight — too much for a realistic "sharp edges only" top layer. The grey creatures banded more
+naturally (~14% edge). Confirms the spec's plan to make band boundaries follow a per-technique
+curve (upper bands thinner), and to consider per-region normalization.
+
+Run:
+```
+python spikes/preview_spike.py spikes/input/<mini>.jpg --bands 5
+python spikes/preview_spike.py spikes/input/<mini>.png --bands 5 --alpha-thresh 200
+python spikes/preview_spike.py <img> --palette "Abaddon Black:#14151a,Leadbelcher:#4b4f54,Dawnstone:#71767b,Administratum Grey:#a9adb0,White Scar:#eef0f2"
+```
+
 ## Environment
 
 CPU-only PyTorch + transformers + opencv + matplotlib, in `.venv` (Python 3.11).
