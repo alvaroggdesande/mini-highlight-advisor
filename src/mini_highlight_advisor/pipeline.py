@@ -8,7 +8,7 @@ from PIL import Image
 from .banding import band_light
 from .lighting import luminance_light
 from .masking import compute_mask
-from .overlay import compose_panel, paint_preview, render_legend
+from .overlay import BandStep, compose_panel, paint_preview, per_band_images, render_legend
 from .palette import PaintColor, coverage_pct, default_coverage, role_names
 
 
@@ -21,6 +21,7 @@ class HighlightResult:
     roles: list[str]
     preview_rgb: np.ndarray
     panel: Image.Image
+    steps: list[BandStep]
 
 
 def analyze(rgb: np.ndarray, alpha: np.ndarray | None, palette: list[PaintColor]) -> HighlightResult:
@@ -38,4 +39,6 @@ def analyze(rgb: np.ndarray, alpha: np.ndarray | None, palette: list[PaintColor]
     legend = render_legend(colors, names, roles, coverage, height=preview_rgb.shape[0])
     panel = compose_panel(rgb, preview_rgb, legend)
 
-    return HighlightResult(mask, light, bands, coverage, roles, preview_rgb, panel)
+    steps = per_band_images(rgb, bands, mask, colors)
+
+    return HighlightResult(mask, light, bands, coverage, roles, preview_rgb, panel, steps)
