@@ -74,3 +74,14 @@ def test_valid_paints_pass_validation():
         {"name": "Dead White", "hex": "#F3F3EE"},  # brand/range optional, hex case-insensitive
     ]
     assert validate_catalog(paints) is None
+
+
+def test_find_by_code_resolves_known_paint():
+    from mini_highlight_advisor.catalog import load_catalog, find_by_code
+    p = find_by_code(load_catalog(), "72.045")
+    assert p is not None and p.name == "Charred Brown"
+
+
+def test_find_by_code_missing_returns_none():
+    from mini_highlight_advisor.catalog import load_catalog, find_by_code
+    assert find_by_code(load_catalog(), "99.999") is None

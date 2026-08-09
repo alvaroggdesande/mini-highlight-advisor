@@ -51,3 +51,14 @@ def test_default_palette_is_vallejo():
     assert all(c.brand == "Vallejo" for c in DEFAULT_PALETTE)
     lums = [c.rgb.mean() for c in DEFAULT_PALETTE]
     assert lums == sorted(lums)  # dark to light
+
+
+def test_paintcolor_has_code_default_empty():
+    from mini_highlight_advisor.palette import PaintColor
+    p = PaintColor("Custom 1", "#123456")
+    assert p.code == ""
+
+
+def test_default_palette_entries_have_codes():
+    from mini_highlight_advisor.palette import DEFAULT_PALETTE
+    assert all(p.code for p in DEFAULT_PALETTE)

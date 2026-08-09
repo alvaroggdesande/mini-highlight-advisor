@@ -11,6 +11,7 @@ class PaintColor:
     hex: str
     brand: str | None = None
     paint_range: str | None = None
+    code: str = ""
 
     @property
     def rgb(self) -> np.ndarray:
@@ -20,11 +21,11 @@ class PaintColor:
 
 # Vallejo greyscale ramp (dark -> light). Hexes are approximate screen-swatches.
 DEFAULT_PALETTE = [
-    PaintColor("Black", "#1b1b1b", "Vallejo", "Model Color"),
-    PaintColor("German Grey", "#3f4442", "Vallejo", "Model Color"),
-    PaintColor("Neutral Grey", "#6d7173", "Vallejo", "Model Color"),
-    PaintColor("Light Grey", "#a7a9a6", "Vallejo", "Model Color"),
-    PaintColor("Dead White", "#f3f3ee", "Vallejo", "Model Color"),
+    PaintColor("Black", "#1b1b1b", "Vallejo", "Model Color", code="70.950"),
+    PaintColor("German Grey", "#3f4442", "Vallejo", "Model Color", code="70.995"),
+    PaintColor("Neutral Grey", "#6d7173", "Vallejo", "Model Color", code="70.991"),
+    PaintColor("Light Grey", "#a7a9a6", "Vallejo", "Model Color", code="70.990"),
+    PaintColor("Dead White", "#f3f3ee", "Vallejo", "Model Color", code="70.951"),
 ]
 
 _ROLES = {

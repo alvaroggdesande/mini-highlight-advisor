@@ -48,6 +48,7 @@ def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
             hex=p["hex"],
             brand=p.get("brand"),
             paint_range=p.get("range"),
+            code=p.get("code", ""),
         )
         for p in paints
     ]
@@ -56,5 +57,12 @@ def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
 def find_by_name(catalog: list[PaintColor], name: str) -> PaintColor | None:
     for p in catalog:
         if p.name == name:
+            return p
+    return None
+
+
+def find_by_code(catalog: list[PaintColor], code: str) -> PaintColor | None:
+    for p in catalog:
+        if p.code == code:
             return p
     return None
