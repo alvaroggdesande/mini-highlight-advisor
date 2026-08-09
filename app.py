@@ -33,11 +33,13 @@ if uploaded is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(uploaded.getbuffer())
         tmp_path = tmp.name
-    with st.spinner("Analyzing (first run downloads the depth model if no alpha channel)..."):
-        rgb, alpha = load_image(tmp_path)
-        result = analyze(rgb, alpha, palette)
-    st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_column_width=True)
-    st.subheader("Layer guide (paint dark to light)")
-    for role, paint, cov in zip(result.roles, palette, result.coverage):
-        st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
-    os.unlink(tmp_path)
+    try:
+        with st.spinner("Analyzing (first run downloads the depth model if no alpha channel)..."):
+            rgb, alpha = load_image(tmp_path)
+            result = analyze(rgb, alpha, palette)
+        st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_container_width=True)
+        st.subheader("Layer guide (paint dark to light)")
+        for role, paint, cov in zip(result.roles, palette, result.coverage):
+            st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
+    finally:
+        os.unlink(tmp_path)
