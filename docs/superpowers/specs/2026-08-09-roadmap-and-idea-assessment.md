@@ -132,3 +132,54 @@ Two strategic directions, can't do both at once:
 Recommendation: do the **enabler arc (palette + reference-labeled regions)** first —
 it serves the niche *and* de-risks the widen-the-funnel bet, because reference-labeling
 and region support are prerequisites for colored-mini anyway.
+
+## Decision addendum (2026-08-09, session 2)
+
+**Locked: the tool stays OFFLINE / FREE. Region support = "SAM + manual".**
+
+Clarified the SAM-vs-Claude confusion. The two halves of region support are solved by
+different models:
+
+- **Geometry ("where are the regions") → SAM** — a *local* CV model (same category as
+  the depth model the app already runs). Offline, free per image, no API. Produces
+  *unlabeled* blobs; it does not know what a "robe" is.
+- **Semantics ("what is each blob") → a vision LLM (Claude)** — an *API* call: online,
+  costs money per upload. The current app has **zero LLM in it** and we're keeping it
+  that way for now.
+
+**Chosen approach = B (SAM + manual):** SAM proposes region blobs locally; the *user*
+names each blob and picks its palette (the painted reference helps the user decide,
+but no automatic labeling). Auto-labeling with Claude (approach A) is deferred to a
+future opt-in toggle — a small swap on top, not a rewrite.
+
+**Remaining unknown → one spike.** SAM proposing blobs is the shared foundation under
+both the offline and future-API versions, so it must be validated either way. The
+only open question: **does SAM produce usable region blobs on a *monochrome primed*
+mini, or does the lack of colour starve it?** De-risked by `spikes/sam_spike.py`
+(spike #5) on the `skaven-hero` fixture pair.
+
+**SPIKE RESULT (2026-08-09): NO — SAM regions are off the table.** SAM is an *object*
+segmenter, not a *part* segmenter: every click on the body (torso/arm/head/robe) grew
+the same whole-figure mask; only detached objects (blade, base) separated. The input
+was a good grey-primer photo, so this is fundamental, not input quality. SAM gives us
+only what depth/alpha already give (whole silhouette) + detached objects.
+
+**Revised region plan:** internal regions require **manual brush/lasso** (works on any
+photo, zero ML risk); SAM auto/assist is dropped. Because manual regions are now a
+non-trivial UI project, the recommended next move is to **pivot to the other
+foundation first — own-palette input (#4)** — which has zero region risk, delivers
+value immediately, and unsticks mixing (#3) + brand DB (#5). Manual-region support
+becomes its own later design.
+
+**Design note for the future manual-region feature — lasso precision vs edge-highlight
+correctness.** A concern: a hand-drawn lasso won't be pixel-perfect. It doesn't need to
+be. **The lasso only assigns *which paints/technique* apply to an area; it does NOT
+place the highlights — luminance does.** Each band (including the edge highlight) is the
+brightest-quantile of luminance *within* the region, i.e. it reads the light the sculpt
+actually catches. So edge highlights *inside* a region are robust to a loose lasso. The
+only sensitivity is at **region seams**: a lasso that bleeds into a neighbour can put one
+region's edge-highlight colour on the other's bright rim. Mitigations: (a) add/subtract
+refine brush; (b) edge-snap the lasso to the sculpt's own luminance/depth edge; (c)
+exclusive pixel assignment + feathered boundaries. Note the seam is *semantically* where
+a separating edge highlight belongs (edge-highlight-as-region-separation), so it is a
+feature to exploit, not only a defect to fix.

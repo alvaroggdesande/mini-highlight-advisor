@@ -81,6 +81,39 @@ python spikes/preview_spike.py spikes/input/<mini>.png --bands 5 --alpha-thresh 
 python spikes/preview_spike.py <img> --palette "Abaddon Black:#14151a,Leadbelcher:#4b4f54,Dawnstone:#71767b,Administratum Grey:#a9adb0,White Scar:#eef0f2"
 ```
 
+## 5. `sam_spike.py` — SAM automatic region segmentation on a primed mini
+
+**Question:** does Segment Anything (a **local** CV model — no API/no network) carve a
+*monochrome primed* mini into usable region blobs (blade / robe / arm / base), or does the lack of
+colour starve it? This is the one open unknown in the offline **"SAM + manual labelling"** region
+plan (see `docs/superpowers/specs/2026-08-09-roadmap-and-idea-assessment.md`): SAM proposes masks
+locally, the user names them.
+
+**Result: NO — SAM cannot carve internal regions on a monochrome mini (2026-08-09).**
+- *auto mode*: found only the bright detached blade + the base; the whole body was starved.
+- *prompt mode* (grey primer, CLAHE-enhanced, 4 body clicks): **every** body click — torso, arm,
+  head, robe — grew the **same single whole-figure mask**. The base separated (detached), the
+  blade separated (detached + not clicked); nothing internal did.
+- Root cause: **SAM segments whole *objects*, not sub-parts of one object.** A mini is one
+  connected object; robe/arm/cloak/skin share no object boundary. On a monochrome primer there are
+  no colour/material cues to override that. The grey-primer input was GOOD → this is **fundamental,
+  not input quality**. Contrast/exposure/grid-density do not fix it.
+
+**Consequence:** SAM gives us only what depth/alpha already give (whole silhouette) plus detached
+objects (blade, base). Internal material regions must come from another route: (a) **manual
+brush/lasso** (works on any photo, zero ML), (b) depth-curvature part segmentation (research), or
+(c) interactive positive+negative-point refinement (fiddly, uncertain, needs a UI). **Region
+auto-detect is off the table.**
+
+Run:
+```
+.venv/Scripts/python spikes/sam_spike.py fixtures/skaven-hero/primed.png
+# denser grid = more/finer masks but slower on CPU:
+.venv/Scripts/python spikes/sam_spike.py fixtures/skaven-hero/primed.png --points-per-side 24
+```
+First run downloads the SAM checkpoint (`facebook/sam-vit-base`, ~375MB) to the HF cache. Output:
+`spikes/out/<name>_sam_overlay.png`.
+
 ## Environment
 
 CPU-only PyTorch + transformers + opencv + matplotlib, in `.venv` (Python 3.11).
