@@ -100,3 +100,13 @@ def test_find_by_code_resolves_known_paint():
 def test_find_by_code_missing_returns_none():
     from mini_highlight_advisor.catalog import load_catalog, find_by_code
     assert find_by_code(load_catalog(), "99.999") is None
+
+
+def test_reverted_names_collide_but_load_by_code():
+    from mini_highlight_advisor.catalog import load_catalog, find_by_code
+    cat = load_catalog()
+    # Two "Dead White" now coexist, distinguished only by code.
+    assert find_by_code(cat, "70.951").name == "Dead White"      # Model Color
+    assert find_by_code(cat, "72.001").name == "Dead White"      # Game Color
+    assert find_by_code(cat, "72.061").name == "Khaki"           # was "Khaki game"
+    assert find_by_code(cat, "72.016").name == "Royal Purple"    # was "Royal Purple model"→ Game
