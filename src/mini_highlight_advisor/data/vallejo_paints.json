@@ -1,0 +1,18 @@
+{
+  "_note": "Approximate screen-swatch hexes, not spectrophotometer-accurate. Vallejo only; seed for multi-brand DB (#5).",
+  "paints": [
+    {"name": "Black", "brand": "Vallejo", "range": "Model Color", "hex": "#1b1b1b"},
+    {"name": "German Grey", "brand": "Vallejo", "range": "Model Color", "hex": "#3f4442"},
+    {"name": "Neutral Grey", "brand": "Vallejo", "range": "Model Color", "hex": "#6d7173"},
+    {"name": "Light Grey", "brand": "Vallejo", "range": "Model Color", "hex": "#a7a9a6"},
+    {"name": "Dead White", "brand": "Vallejo", "range": "Model Color", "hex": "#f3f3ee"},
+    {"name": "Oily Steel", "brand": "Vallejo", "range": "Model Color", "hex": "#565a5e"},
+    {"name": "Gunmetal Grey", "brand": "Vallejo", "range": "Model Color", "hex": "#42474b"},
+    {"name": "Silver", "brand": "Vallejo", "range": "Model Color", "hex": "#c9cccd"},
+    {"name": "Charred Brown", "brand": "Vallejo", "range": "Game Color", "hex": "#3D2A25"},
+    {"name": "Orange Brown", "brand": "Vallejo", "range": "Model Color", "hex": "#A75A38"},
+    {"name": "Bright Orange", "brand": "Vallejo", "range": "Game Color", "hex": "#E15E32"},
+    {"name": "Beige Red", "brand": "Vallejo", "range": "Model Color", "hex": "#EAA88C"},
+    {"name": "Off-White", "brand": "Vallejo", "range": "Model Color", "hex": "#F5F5F3"}
+  ]
+}
