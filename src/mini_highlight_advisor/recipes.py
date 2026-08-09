@@ -31,7 +31,10 @@ def _parse(data: dict) -> list[Recipe]:
 
 
 def load_builtin(path: Path = BUILTIN_PATH) -> list[Recipe]:
-    return _parse(json.loads(Path(path).read_text(encoding="utf-8")))
+    path = Path(path)
+    if not path.exists():
+        return []
+    return _parse(json.loads(path.read_text(encoding="utf-8")))
 
 
 def load_user(path: Path = USER_PATH) -> list[Recipe]:

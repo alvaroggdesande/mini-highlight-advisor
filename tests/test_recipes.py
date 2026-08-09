@@ -43,6 +43,10 @@ def test_load_user_missing_file_returns_empty(tmp_path):
     assert load_user(path=tmp_path / "nope.json") == []
 
 
+def test_load_builtin_missing_file_returns_empty(tmp_path):
+    assert load_builtin(path=tmp_path / "nope.json") == []
+
+
 def test_load_all_merges_builtin_and_user(tmp_path):
     p = tmp_path / "recipes.json"
     save_user(Recipe("Custom", [RecipeStep("s", "#333333", None)]), path=p)
