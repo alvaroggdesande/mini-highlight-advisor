@@ -9,6 +9,8 @@ import numpy as np
 class PaintColor:
     name: str
     hex: str
+    brand: str | None = None
+    paint_range: str | None = None
 
     @property
     def rgb(self) -> np.ndarray:
@@ -16,12 +18,13 @@ class PaintColor:
         return np.array([int(h[i : i + 2], 16) for i in (0, 2, 4)], dtype=np.float32)
 
 
+# Vallejo greyscale ramp (dark -> light). Hexes are approximate screen-swatches.
 DEFAULT_PALETTE = [
-    PaintColor("Abaddon Black", "#14151a"),
-    PaintColor("Leadbelcher", "#4b4f54"),
-    PaintColor("Dawnstone", "#71767b"),
-    PaintColor("Administratum Grey", "#a9adb0"),
-    PaintColor("White Scar", "#eef0f2"),
+    PaintColor("Black", "#1b1b1b", "Vallejo", "Model Color"),
+    PaintColor("German Grey", "#3f4442", "Vallejo", "Model Color"),
+    PaintColor("Neutral Grey", "#6d7173", "Vallejo", "Model Color"),
+    PaintColor("Light Grey", "#a7a9a6", "Vallejo", "Model Color"),
+    PaintColor("Dead White", "#f3f3ee", "Vallejo", "Model Color"),
 ]
 
 _ROLES = {
