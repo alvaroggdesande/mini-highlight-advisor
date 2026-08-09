@@ -37,6 +37,34 @@ MODELS = {
 }
 
 
+def load_rgba(path: str):
+    """Return (rgb_image_over_black, alpha_or_None). Background-removed PNGs carry the mask
+    in their alpha channel — use it directly instead of estimating depth."""
+    im = Image.open(path)
+    if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+        rgba = im.convert("RGBA")
+        alpha = np.asarray(rgba)[..., 3]
+        # Composite over black so transparent pixels don't leak stray colour into luminance.
+        bg = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
+        rgb = Image.alpha_composite(bg, rgba).convert("RGB")
+        return rgb, alpha
+    return im.convert("RGB"), None
+
+
+def alpha_mask(alpha: np.ndarray, thresh: int = 128) -> np.ndarray:
+    """Mask from the alpha channel: keep near-opaque pixels, drop removebg halo smudges,
+    take the largest blob, close small holes."""
+    import cv2
+
+    m = (alpha > thresh).astype(np.uint8) * 255
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
+    if n > 1:
+        biggest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+        m = np.where(labels == biggest, 255, 0).astype(np.uint8)
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    return m > 0
+
+
 def load_depth(image: Image.Image, model_key: str) -> np.ndarray:
     from transformers import pipeline
 
@@ -150,31 +178,39 @@ def main() -> int:
     ap.add_argument("image")
     ap.add_argument("--bands", type=int, default=5)
     ap.add_argument("--model", choices=list(MODELS), default="small")
+    ap.add_argument("--alpha-thresh", type=int, default=128, help="alpha cutoff for the mask (raise to drop removebg smudges)")
     args = ap.parse_args()
     if not os.path.exists(args.image):
         print(f"Image not found: {args.image}")
         return 1
 
     print("Loading image...")
-    image = Image.open(args.image).convert("RGB")
-    image.thumbnail((768, 768))
+    image, alpha = load_rgba(args.image)
+    if alpha is not None:
+        # Keep alpha aligned with the thumbnailed image.
+        alpha_im = Image.fromarray(alpha)
+        image.thumbnail((768, 768))
+        alpha_im.thumbnail((768, 768))
+        alpha = np.asarray(alpha_im)
+    else:
+        image.thumbnail((768, 768))
 
-    print(f"Estimating depth ({args.model})...")
-    depth = load_depth(image, args.model)
+    if alpha is not None:
+        print("Background-removed PNG detected -> masking from alpha channel (no depth needed).")
+        mask = alpha_mask(alpha, args.alpha_thresh)
+    else:
+        print(f"Estimating depth ({args.model}) for mask...")
+        depth = load_depth(image, args.model)
+        mask = figure_mask(depth)
 
-    print("Building mask + light maps...")
-    mask = figure_mask(depth)
+    print("Building luminance light map + bands...")
     lum = luminance_light(image, mask)
-    dl = depth_light(depth, mask)
-
     b_lum = band(lum, args.bands, mask)
-    b_depth = band(dl, args.bands, mask)
 
     tiles = [
         ("original", np.asarray(image)),
         ("figure mask", mask_rgb(mask)),
         ("luminance light", gray_rgb(lum)),
-        ("bands (depth)", overlay_bands(image, b_depth, args.bands)),
         ("bands (luminance)", overlay_bands(image, b_lum, args.bands)),
     ]
     os.makedirs(OUT_DIR, exist_ok=True)

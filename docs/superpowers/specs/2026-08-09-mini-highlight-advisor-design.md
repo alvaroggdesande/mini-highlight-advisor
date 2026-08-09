@@ -136,6 +136,12 @@ high-pass local-contrast, or per-region normalization) is deferred to v2.
   depth-mask + luminance-relief, which passed on a real primed-mini photo. See Section 6.
 - **Luminance-relief only valid on monochrome primed surfaces.** → v1 scoped to the primed/undercoat
   stage (Section 6); colored-mini support deferred to v2.
+- **Multi-pose check (2026-08-09):** 3 of 4 test minis passed including dynamic/angled poses
+  (approach is pose-independent). The failure was input-quality: underexposed black primer + a
+  background-removal artifact baked into the alpha. → (a) **own the masking** — treat user
+  background removal as a fast path only, with our own segmentation/depth fallback; (b) **guide
+  input quality** — reasonably exposed, ideally zenithal-primed photo; (c) scenic bases read as
+  their own bright region → reinforces region-centric processing (base ≠ model).
 - **LLM region masks are rough in v1.** → Accepted; manual override + SAM upgrade path.
 - **Color accuracy under camera lighting.** → v1 guides *placement* only; exact color-matching is
   explicitly out of scope for v1.

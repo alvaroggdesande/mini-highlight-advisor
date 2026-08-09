@@ -35,6 +35,28 @@ python spikes/shading_spike.py spikes/input/<mini>.jpg --bands 5 --model small
 # --model base|large for a higher-detail (heavier) depth model
 ```
 
+## 3. Multi-mini / multi-pose check (background-removed PNGs)
+
+`shading_spike.py` extended to mask from the **alpha channel** when the input is a background-removed
+PNG (no depth needed). Tested on 3 extra black/grey-primed minis in varied poses.
+
+**Result: 3 of 4 minis pass, including dynamic/angled poses** → the luminance-relief approach is
+pose-independent. The 4th (`...14.04.40__2...`) fails for **input-quality** reasons, not method:
+- background removal baked in a large fully-opaque grey smudge that isn't part of the model
+  (raising `--alpha-thresh` to 240 did not drop it → alpha ≈ 255 on the smudge);
+- the mini is black-primed and underexposed, so luminance has almost no tonal range to read.
+
+**Design consequences:**
+- Own the masking; don't trust user background removal (fast path when clean, fallback otherwise).
+- Guide input quality: reasonably exposed, ideally zenithal-primed photo.
+- Scenic bases read as bright texture and get their own bands → reinforces the region-centric design
+  (base vs model should be separate regions).
+
+Run:
+```
+python spikes/shading_spike.py spikes/input/<mini>.png --bands 5 --alpha-thresh 200
+```
+
 ## Environment
 
 CPU-only PyTorch + transformers + opencv + matplotlib, in `.venv` (Python 3.11).
