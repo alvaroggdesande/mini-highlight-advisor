@@ -45,15 +45,17 @@ class SlotStatus:
     nearest_owned: PaintColor | None
 
 
+def nearest_paint(target_rgb: np.ndarray, candidates: list[PaintColor]) -> PaintColor | None:
+    if not candidates:
+        return None
+    return min(candidates, key=lambda c: float(np.linalg.norm(c.rgb - target_rgb)))
+
+
 def annotate_ownership(palette: list[PaintColor], owned: list[PaintColor]) -> list[SlotStatus]:
     owned_names = {p.name for p in owned}
     slots: list[SlotStatus] = []
     for paint in palette:
         is_owned = paint.name in owned_names
-        nearest = None
-        # nearest_owned: closest owned paint by Euclidean RGB distance.
-        # COMPUTED FOR THE #3 (mixing) SEAM — do not surface in the UI.
-        if not is_owned and owned:
-            nearest = min(owned, key=lambda o: float(np.linalg.norm(o.rgb - paint.rgb)))
+        nearest = None if is_owned else nearest_paint(paint.rgb, owned)
         slots.append(SlotStatus(paint=paint, owned=is_owned, nearest_owned=nearest))
     return slots

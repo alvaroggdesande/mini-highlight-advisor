@@ -54,3 +54,16 @@ def test_nearest_owned_none_when_no_owned():
     slots = annotate_ownership([PaintColor("X", "#123456")], [])
     assert slots[0].owned is False
     assert slots[0].nearest_owned is None
+
+
+def test_nearest_paint_returns_rgb_closest():
+    from mini_highlight_advisor.collection import nearest_paint
+    cands = [PaintColor("Orange Brown", "#A75A38"), PaintColor("Black", "#000000")]
+    got = nearest_paint(PaintColor("t", "#E15E32").rgb, cands)
+    assert got.name == "Orange Brown"
+
+
+def test_nearest_paint_empty_returns_none():
+    from mini_highlight_advisor.collection import nearest_paint
+    import numpy as np
+    assert nearest_paint(np.zeros(3, dtype="float32"), []) is None
