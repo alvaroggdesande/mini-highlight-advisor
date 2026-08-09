@@ -1,0 +1,7 @@
+numpy
+opencv-python
+pillow
+transformers
+torch
+streamlit
+pytest
