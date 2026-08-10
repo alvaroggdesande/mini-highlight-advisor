@@ -83,3 +83,30 @@ def test_ramp_hex_endpoints_and_monotonic():
     assert ramp_hex(n - 1, n) == "#ffffff"
     assert lums == sorted(lums)  # strictly non-decreasing, dark to light
     assert lums[-1] > lums[0]
+
+
+def test_remainder_pct_fills_to_100():
+    from mini_highlight_advisor.palette import remainder_pct
+    assert remainder_pct([40.0, 30.0, 20.0]) == 10.0
+    assert remainder_pct([]) == 100.0
+    assert remainder_pct([60.0, 60.0]) == 0.0  # clamped, never negative
+
+
+def test_slider_max_pct_reserves_floor():
+    from mini_highlight_advisor.palette import slider_max_pct
+    # Two other sliders at 30 each -> 100-60-3 = 37 headroom for this slider.
+    assert slider_max_pct([30.0, 30.0], floor=3.0) == 37.0
+    # Never negative even when others already over budget.
+    assert slider_max_pct([98.0, 10.0], floor=3.0) == 0.0
+
+
+def test_slider_max_invariant_keeps_total_under_100():
+    # If each slider stays within its live max, the n-1 sliders + floor <= 100.
+    from mini_highlight_advisor.palette import slider_max_pct, remainder_pct
+    sliders = [0.0, 0.0, 0.0]  # n-1 = 3 controllable bands
+    # Simulate pushing slider 0 to its max, then slider 1, then slider 2.
+    for i in range(len(sliders)):
+        others = [v for j, v in enumerate(sliders) if j != i]
+        sliders[i] = slider_max_pct(others, floor=3.0)
+    assert sum(sliders) <= 97.0 + 1e-9
+    assert remainder_pct(sliders) >= 3.0 - 1e-9

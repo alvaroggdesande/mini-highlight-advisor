@@ -55,6 +55,16 @@ def ramp_hex(i: int, n: int) -> str:
     return f"#{v:02x}{v:02x}{v:02x}"
 
 
+def remainder_pct(others: list[float]) -> float:
+    # The lightest band absorbs whatever the other sliders leave.
+    return max(0.0, 100.0 - sum(others))
+
+
+def slider_max_pct(others: list[float], floor: float = 3.0) -> float:
+    # Live upper bound for one slider so the remainder band keeps at least `floor`.
+    return max(0.0, 100.0 - sum(others) - floor)
+
+
 def coverage_pct(bands: np.ndarray, mask: np.ndarray, n: int) -> list[float]:
     total = int(mask.sum())
     if total == 0:
