@@ -62,3 +62,24 @@ def test_paintcolor_has_code_default_empty():
 def test_default_palette_entries_have_codes():
     from mini_highlight_advisor.palette import DEFAULT_PALETTE
     assert all(p.code for p in DEFAULT_PALETTE)
+
+
+def test_role_names_six_and_seven():
+    from mini_highlight_advisor.palette import role_names
+    assert role_names(6) == [
+        "Shadow", "Deep Base", "Base", "Midtone", "Highlight", "Edge Highlight"
+    ]
+    assert role_names(7) == [
+        "Shadow", "Deep Base", "Base", "Midtone", "Upper Midtone",
+        "Highlight", "Edge Highlight",
+    ]
+
+
+def test_ramp_hex_endpoints_and_monotonic():
+    from mini_highlight_advisor.palette import PaintColor, ramp_hex
+    n = 7
+    lums = [PaintColor("x", ramp_hex(i, n)).rgb.mean() for i in range(n)]
+    assert lums[0] < 40          # near-black low end
+    assert ramp_hex(n - 1, n) == "#ffffff"
+    assert lums == sorted(lums)  # strictly non-decreasing, dark to light
+    assert lums[-1] > lums[0]
