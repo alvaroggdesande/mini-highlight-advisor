@@ -85,7 +85,8 @@ coverage tweaks re-run only the cheap tail.
 
 ## #7 — cap raised to 7 layers
 
-- App layer slider max: 5 -> 7.
+- App layer slider max: 5 -> 7. Default layer count stays 5 (`setdefault("n", 5)`
+  unchanged); 7 is the new ceiling, not the new default.
 - `palette._ROLES` gains two entries:
   - `6`: `Shadow, Deep Base, Base, Midtone, Highlight, Edge Highlight`
   - `7`: `Shadow, Deep Base, Base, Midtone, Upper Midtone, Highlight, Edge Highlight`
