@@ -7,13 +7,28 @@ import streamlit as st
 from mini_highlight_advisor.catalog import load_catalog, find_by_name, find_by_code
 from mini_highlight_advisor import collection
 from mini_highlight_advisor.masking import load_image
-from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_names
-from mini_highlight_advisor.pipeline import analyze
+from mini_highlight_advisor.palette import (
+    DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
+    default_coverage, remainder_pct, slider_max_pct,
+)
+from mini_highlight_advisor.pipeline import prepare_shading, band_and_render
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
+
+@st.cache_data(show_spinner=False)
+def _shading(image_bytes: bytes, suffix: str):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(image_bytes)
+        tmp_path = tmp.name
+    try:
+        rgb, alpha = load_image(tmp_path)
+    finally:
+        os.unlink(tmp_path)
+    return rgb, alpha, prepare_shading(rgb, alpha)
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
 st.title("Mini Highlight Advisor")
@@ -87,12 +102,15 @@ with tab_mini:
     # Seed "n" before the slider widget is created so the widget can own the value via key=
     # without a conflicting value= argument causing a session_state warning.
     st.session_state.setdefault("n", 5)
-    n = st.slider("Number of layers", 3, 5, key="n")
+    n = st.slider("Number of layers", 3, 7, key="n")
     st.markdown("**Palette** (dark to light)")
     palette = []
     options = CATALOG_CODES + [CUSTOM]
     for i in range(n):
-        default = DEFAULT_PALETTE[min(i, len(DEFAULT_PALETTE) - 1)]
+        if i < len(DEFAULT_PALETTE):
+            default = DEFAULT_PALETTE[i]
+        else:
+            default = PaintColor(f"Grey {i + 1}", ramp_hex(i, n))
         st.session_state.setdefault(f"slot_code_{i}", default.code)
         st.session_state.setdefault(f"slot_hex_{i}", default.hex)
         default_code = st.session_state[f"slot_code_{i}"]
@@ -120,6 +138,50 @@ with tab_mini:
             c2.markdown(_swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
             palette.append(paint)
             c3.write("✅ owned" if paint.code in set(picked) else "⚠️ not owned")
+
+    # --- Coverage per layer (remainder model) ---
+    st.markdown("**Coverage** (% of the model each layer occupies)")
+    roles_now = role_names(n)
+    cov_floor = 3.0
+    n_ctrl = n - 1  # controllable bands; the lightest band is the auto remainder
+    seed = [round(f * 100, 1) for f in default_coverage(n)]
+
+    def _cap_slider(idx: int) -> None:
+        # Runs on a slider's change, BEFORE the rerun, on committed state.
+        # Cap only the moved slider so the controllable total leaves the
+        # remainder band at least `cov_floor`. Touching one widget key inside
+        # its own on_change callback is the supported Streamlit pattern and
+        # avoids the mid-render read/write feedback loop.
+        key = f"cov_pct_{idx}"
+        others = [st.session_state[f"cov_pct_{j}"]
+                  for j in range(n_ctrl) if j != idx]
+        smax = slider_max_pct(others, floor=cov_floor)
+        if st.session_state[key] > smax:
+            st.session_state[key] = smax
+
+    # Seed once (fresh session) and reseed when the layer count changes.
+    if st.session_state.get("cov_n") != n:
+        for i in range(n_ctrl):
+            st.session_state[f"cov_pct_{i}"] = seed[i]
+        st.session_state["cov_n"] = n
+
+    if st.button("Reset to default curve"):
+        for i in range(n_ctrl):
+            st.session_state[f"cov_pct_{i}"] = seed[i]
+        st.rerun()
+
+    cov_pcts: list[float] = []
+    for i in range(n_ctrl):
+        val = st.slider(
+            f"{roles_now[i]}", 0.0, 100.0, step=0.5,
+            key=f"cov_pct_{i}", on_change=_cap_slider, args=(i,),
+        )
+        cov_pcts.append(val)
+
+    remainder = remainder_pct(cov_pcts)
+    st.caption(f"**{roles_now[-1]} · auto: {remainder:.1f}%**  (remainder — always keeps ≥ {cov_floor:.0f}%)")
+
+    coverage = [p / 100.0 for p in (cov_pcts + [remainder])]  # fractions, sum == 1.0
 
     # --- Save current palette as a recipe ---
     with st.expander("Save as recipe"):
@@ -155,13 +217,10 @@ with tab_mini:
     uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
     if uploaded is not None:
         suffix = os.path.splitext(uploaded.name)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(uploaded.getbuffer())
-            tmp_path = tmp.name
         try:
-            with st.spinner("Analyzing (first run downloads the depth model if no alpha channel)..."):
-                rgb, alpha = load_image(tmp_path)
-                result = analyze(rgb, alpha, palette)
+            with st.spinner("Preparing shading (first run downloads the depth model if no alpha channel)..."):
+                rgb, alpha, shading = _shading(uploaded.getvalue(), suffix)
+            result = band_and_render(rgb, shading.mask, shading.light, palette, coverage)
             st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_container_width=True)
             st.subheader("Layer guide (paint dark to light)")
             for role, paint, cov in zip(result.roles, palette, result.coverage):
@@ -183,5 +242,6 @@ with tab_mini:
                     c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
                     c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
                     c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
-        finally:
-            os.unlink(tmp_path)
+        except Exception as e:
+            st.error("Error processing image — see traceback below.")
+            st.exception(e)

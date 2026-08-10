@@ -24,21 +24,48 @@ class HighlightResult:
     steps: list[BandStep]
 
 
-def analyze(rgb: np.ndarray, alpha: np.ndarray | None, palette: list[PaintColor]) -> HighlightResult:
+@dataclass
+class ShadingResult:
+    mask: np.ndarray
+    light: np.ndarray
+
+
+def prepare_shading(rgb: np.ndarray, alpha: np.ndarray | None) -> ShadingResult:
+    mask = compute_mask(rgb, alpha)
+    light = luminance_light(rgb, mask)
+    return ShadingResult(mask, light)
+
+
+def band_and_render(
+    rgb: np.ndarray,
+    mask: np.ndarray,
+    light: np.ndarray,
+    palette: list[PaintColor],
+    coverage: list[float],
+) -> HighlightResult:
     n = len(palette)
     colors = [p.rgb for p in palette]
     names = [p.name for p in palette]
     roles = role_names(n)
 
-    mask = compute_mask(rgb, alpha)
-    light = luminance_light(rgb, mask)
-    bands = band_light(light, mask, default_coverage(n))
-    coverage = coverage_pct(bands, mask, n)
+    bands = band_light(light, mask, coverage)
+    cov = coverage_pct(bands, mask, n)
 
     preview_rgb = paint_preview(rgb, bands, mask, colors)
-    legend = render_legend(colors, names, roles, coverage, height=preview_rgb.shape[0])
+    legend = render_legend(colors, names, roles, cov, height=preview_rgb.shape[0])
     panel = compose_panel(rgb, preview_rgb, legend)
-
     steps = per_band_images(rgb, bands, mask, colors)
 
-    return HighlightResult(mask, light, bands, coverage, roles, preview_rgb, panel, steps)
+    return HighlightResult(mask, light, bands, cov, roles, preview_rgb, panel, steps)
+
+
+def analyze(
+    rgb: np.ndarray,
+    alpha: np.ndarray | None,
+    palette: list[PaintColor],
+    coverage: list[float] | None = None,
+) -> HighlightResult:
+    if coverage is None:
+        coverage = default_coverage(len(palette))
+    shading = prepare_shading(rgb, alpha)
+    return band_and_render(rgb, shading.mask, shading.light, palette, coverage)

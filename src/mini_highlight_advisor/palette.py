@@ -32,6 +32,9 @@ _ROLES = {
     3: ["Shadow", "Base", "Highlight"],
     4: ["Shadow", "Base", "Midtone", "Highlight"],
     5: ["Shadow", "Base", "Midtone", "Highlight", "Edge Highlight"],
+    6: ["Shadow", "Deep Base", "Base", "Midtone", "Highlight", "Edge Highlight"],
+    7: ["Shadow", "Deep Base", "Base", "Midtone", "Upper Midtone",
+        "Highlight", "Edge Highlight"],
 }
 
 
@@ -44,6 +47,22 @@ def default_coverage(n: int) -> list[float]:
     weights = list(range(n, 0, -1))
     total = sum(weights)
     return [w / total for w in weights]
+
+
+def ramp_hex(i: int, n: int) -> str:
+    # Evenly-spaced neutral grey on the black->white ramp for an n-layer palette.
+    v = 0 if n <= 1 else round(255 * i / (n - 1))
+    return f"#{v:02x}{v:02x}{v:02x}"
+
+
+def remainder_pct(others: list[float]) -> float:
+    # The lightest band absorbs whatever the other sliders leave.
+    return max(0.0, 100.0 - sum(others))
+
+
+def slider_max_pct(others: list[float], floor: float = 3.0) -> float:
+    # Live upper bound for one slider so the remainder band keeps at least `floor`.
+    return max(0.0, 100.0 - sum(others) - floor)
 
 
 def coverage_pct(bands: np.ndarray, mask: np.ndarray, n: int) -> list[float]:
