@@ -29,6 +29,10 @@ def target_from_recipe_step(step) -> Target:
     return Target(step.hex, step.paint_ref)
 
 
+def target_from_paint(paint: PaintColor) -> Target:
+    return Target(paint.hex, paint.code or None)
+
+
 @dataclass(frozen=True)
 class MatchResult:
     tier: str

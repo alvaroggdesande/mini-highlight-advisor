@@ -11,7 +11,7 @@ from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_nam
 from mini_highlight_advisor.pipeline import analyze
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
-from mini_highlight_advisor.matching import target_from_band, target_from_hex
+from mini_highlight_advisor.matching import target_from_paint, target_from_hex
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
@@ -134,7 +134,7 @@ with tab_mini:
     st.markdown("### Match to my paints")
     st.caption("How to hit each colour with what you own — checked once while you prep.")
 
-    match_targets = [target_from_band(p.hex) for p in palette]
+    match_targets = [target_from_paint(p) for p in palette]
     match_roles = role_names(len(palette))
 
     adhoc = st.color_picker("Ad-hoc colour", value="#808080", key="adhoc_hex")

@@ -1,7 +1,7 @@
 from mini_highlight_advisor.palette import PaintColor
 from mini_highlight_advisor.matching import (
     Target, target_from_band, target_from_recipe_step, target_from_hex,
-    match, MatchResult,
+    target_from_paint, match, MatchResult,
 )
 from mini_highlight_advisor.recipes import RecipeStep
 
@@ -48,16 +48,23 @@ def test_mix_when_between_two_owned():
 
 
 def test_mix_rejected_when_single_is_closer():
-    # Fixture: target #5080c0 (steel blue), owned = [NEAR_BLUE, WARM_RED].
-    # NEAR_BLUE (#687ab5) is dE ~6.72 from the target — above CLOSE_THRESHOLD (5.0)
-    # so it cannot return at Tier 2.  WARM_RED (#cc3300) is dE ~46.7.
-    # The best 2-paint blend of NEAR_BLUE+WARM_RED is dE ~23.4, which is WORSE than
-    # the nearest single (6.72), so mix[3] < nearest_single_d is False and the mix
-    # guard rejects the blend.  Result must therefore be Tier 4 "unreachable".
-    NEAR_BLUE = PaintColor("Near Blue", "#687ab5", code="XX.001")
-    WARM_RED = PaintColor("Warm Red", "#cc3300", code="XX.002")
-    res = match(Target("#5080c0", None), owned=[NEAR_BLUE, WARM_RED], catalog=[NEAR_BLUE, WARM_RED])
+    # Fixture designed to isolate the Tier 3 guard: mix[3] < nearest_single_d.
+    #
+    # Target: #686868
+    # Grey A (#767676, code 70.001): ΔE = 5.48 to target — above CLOSE_THRESHOLD (5.0),
+    #   so Tier 2 is NOT triggered; Grey A is the nearest single.
+    # Grey B (#8a8a8a, code 70.002): ΔE = 13.45 to target.
+    # Best 2-paint mix (3:1 Grey A:Grey B): ΔE = 7.50 — within MIX_ACCEPT_THRESHOLD (8.0),
+    #   so WITHOUT the guard this would return tier "mix".
+    # But 7.50 > 5.48, so mix[3] < nearest_single_d is False; the guard rejects the mix.
+    # Result falls through to Tier 4 "unreachable".
+    # Removing the guard clause at matching.py:96 would cause this test to fail.
+    GREY_A = PaintColor("Grey A", "#767676", code="70.001")
+    GREY_B = PaintColor("Grey B", "#8a8a8a", code="70.002")
+    SKY_BLUE = PaintColor("Sky Blue", "#4a90d9", code="72.022")
+    res = match(Target("#686868", None), owned=[GREY_A, GREY_B], catalog=[GREY_A, GREY_B, SKY_BLUE])
     assert res.tier == "unreachable"
+    assert res.tier != "mix"
 
 
 def test_unreachable_gives_buy_hint():
@@ -67,3 +74,12 @@ def test_unreachable_gives_buy_hint():
     assert res.buy_hint is not None
     assert res.buy_hint.code == "72.022"          # the Sky Blue they don't own
     assert res.buy_hint not in [BLACK, GREY, WHITE]
+
+
+def test_target_from_paint():
+    # PaintColor with a real code → preferred_code is populated
+    coded = PaintColor("Neutral Grey", "#6d7173", code="70.991")
+    assert target_from_paint(coded) == Target("#6d7173", "70.991")
+    # PaintColor with default empty-string code → preferred_code is None (not "")
+    custom = PaintColor("Custom 1", "#aabbcc")
+    assert target_from_paint(custom) == Target("#aabbcc", None)
