@@ -47,6 +47,19 @@ def test_mix_when_between_two_owned():
     assert "approx" in res.phrase.lower()
 
 
+def test_mix_rejected_when_single_is_closer():
+    # Fixture: target #5080c0 (steel blue), owned = [NEAR_BLUE, WARM_RED].
+    # NEAR_BLUE (#687ab5) is dE ~6.72 from the target — above CLOSE_THRESHOLD (5.0)
+    # so it cannot return at Tier 2.  WARM_RED (#cc3300) is dE ~46.7.
+    # The best 2-paint blend of NEAR_BLUE+WARM_RED is dE ~23.4, which is WORSE than
+    # the nearest single (6.72), so mix[3] < nearest_single_d is False and the mix
+    # guard rejects the blend.  Result must therefore be Tier 4 "unreachable".
+    NEAR_BLUE = PaintColor("Near Blue", "#687ab5", code="XX.001")
+    WARM_RED = PaintColor("Warm Red", "#cc3300", code="XX.002")
+    res = match(Target("#5080c0", None), owned=[NEAR_BLUE, WARM_RED], catalog=[NEAR_BLUE, WARM_RED])
+    assert res.tier == "unreachable"
+
+
 def test_unreachable_gives_buy_hint():
     # vivid blue target, owner has only greys -> unreachable + buy hint from catalog
     res = match(Target("#4a90d9", None), owned=[BLACK, GREY, WHITE], catalog=CATALOG)

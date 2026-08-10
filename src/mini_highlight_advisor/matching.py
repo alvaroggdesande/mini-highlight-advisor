@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
-
-from .color import delta_e00, hex_to_rgb, lab_of_hex, rgb_to_lab
+from .color import delta_e00, lab_of_hex, rgb_to_lab
 from .palette import PaintColor
 
 EXACT_THRESHOLD = 1.0
@@ -85,7 +83,7 @@ def match(target: Target, owned: list[PaintColor], catalog: list[PaintColor]) ->
         # Tier 1b: exact by near-zero distance
         if d0 <= EXACT_THRESHOLD:
             return MatchResult("exact", target.hex, [nearest], None, d0, None,
-                               f"Use {nearest.name} ({nearest.code}).".replace(" ().", "."))
+                               f"Use {nearest.name} ({nearest.code})." if nearest.code else f"Use {nearest.name}.")
         # Tier 2: close single
         if d0 <= CLOSE_THRESHOLD:
             dev = _deviation(t_lab, lab_of_hex(nearest.hex))
