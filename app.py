@@ -10,6 +10,8 @@ from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_names
 from mini_highlight_advisor.pipeline import analyze
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
+from mini_highlight_advisor.advisor import advise
+from mini_highlight_advisor.matching import target_from_band, target_from_hex
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
@@ -127,6 +129,28 @@ with tab_mini:
                      for r, p in zip(role_names(n), palette)]
             save_user(Recipe(rname.strip(), steps))
             st.success(f"Saved recipe '{rname.strip()}'.")
+
+    st.divider()
+    st.markdown("### Match to my paints")
+    st.caption("How to hit each colour with what you own — checked once while you prep.")
+
+    match_targets = [target_from_band(p.hex) for p in palette]
+    match_roles = role_names(len(palette))
+
+    adhoc = st.color_picker("Ad-hoc colour", value="#808080", key="adhoc_hex")
+    if st.checkbox("Include ad-hoc colour", key="adhoc_on"):
+        match_targets = match_targets + [target_from_hex(adhoc)]
+        match_roles = match_roles + ["Ad-hoc"]
+
+    if not owned_paints:
+        st.info("Tick the paints you own (Paints tab) to get match suggestions.")
+    else:
+        for row in advise(match_targets, match_roles, owned_paints, CATALOG):
+            r = row.result
+            chips = "".join(_swatch(p.hex) for p in r.paints)
+            st.markdown(f"{chips} **{row.role}** — {r.phrase}", unsafe_allow_html=True)
+            if row.note:
+                st.caption(row.note)
 
     uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
     if uploaded is not None:
