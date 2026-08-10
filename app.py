@@ -143,30 +143,38 @@ with tab_mini:
     st.markdown("**Coverage** (% of the model each layer occupies)")
     roles_now = role_names(n)
     cov_floor = 3.0
+    n_ctrl = n - 1  # controllable bands; the lightest band is the auto remainder
     seed = [round(f * 100, 1) for f in default_coverage(n)]
 
-    # Reseed slider state whenever the layer count changes.
+    def _cap_slider(idx: int) -> None:
+        # Runs on a slider's change, BEFORE the rerun, on committed state.
+        # Cap only the moved slider so the controllable total leaves the
+        # remainder band at least `cov_floor`. Touching one widget key inside
+        # its own on_change callback is the supported Streamlit pattern and
+        # avoids the mid-render read/write feedback loop.
+        key = f"cov_pct_{idx}"
+        others = [st.session_state[f"cov_pct_{j}"]
+                  for j in range(n_ctrl) if j != idx]
+        smax = slider_max_pct(others, floor=cov_floor)
+        if st.session_state[key] > smax:
+            st.session_state[key] = smax
+
+    # Seed once (fresh session) and reseed when the layer count changes.
     if st.session_state.get("cov_n") != n:
-        for i in range(n - 1):
+        for i in range(n_ctrl):
             st.session_state[f"cov_pct_{i}"] = seed[i]
         st.session_state["cov_n"] = n
 
     if st.button("Reset to default curve"):
-        for i in range(n - 1):
+        for i in range(n_ctrl):
             st.session_state[f"cov_pct_{i}"] = seed[i]
         st.rerun()
 
     cov_pcts: list[float] = []
-    for i in range(n - 1):
-        others = [st.session_state.get(f"cov_pct_{j}", seed[j])
-                  for j in range(n - 1) if j != i]
-        smax = slider_max_pct(others, floor=cov_floor)
-        st.session_state.setdefault(f"cov_pct_{i}", seed[i])
-        # Keep any stale seeded value within the current live max.
-        if st.session_state[f"cov_pct_{i}"] > smax:
-            st.session_state[f"cov_pct_{i}"] = smax
+    for i in range(n_ctrl):
         val = st.slider(
-            f"{roles_now[i]}", 0.0, max(smax, 0.1), step=0.5, key=f"cov_pct_{i}",
+            f"{roles_now[i]}", 0.0, 100.0, step=0.5,
+            key=f"cov_pct_{i}", on_change=_cap_slider, args=(i,),
         )
         cov_pcts.append(val)
 
