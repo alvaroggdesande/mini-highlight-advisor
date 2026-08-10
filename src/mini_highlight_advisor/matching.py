@@ -92,16 +92,16 @@ def match(target: Target, owned: list[PaintColor], catalog: list[PaintColor]) ->
             return MatchResult("close", target.hex, [nearest], None, d0, None,
                                f"Closest you own: {nearest.name} — {dev} (ΔE {d0:.1f}).")
 
-    # Tier 3: mix
+    # Tier 3: mix — only when it beats the nearest single owned paint
     mix = _best_mix(t_lab, owned) if len(owned) >= 2 else None
-    if mix and mix[3] <= MIX_ACCEPT_THRESHOLD:
+    nearest_single_d = delta_e00(t_lab, lab_of_hex(ranked[0].hex)) if ranked else float("inf")
+    if mix and mix[3] <= MIX_ACCEPT_THRESHOLD and mix[3] < nearest_single_d:
         a, b, parts, d = mix
         return MatchResult("mix", target.hex, [a, b], parts, d, None,
                            f"Mix ~{parts[0]}:{parts[1]} {a.name} + {b.name} (approx).")
 
     # Tier 4: unreachable + buy hint from full catalogue
-    owned_codes = {p.code for p in owned if p.code}
-    unowned = [p for p in catalog if p.code not in owned_codes]
+    unowned = [p for p in catalog if p not in owned]
     buy = min(unowned, key=lambda p: delta_e00(t_lab, lab_of_hex(p.hex))) if unowned else None
     nearest = ranked[0] if ranked else None
     d_near = delta_e00(t_lab, lab_of_hex(nearest.hex)) if nearest else float("nan")
