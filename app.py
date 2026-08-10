@@ -235,4 +235,5 @@ with tab_mini:
                     c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
                     c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
         except Exception as e:
-            st.error(f"Error processing image: {e}")
+            st.error("Error processing image — see traceback below.")
+            st.exception(e)
