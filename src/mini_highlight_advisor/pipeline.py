@@ -14,6 +14,8 @@ from .overlay import (
 from .palette import PaintColor, coverage_pct, default_coverage, role_names
 from .regions import Region, assign_owners
 
+WHOLE_MINI = "Whole mini"
+
 
 @dataclass
 class HighlightResult:
@@ -114,7 +116,7 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None) ->
     plans: list[RegionPlan] = []
     default_sub = owner == -1
     if default_sub.any():
-        plans.append(plan_region(rgb, default_sub, light, "Default", default_palette, coverage))
+        plans.append(plan_region(rgb, default_sub, light, WHOLE_MINI, default_palette, coverage))
     for i, r in enumerate(regions):
         sub = owner == i
         if not sub.any():

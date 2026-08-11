@@ -15,17 +15,21 @@ finished-job scorers (MyMiniScore) all solve a different problem.
   shading map, so the tool reads highlight relief from the photo's own
   **luminance** (CLAHE-enhanced grayscale). Painted/coloured minis are future
   work — luminance there conflates dark paint with shadow.
-- **Whole mini as one region.** Per-material regions (armour / blade / robe /
-  skin) with their own techniques and palettes are on the roadmap.
+- **Manual regions.** Lasso areas (armour / blade / robe / skin) and give each
+  its own editable palette + coverage; "Whole mini" owns whatever you don't
+  lasso. Region *outlines* are fixed once drawn (delete + redraw to reshape) —
+  growing a region with extra strokes is on the roadmap.
 
 ## How it works
 
 ```
 upload → mask (alpha fast-path, else depth fallback)
        → luminance light map
-       → coverage-controlled curved banding (dark→light)
-       → editable palette (LLM/default suggest, you tweak)
-       → painted preview + legend + paint-along step images
+       → draw regions (optional); "Whole mini" owns the rest
+       → per-region editable palette + coverage (recipe/default suggest, you tweak;
+         revisit any region to change its colours or coverage)
+       → coverage-controlled curved banding (dark→light) per region
+       → combined painted preview + per-region paint-along step images
 ```
 
 ## Install & run
@@ -58,4 +62,4 @@ For an N-layer plan you get, per layer:
 
 ## Roadmap
 
-Per-material LLM regions · SAM-based masks · coloured-mini support · PDF export.
+Grow-a-region (additive lasso) · SAM-based masks · coloured-mini support · PDF export.

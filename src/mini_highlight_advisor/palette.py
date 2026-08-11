@@ -65,6 +65,18 @@ def slider_max_pct(others: list[float], floor: float = 3.0) -> float:
     return max(0.0, 100.0 - sum(others) - floor)
 
 
+def default_ramp(n: int) -> list[PaintColor]:
+    """Neutral dark->light ramp for a new region: seed from DEFAULT_PALETTE,
+    fill any extra slots with a computed grey ramp."""
+    out: list[PaintColor] = []
+    for i in range(n):
+        if i < len(DEFAULT_PALETTE):
+            out.append(DEFAULT_PALETTE[i])
+        else:
+            out.append(PaintColor(f"Grey {i + 1}", ramp_hex(i, n)))
+    return out
+
+
 def coverage_pct(bands: np.ndarray, mask: np.ndarray, n: int) -> list[float]:
     total = int(mask.sum())
     if total == 0:

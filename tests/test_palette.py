@@ -1,6 +1,7 @@
 import numpy as np
 from mini_highlight_advisor.palette import (
     PaintColor, DEFAULT_PALETTE, role_names, default_coverage, coverage_pct,
+    default_ramp,
 )
 
 
@@ -110,3 +111,10 @@ def test_slider_max_invariant_keeps_total_under_100():
         sliders[i] = slider_max_pct(others, floor=3.0)
     assert sum(sliders) <= 97.0 + 1e-9
     assert remainder_pct(sliders) >= 3.0 - 1e-9
+
+
+def test_default_ramp_length_and_seed():
+    ramp = default_ramp(6)
+    assert len(ramp) == 6
+    assert ramp[0].hex == DEFAULT_PALETTE[0].hex
+    assert all(hasattr(p, "hex") for p in ramp)

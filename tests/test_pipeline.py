@@ -1,7 +1,7 @@
 import numpy as np
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, coverage_pct, PaintColor, default_coverage
-from mini_highlight_advisor.pipeline import analyze, HighlightResult, analyze_regions, MultiRegionResult
+from mini_highlight_advisor.pipeline import analyze, HighlightResult, analyze_regions, MultiRegionResult, WHOLE_MINI
 from mini_highlight_advisor.regions import Region
 
 FIXTURE = "spikes/input/WhatsApp_Image_2026-08-09_at_14.04.40-removebg-preview.png"
@@ -109,3 +109,12 @@ def test_analyze_regions_bands_within_submask_only():
         # Off the region's sub-mask, bands are -1 (never assigned outside it).
         assert (p.bands[~p.sub_mask] == -1).all()
         assert set(np.unique(p.bands[p.sub_mask])) <= set(range(3))
+
+
+def test_leftover_plan_is_named_whole_mini():
+    rgb = np.zeros((16, 16, 3), dtype=np.uint8)
+    rgb[4:12, 4:12] = 200
+    alpha = (rgb[..., 0] > 0).astype(np.uint8) * 255
+    res = analyze_regions(rgb, alpha, DEFAULT_PALETTE[:3], regions=[])
+    assert WHOLE_MINI == "Whole mini"
+    assert [p.name for p in res.plans] == [WHOLE_MINI]

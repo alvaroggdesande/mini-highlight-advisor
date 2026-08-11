@@ -18,7 +18,12 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 - `overlay.py` — rendering: `paint_preview` (combined panel), `render_legend`,
   `compose_panel`, and `per_band_images` → `BandStep` (the paint-along steps).
 - `pipeline.py` — `analyze(rgb, alpha, palette) -> HighlightResult` wires it all;
-  `HighlightResult.steps` carries the per-layer `BandStep`s.
+  `HighlightResult.steps` carries the per-layer `BandStep`s. `analyze_regions`
+  is the multi-region render path; its leftover plan is named `WHOLE_MINI`.
+- `regions.py` — `Region(name, mask, palette, coverage)` + mask/owner helpers.
+- `region_state.py` — `RegionBook`: the editor's live region list (index 0 =
+  "Whole mini" leftover region; 1..N = drawn `Region`s), routing palette/coverage
+  edits by selected index. Streamlit-free; `app.py` binds widgets to it.
 - `app.py` (repo root) — the Streamlit UI.
 
 ## Core conventions
@@ -33,8 +38,10 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 ## Hard constraints (v1)
 
 - **Primed / monochrome minis only** (luminance is the shading signal).
-- **Whole mini as one region.** Both lift in later roadmap phases
-  (per-material regions, coloured-mini support).
+- **Manual regions supported.** "Whole mini" is the default region (owns
+  leftover pixels); users lasso extra regions, each with its own editable
+  palette + coverage. Region outlines are immutable once drawn (grow-a-region
+  and coloured-mini support are later roadmap phases).
 
 ## Working here
 
