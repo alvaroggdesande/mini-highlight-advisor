@@ -184,10 +184,28 @@ with tab_mini:
             rgb, alpha, shading = _shading(uploaded.getvalue(), suffix)
         src_h, src_w = rgb.shape[:2]
 
+        # Display geometry for the drawing canvas — computed once so both the
+        # left (canvas) and right (Add-region handler) columns can use it.
+        disp_w = min(600, src_w)
+        disp_h = round(src_h * disp_w / src_w)
+        draw_mode = st.session_state.get("draw_mode", False)
+
         left, right = st.columns([3, 2])
         with left:
-            outline = _region_outline_image(rgb, book.drawn)
-            st.image(outline, caption="Preview (region outlines)", use_container_width=True)
+            # In draw mode the big left panel IS the drawing surface (st_canvas
+            # needs a wide, un-nested container to render — it collapses inside a
+            # narrow column/expander). Otherwise show the read-only outline preview.
+            if draw_mode and st_canvas is not None:
+                st.caption("Trace a lasso around an area below, then click **Add region** on the right.")
+                canvas = st_canvas(
+                    fill_color="rgba(255,40,200,0.25)", stroke_width=2, stroke_color="#ff28c8",
+                    background_image=Image.fromarray(rgb), height=disp_h, width=disp_w,
+                    drawing_mode="freedraw", key=f"canvas_{len(book.drawn)}",
+                )
+            else:
+                canvas = None
+                outline = _region_outline_image(rgb, book.drawn)
+                st.image(outline, caption="Preview (region outlines)", use_container_width=True)
         with right:
             st.markdown("**Regions**")
             labels = book.names()
@@ -213,34 +231,37 @@ with tab_mini:
                 st.rerun()
             book.selected = sel
 
-            with st.expander("➕ Draw a new region"):
-                if st_canvas is None:
-                    st.info("Install `streamlit-drawable-canvas` to draw regions.")
-                else:
-                    disp_w = min(500, src_w)
-                    disp_h = round(src_h * disp_w / src_w)
-                    canvas = st_canvas(
-                        fill_color="rgba(255,40,200,0.25)", stroke_width=2, stroke_color="#ff28c8",
-                        background_image=Image.fromarray(rgb), height=disp_h, width=disp_w,
-                        drawing_mode="freedraw", key=f"canvas_{len(book.drawn)}",
-                    )
-                    new_name = st.text_input("Region name", value=f"Region {len(book.drawn) + 1}")
-                    if st.button("Add region"):
-                        objs = (canvas.json_data or {}).get("objects", [])
-                        if not objs:
-                            st.warning("Trace a lasso around an area first.")
+            st.divider()
+            if st_canvas is None:
+                st.info("Install `streamlit-drawable-canvas` to draw regions.")
+            elif not draw_mode:
+                if st.button("➕ Draw a new region"):
+                    st.session_state["draw_mode"] = True
+                    st.rerun()
+            else:
+                st.markdown("**New region** — lasso on the image, left.")
+                new_name = st.text_input("Region name", value=f"Region {len(book.drawn) + 1}")
+                c_add, c_cancel = st.columns(2)
+                if c_add.button("Add region", type="primary"):
+                    objs = (canvas.json_data or {}).get("objects", []) if canvas else []
+                    if not objs:
+                        st.warning("Trace a lasso around an area on the image first.")
+                    else:
+                        pts = _points_from_object(objs[-1])
+                        sx, sy = src_w / disp_w, src_h / disp_h
+                        rmask = polygon_to_mask(scale_points(pts, sx, sy), (src_h, src_w)) & shading.mask
+                        if not rmask.any():
+                            st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
                         else:
-                            pts = _points_from_object(objs[-1])
-                            sx, sy = src_w / disp_w, src_h / disp_h
-                            rmask = polygon_to_mask(scale_points(pts, sx, sy), (src_h, src_w)) & shading.mask
-                            if not rmask.any():
-                                st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
-                            else:
-                                book.add(rmask, new_name.strip() or f"Region {len(book.drawn) + 1}",
-                                         default_ramp(st.session_state["n"]),
-                                         [c / 100 for c in _current_cov_seed(st.session_state["n"])])
-                                st.session_state.pop("_loaded_g", None)
-                                st.rerun()
+                            book.add(rmask, new_name.strip() or f"Region {len(book.drawn) + 1}",
+                                     default_ramp(st.session_state["n"]),
+                                     [c / 100 for c in _current_cov_seed(st.session_state["n"])])
+                            st.session_state.pop("_loaded_g", None)
+                            st.session_state["draw_mode"] = False
+                            st.rerun()
+                if c_cancel.button("Cancel"):
+                    st.session_state["draw_mode"] = False
+                    st.rerun()
 
             if sel >= 1 and st.button("🗑 Delete this region"):
                 book.remove(sel)
