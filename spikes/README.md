@@ -114,6 +114,30 @@ Run:
 First run downloads the SAM checkpoint (`facebook/sam-vit-base`, ~375MB) to the HF cache. Output:
 `spikes/out/<name>_sam_overlay.png`.
 
+## 6. `canvas_spike.py` — streamlit-drawable-canvas as the manual region lasso
+
+**Question:** does `streamlit-drawable-canvas` run on this repo's pinned Streamlit, and can we
+read a drawn lasso's vertices back as a point list? This gates the drawing-widget choice for the
+manual-region feature (`docs/superpowers/plans/2026-08-11-manual-region-lasso.md`); the
+polygon-by-click `streamlit-image-coordinates` is the fallback.
+
+**Result: PASS *with a shim* (2026-08-11).** The import gate passed (drawable-canvas 0.9.3 installs
+with no version conflict and imports cleanly), but at **runtime** `st_canvas` crashed:
+`AttributeError: module 'streamlit.elements.image' has no attribute 'image_to_url'`. Newer Streamlit
+(1.61.1) moved that private helper to `streamlit.elements.lib.image_utils.image_to_url` and changed
+its 2nd arg from `width: int` to a `layout_config` object (only `.width` is read). Fix = an ~8-line
+compat shim (`_patch_image_to_url`, in both this spike and `app.py`) that re-exposes an adapter;
+`streamlit` is pinned to `1.61.*` in `requirements.txt` so an upgrade can't silently re-break it.
+With the shim, freehand (`freedraw`) drawing works and the traced stroke comes back as
+`json_data["objects"][-1]["path"]` (SVG segments — segment endpoint = its last two numbers), which
+`app.py`'s `_points_from_object` parses. **Fallback if the shim ever breaks:** swap to
+`streamlit-image-coordinates` polygon-by-click (no design change downstream).
+
+Run:
+```
+streamlit run spikes/canvas_spike.py
+```
+
 ## Environment
 
 CPU-only PyTorch + transformers + opencv + matplotlib, in `.venv` (Python 3.11).

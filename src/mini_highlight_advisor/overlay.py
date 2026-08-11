@@ -74,6 +74,20 @@ def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
+def paint_regions(rgb, plans, alpha: float = 0.78) -> np.ndarray:
+    base = rgb.astype(np.float32)
+    out = base.copy()
+    union = np.zeros(rgb.shape[:2], bool)
+    for p in plans:
+        union |= p.sub_mask
+    out[~union] = out[~union] * _DIM
+    for p in plans:
+        for b, color in enumerate(p.colors):
+            m = (p.bands == b) & p.sub_mask
+            out[m] = (1 - alpha) * base[m] + alpha * color
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
 def _font(size: int):
     for path in (r"C:\Windows\Fonts\segoeui.ttf", r"C:\Windows\Fonts\arial.ttf"):
         if os.path.exists(path):
@@ -113,3 +127,20 @@ def compose_panel(original_rgb, preview_rgb, legend: Image.Image, gap: int = 10)
         canvas.paste(im, (x, (h - im.height) // 2))
         x += im.width + gap
     return canvas
+
+
+def swatch_board(regions, width: int = 460, sw: int = 44, pad: int = 12) -> Image.Image:
+    row_h = sw + pad + 24
+    height = max(1, pad + len(regions) * row_h)
+    img = Image.new("RGB", (width, height), (26, 27, 32))
+    d = ImageDraw.Draw(img)
+    name_f = _font(20)
+    for r, (name, colors) in enumerate(regions):
+        y = pad + r * row_h
+        d.text((pad, y), name, font=name_f, fill=(235, 236, 240))
+        x, yy = pad, y + 26
+        for c in colors:
+            fill = tuple(int(v) for v in c)
+            d.rectangle([x, yy, x + sw, yy + sw], fill=fill, outline=(70, 72, 80), width=2)
+            x += sw + 6
+    return img
