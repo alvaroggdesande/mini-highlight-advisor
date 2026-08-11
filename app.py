@@ -19,6 +19,33 @@ from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from PIL import Image
 
+
+def _patch_image_to_url() -> None:
+    # streamlit-drawable-canvas 0.9.3 calls the private helper
+    # streamlit.elements.image.image_to_url(image, width, ...), which newer
+    # Streamlit moved to streamlit.elements.lib.image_utils.image_to_url and
+    # changed the 2nd arg from `width: int` to `layout_config` (only `.width`
+    # is read). Re-expose an adapter so the component works unmodified. Pinned
+    # to streamlit 1.61.* in requirements.txt; revisit on a major upgrade.
+    import streamlit.elements.image as _si
+    if hasattr(_si, "image_to_url"):
+        return
+    try:
+        from types import SimpleNamespace
+        from streamlit.elements.lib import image_utils as _iu
+
+        def image_to_url(image, width, clamp, channels, output_format, image_id):
+            return _iu.image_to_url(
+                image, SimpleNamespace(width=width), clamp, channels, output_format, image_id
+            )
+
+        _si.image_to_url = image_to_url
+    except Exception:
+        pass  # leave unpatched -> st_canvas import/use degrades, single-palette still works
+
+
+_patch_image_to_url()
+
 try:
     from streamlit_drawable_canvas import st_canvas
 except Exception:  # component missing/incompatible -> region drawing off, single-palette still works
@@ -61,13 +88,15 @@ def _swatch(hexv: str, size: str = "1em") -> str:
 
 
 def _points_from_object(obj) -> list[tuple[float, float]]:
-    # Extract a polygon's vertices from a drawable-canvas (fabric.js) object.
-    # Polygon/freedraw objects expose vertices as obj["path"]
-    # ([["M",x,y],["L",x,y],...]) or, on some versions, obj["points"]
-    # ([{"x":..,"y":..}]). Confirm the exact key with spikes/canvas_spike.py.
+    # Extract the traced vertices from a drawable-canvas (fabric.js) object.
+    # Freedraw/polygon objects expose the stroke as obj["path"], a list of SVG
+    # segments: ["M",x,y] / ["L",x,y] / ["Q",cx,cy,x,y] / ["z"]. The segment
+    # END point is always its last two numbers (Q's control point is ignored).
+    # Some versions use obj["points"] ([{"x":..,"y":..}]) instead.
+    # polygon_to_mask closes the ring, so a freehand (open) trace still fills.
     if "points" in obj:
         return [(p["x"], p["y"]) for p in obj["points"]]
-    return [(seg[1], seg[2]) for seg in obj.get("path", []) if len(seg) >= 3]
+    return [(seg[-2], seg[-1]) for seg in obj.get("path", []) if len(seg) >= 3]
 
 
 def _render_region_steps(steps, roles, names, coverage) -> None:
@@ -260,9 +289,9 @@ with tab_mini:
 
             # --- Regions (optional overrides layered on the default palette) ---
             st.markdown("#### Regions (optional)")
-            st.caption("Draw a lasso, name it, then 'Add region' to snapshot the CURRENT "
-                       "palette + coverage for that area. Draw nothing to keep the single "
-                       "whole-mini plan. Where regions overlap, the later one wins.")
+            st.caption("Trace a lasso around an area, name it, then 'Add region' to snapshot "
+                       "the CURRENT palette + coverage for that area. Draw nothing to keep the "
+                       "single whole-mini plan. Where regions overlap, the later one wins.")
             if st_canvas is None:
                 st.info("Install `streamlit-drawable-canvas` to draw regions "
                         "(`pip install streamlit-drawable-canvas`).")
@@ -272,7 +301,7 @@ with tab_mini:
                 canvas = st_canvas(
                     fill_color="rgba(255,40,200,0.25)", stroke_width=2, stroke_color="#ff28c8",
                     background_image=Image.fromarray(rgb), height=disp_h, width=disp_w,
-                    drawing_mode="polygon", key=f"canvas_{len(st.session_state['regions'])}",
+                    drawing_mode="freedraw", key=f"canvas_{len(st.session_state['regions'])}",
                 )
                 region_name = st.text_input(
                     "Region name", value=f"Region {len(st.session_state['regions']) + 1}")
@@ -288,9 +317,9 @@ with tab_mini:
                                        rmask, list(palette), list(coverage)))
                             st.rerun()
                         else:
-                            st.warning("Lasso didn't overlap the mini — try again.")
+                            st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
                     else:
-                        st.warning("Draw a lasso first (click points, then close the shape).")
+                        st.warning("Trace a lasso around an area first.")
 
             if st.session_state["regions"]:
                 st.markdown("**Regions added**")

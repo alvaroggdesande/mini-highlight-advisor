@@ -121,12 +121,17 @@ read a drawn lasso's vertices back as a point list? This gates the drawing-widge
 manual-region feature (`docs/superpowers/plans/2026-08-11-manual-region-lasso.md`); the
 polygon-by-click `streamlit-image-coordinates` is the fallback.
 
-**Partial result: PASS on the non-interactive gate (2026-08-11).** `streamlit-drawable-canvas`
-0.9.3 installs with **no version conflict** and `from streamlit_drawable_canvas import st_canvas`
-imports cleanly against `streamlit` 1.61.1. **Still to confirm interactively** (needs a browser):
-that a drawn shape renders and `json_data`'s last object exposes a readable vertex list — inspect
-the printed JSON and match it in Task 7's `_points_from_object`. Draw a polygon and check the
-`st.json(objs[-1])` output.
+**Result: PASS *with a shim* (2026-08-11).** The import gate passed (drawable-canvas 0.9.3 installs
+with no version conflict and imports cleanly), but at **runtime** `st_canvas` crashed:
+`AttributeError: module 'streamlit.elements.image' has no attribute 'image_to_url'`. Newer Streamlit
+(1.61.1) moved that private helper to `streamlit.elements.lib.image_utils.image_to_url` and changed
+its 2nd arg from `width: int` to a `layout_config` object (only `.width` is read). Fix = an ~8-line
+compat shim (`_patch_image_to_url`, in both this spike and `app.py`) that re-exposes an adapter;
+`streamlit` is pinned to `1.61.*` in `requirements.txt` so an upgrade can't silently re-break it.
+With the shim, freehand (`freedraw`) drawing works and the traced stroke comes back as
+`json_data["objects"][-1]["path"]` (SVG segments — segment endpoint = its last two numbers), which
+`app.py`'s `_points_from_object` parses. **Fallback if the shim ever breaks:** swap to
+`streamlit-image-coordinates` polygon-by-click (no design change downstream).
 
 Run:
 ```

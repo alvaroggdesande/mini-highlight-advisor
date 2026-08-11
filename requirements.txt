@@ -3,6 +3,6 @@ opencv-python
 pillow
 transformers
 torch
-streamlit
+streamlit==1.61.*
 streamlit-drawable-canvas
 pytest
