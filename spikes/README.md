@@ -114,6 +114,25 @@ Run:
 First run downloads the SAM checkpoint (`facebook/sam-vit-base`, ~375MB) to the HF cache. Output:
 `spikes/out/<name>_sam_overlay.png`.
 
+## 6. `canvas_spike.py` — streamlit-drawable-canvas as the manual region lasso
+
+**Question:** does `streamlit-drawable-canvas` run on this repo's pinned Streamlit, and can we
+read a drawn lasso's vertices back as a point list? This gates the drawing-widget choice for the
+manual-region feature (`docs/superpowers/plans/2026-08-11-manual-region-lasso.md`); the
+polygon-by-click `streamlit-image-coordinates` is the fallback.
+
+**Partial result: PASS on the non-interactive gate (2026-08-11).** `streamlit-drawable-canvas`
+0.9.3 installs with **no version conflict** and `from streamlit_drawable_canvas import st_canvas`
+imports cleanly against `streamlit` 1.61.1. **Still to confirm interactively** (needs a browser):
+that a drawn shape renders and `json_data`'s last object exposes a readable vertex list — inspect
+the printed JSON and match it in Task 7's `_points_from_object`. Draw a polygon and check the
+`st.json(objs[-1])` output.
+
+Run:
+```
+streamlit run spikes/canvas_spike.py
+```
+
 ## Environment
 
 CPU-only PyTorch + transformers + opencv + matplotlib, in `.venv` (Python 3.11).

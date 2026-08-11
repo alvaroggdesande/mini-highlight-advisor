@@ -4,4 +4,5 @@ pillow
 transformers
 torch
 streamlit
+streamlit-drawable-canvas
 pytest
