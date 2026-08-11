@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from PIL import Image, ImageDraw
 
 from .palette import PaintColor
 
@@ -21,3 +22,15 @@ def assign_owners(base_mask: np.ndarray, region_masks: list[np.ndarray]) -> np.n
         owner[rm & base_mask] = i        # later i overwrites -> last-wins
     owner[~base_mask] = -2
     return owner
+
+
+def scale_points(points, sx: float, sy: float):
+    return [(x * sx, y * sy) for x, y in points]
+
+
+def polygon_to_mask(points, shape) -> np.ndarray:
+    h, w = shape
+    img = Image.new("L", (w, h), 0)
+    if len(points) >= 3:
+        ImageDraw.Draw(img).polygon([(float(x), float(y)) for x, y in points], fill=1)
+    return np.array(img, dtype=bool)
