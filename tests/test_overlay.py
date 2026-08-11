@@ -1,6 +1,7 @@
 import numpy as np
 from PIL import Image
-from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep
+from types import SimpleNamespace
+from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions
 
 
 def test_paint_preview_colors_bands_and_darkens_background():
@@ -186,3 +187,17 @@ def test_no_pure_white_outline_pixels():
         for img in (s.zone_rgb, s.cumulative_rgb, s.exact_rgb):
             if img is not None:
                 assert not np.any(np.all(img == 255, axis=-1))
+
+
+def test_paint_regions_composites_each_region_in_its_submask():
+    rgb = np.full((4, 4, 3), 100, np.uint8)
+    left = np.zeros((4, 4), bool); left[:, :2] = True
+    right = np.zeros((4, 4), bool); right[:, 2:] = True
+    p_left = SimpleNamespace(sub_mask=left, bands=np.zeros((4, 4), int),
+                             colors=[np.array([255, 0, 0], np.float32)])
+    p_right = SimpleNamespace(sub_mask=right, bands=np.zeros((4, 4), int),
+                              colors=[np.array([0, 0, 255], np.float32)])
+    out = paint_regions(rgb, [p_left, p_right])
+    assert out.shape == rgb.shape and out.dtype == np.uint8
+    assert out[0, 0, 0] > out[0, 0, 2]   # left pixel is reddish
+    assert out[0, 3, 2] > out[0, 3, 0]   # right pixel is bluish

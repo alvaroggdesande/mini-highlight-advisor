@@ -74,6 +74,20 @@ def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
+def paint_regions(rgb, plans, alpha: float = 0.78) -> np.ndarray:
+    base = rgb.astype(np.float32)
+    out = base.copy()
+    union = np.zeros(rgb.shape[:2], bool)
+    for p in plans:
+        union |= p.sub_mask
+    out[~union] = out[~union] * _DIM
+    for p in plans:
+        for b, color in enumerate(p.colors):
+            m = (p.bands == b) & p.sub_mask
+            out[m] = (1 - alpha) * base[m] + alpha * color
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
 def _font(size: int):
     for path in (r"C:\Windows\Fonts\segoeui.ttf", r"C:\Windows\Fonts\arial.ttf"):
         if os.path.exists(path):
