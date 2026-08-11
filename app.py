@@ -11,7 +11,7 @@ from mini_highlight_advisor.palette import (
     DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
     default_coverage, remainder_pct, slider_max_pct, default_ramp,
 )
-from mini_highlight_advisor.pipeline import prepare_shading, band_and_render, analyze_regions
+from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
