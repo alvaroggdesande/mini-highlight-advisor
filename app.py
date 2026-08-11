@@ -271,6 +271,24 @@ with tab_mini:
         st.divider()
         st.markdown(f"### Editing: **{book.names()[sel]}**")
 
+        # --- Rehydrate editor widgets from the book (the source of truth) ---
+        # Streamlit garbage-collects widget-state keys that weren't rendered during
+        # a run. A button that reruns before these editor widgets render (draw-mode
+        # toggle, delete, recipe load, add/cancel) drops n / slot_* / cov_pct_*,
+        # after which they'd silently reappear at defaults and the write-back would
+        # corrupt the region. setdefault restores only the *missing* keys from the
+        # selected region, so live user edits (present keys) are untouched.
+        _pal = book.palette_at(sel)
+        _cov = book.coverage_at(sel)
+        st.session_state.setdefault("n", len(_pal))
+        for i, p in enumerate(_pal):
+            _has_code = bool(p.code) and find_by_code(CATALOG, p.code) is not None
+            st.session_state.setdefault(f"slot_code_{i}", p.code if _has_code else CUSTOM)
+            st.session_state.setdefault(f"slot_hex_{i}", p.hex)
+        for i in range(len(_cov) - 1):
+            st.session_state.setdefault(f"cov_pct_{i}", round(_cov[i] * 100, 1))
+        st.session_state.setdefault("cov_n", len(_cov))
+
         # --- recipe loader ---
         recipes = load_all()
         recipe_by_name = {r.name: r for r in recipes}
