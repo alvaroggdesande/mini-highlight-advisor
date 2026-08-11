@@ -11,10 +11,18 @@ from mini_highlight_advisor.palette import (
     DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
     default_coverage, remainder_pct, slider_max_pct,
 )
-from mini_highlight_advisor.pipeline import prepare_shading, band_and_render
+from mini_highlight_advisor.pipeline import prepare_shading, band_and_render, analyze_regions
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
+from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
+from mini_highlight_advisor.overlay import swatch_board
+from PIL import Image
+
+try:
+    from streamlit_drawable_canvas import st_canvas
+except Exception:  # component missing/incompatible -> region drawing off, single-palette still works
+    st_canvas = None
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
@@ -50,6 +58,33 @@ def _swatch(hexv: str, size: str = "1em") -> str:
         f"background-color:{hexv};border:1px solid #888;"
         f"vertical-align:middle;margin-right:0.5em'></span>"
     )
+
+
+def _points_from_object(obj) -> list[tuple[float, float]]:
+    # Extract a polygon's vertices from a drawable-canvas (fabric.js) object.
+    # Polygon/freedraw objects expose vertices as obj["path"]
+    # ([["M",x,y],["L",x,y],...]) or, on some versions, obj["points"]
+    # ([{"x":..,"y":..}]). Confirm the exact key with spikes/canvas_spike.py.
+    if "points" in obj:
+        return [(p["x"], p["y"]) for p in obj["points"]]
+    return [(seg[1], seg[2]) for seg in obj.get("path", []) if len(seg) >= 3]
+
+
+def _render_region_steps(steps, roles, names, coverage) -> None:
+    # Shared paint-along step renderer for both the single-palette and the
+    # per-region plans. `coverage` is per-band realized percentages.
+    for step, role, name, cov in zip(steps, roles, names, coverage):
+        cum_cov = sum(coverage[step.index:])
+        st.markdown(f"**Step {step.index + 1} — {role} · {name}**")
+        if step.is_last:
+            c1, c2 = st.columns(2)
+            c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
+            c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
+        else:
+            c1, c2, c3 = st.columns(3)
+            c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
+            c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
+            c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
 
 tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
 
@@ -214,34 +249,85 @@ with tab_mini:
             if row.note:
                 st.caption(row.note)
 
+    st.session_state.setdefault("regions", [])   # list[Region]
     uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
     if uploaded is not None:
         suffix = os.path.splitext(uploaded.name)[1]
         try:
             with st.spinner("Preparing shading (first run downloads the depth model if no alpha channel)..."):
                 rgb, alpha, shading = _shading(uploaded.getvalue(), suffix)
-            result = band_and_render(rgb, shading.mask, shading.light, palette, coverage)
-            st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_container_width=True)
-            st.subheader("Layer guide (paint dark to light)")
-            for role, paint, cov in zip(result.roles, palette, result.coverage):
-                st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
-            st.subheader("Paint-along steps")
-            st.caption("Work dark to light. 'Where to paint' = the whole zone for this paint "
-                       "(bright marker); 'Apply across' = that same whole zone in the paint colour; "
-                       "'Stays this colour' = the smaller slice that remains this colour after you paint "
-                       "the lighter layers over the rest.")
-            for step, role, paint, cov in zip(result.steps, result.roles, palette, result.coverage):
-                cum_cov = sum(result.coverage[step.index:])
-                st.markdown(f"**Step {step.index + 1} — {role} · {paint.name}**")
-                if step.is_last:
-                    c1, c2 = st.columns(2)
-                    c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-                    c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
-                else:
-                    c1, c2, c3 = st.columns(3)
-                    c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-                    c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
-                    c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
+            src_h, src_w = rgb.shape[:2]
+
+            # --- Regions (optional overrides layered on the default palette) ---
+            st.markdown("#### Regions (optional)")
+            st.caption("Draw a lasso, name it, then 'Add region' to snapshot the CURRENT "
+                       "palette + coverage for that area. Draw nothing to keep the single "
+                       "whole-mini plan. Where regions overlap, the later one wins.")
+            if st_canvas is None:
+                st.info("Install `streamlit-drawable-canvas` to draw regions "
+                        "(`pip install streamlit-drawable-canvas`).")
+            else:
+                disp_w = min(500, src_w)
+                disp_h = round(src_h * disp_w / src_w)
+                canvas = st_canvas(
+                    fill_color="rgba(255,40,200,0.25)", stroke_width=2, stroke_color="#ff28c8",
+                    background_image=Image.fromarray(rgb), height=disp_h, width=disp_w,
+                    drawing_mode="polygon", key=f"canvas_{len(st.session_state['regions'])}",
+                )
+                region_name = st.text_input(
+                    "Region name", value=f"Region {len(st.session_state['regions']) + 1}")
+                if st.button("Add region"):
+                    objs = (canvas.json_data or {}).get("objects", [])
+                    if objs:
+                        pts = _points_from_object(objs[-1])
+                        sx, sy = src_w / disp_w, src_h / disp_h
+                        rmask = polygon_to_mask(scale_points(pts, sx, sy), (src_h, src_w)) & shading.mask
+                        if rmask.any():
+                            st.session_state["regions"].append(
+                                Region(region_name.strip() or f"Region {len(st.session_state['regions']) + 1}",
+                                       rmask, list(palette), list(coverage)))
+                            st.rerun()
+                        else:
+                            st.warning("Lasso didn't overlap the mini — try again.")
+                    else:
+                        st.warning("Draw a lasso first (click points, then close the shape).")
+
+            if st.session_state["regions"]:
+                st.markdown("**Regions added**")
+                for idx, r in enumerate(st.session_state["regions"]):
+                    cols = st.columns([4, 1])
+                    cols[0].write(f"{idx + 1}. {r.name} — {len(r.palette)} layers, {int(r.mask.sum())} px")
+                    if cols[1].button("Remove", key=f"rm_{idx}"):
+                        st.session_state["regions"].pop(idx)
+                        st.rerun()
+
+            st.divider()
+
+            # --- Render: combined multi-region OR the single-palette plan ---
+            regions = st.session_state["regions"]
+            if regions:
+                multi = analyze_regions(rgb, alpha, palette, coverage, regions)
+                st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
+                         use_container_width=True)
+                st.subheader("Colour schemes — all regions")
+                st.image(swatch_board([(p.name, p.colors) for p in multi.plans]))
+                st.subheader("Paint-along steps by region")
+                st.caption("Work dark to light within each region.")
+                for plan in multi.plans:
+                    st.markdown(f"### {plan.name}")
+                    _render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage)
+            else:
+                result = band_and_render(rgb, shading.mask, shading.light, palette, coverage)
+                st.image(result.panel, caption="Original | Painted preview | Highlight plan", use_container_width=True)
+                st.subheader("Layer guide (paint dark to light)")
+                for role, paint, cov in zip(result.roles, palette, result.coverage):
+                    st.markdown(f"**{role}** - {paint.name}  ·  ~{cov:.0f}% of the model")
+                st.subheader("Paint-along steps")
+                st.caption("Work dark to light. 'Where to paint' = the whole zone for this paint "
+                           "(bright marker); 'Apply across' = that same whole zone in the paint colour; "
+                           "'Stays this colour' = the smaller slice that remains this colour after you paint "
+                           "the lighter layers over the rest.")
+                _render_region_steps(result.steps, result.roles, [p.name for p in palette], result.coverage)
         except Exception as e:
             st.error("Error processing image — see traceback below.")
             st.exception(e)
