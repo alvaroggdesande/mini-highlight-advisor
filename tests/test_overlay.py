@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from types import SimpleNamespace
-from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions
+from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board
 
 
 def test_paint_preview_colors_bands_and_darkens_background():
@@ -201,3 +201,13 @@ def test_paint_regions_composites_each_region_in_its_submask():
     assert out.shape == rgb.shape and out.dtype == np.uint8
     assert out[0, 0, 0] > out[0, 0, 2]   # left pixel is reddish
     assert out[0, 3, 2] > out[0, 3, 0]   # right pixel is bluish
+
+
+def test_swatch_board_returns_image_and_grows_with_rows():
+    regs = [("Robe", [np.array([200, 0, 0], np.float32)]),
+            ("Blade", [np.array([50, 50, 50], np.float32),
+                       np.array([210, 210, 210], np.float32)])]
+    img = swatch_board(regs)
+    assert isinstance(img, Image.Image)
+    assert img.width > 0 and img.height > 0
+    assert swatch_board(regs).height > swatch_board(regs[:1]).height

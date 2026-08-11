@@ -127,3 +127,20 @@ def compose_panel(original_rgb, preview_rgb, legend: Image.Image, gap: int = 10)
         canvas.paste(im, (x, (h - im.height) // 2))
         x += im.width + gap
     return canvas
+
+
+def swatch_board(regions, width: int = 460, sw: int = 44, pad: int = 12) -> Image.Image:
+    row_h = sw + pad + 24
+    height = max(1, pad + len(regions) * row_h)
+    img = Image.new("RGB", (width, height), (26, 27, 32))
+    d = ImageDraw.Draw(img)
+    name_f = _font(20)
+    for r, (name, colors) in enumerate(regions):
+        y = pad + r * row_h
+        d.text((pad, y), name, font=name_f, fill=(235, 236, 240))
+        x, yy = pad, y + 26
+        for c in colors:
+            fill = tuple(int(v) for v in c)
+            d.rectangle([x, yy, x + sw, yy + sw], fill=fill, outline=(70, 72, 80), width=2)
+            x += sw + 6
+    return img
