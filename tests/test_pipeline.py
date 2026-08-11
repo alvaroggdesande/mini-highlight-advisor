@@ -1,7 +1,8 @@
 import numpy as np
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, coverage_pct, PaintColor, default_coverage
-from mini_highlight_advisor.pipeline import analyze, HighlightResult
+from mini_highlight_advisor.pipeline import analyze, HighlightResult, analyze_regions, MultiRegionResult
+from mini_highlight_advisor.regions import Region
 
 FIXTURE = "spikes/input/WhatsApp_Image_2026-08-09_at_14.04.40-removebg-preview.png"
 
@@ -67,3 +68,44 @@ def test_analyze_accepts_custom_coverage():
     result = analyze(rgb, alpha, palette, coverage=[0.6, 0.3, 0.1])
     assert result.coverage[0] > result.coverage[-1]
     assert abs(sum(result.coverage) - 100.0) < 0.5
+
+
+_PAL3 = [PaintColor("A", "#202020"), PaintColor("B", "#808080"), PaintColor("C", "#f0f0f0")]
+
+
+def test_analyze_regions_zero_regions_matches_single_palette_path():
+    rgb = np.random.default_rng(0).integers(0, 255, (32, 32, 3), dtype=np.uint8)
+    alpha = np.full((32, 32), 255, dtype=np.uint8)
+    baseline = analyze(rgb, alpha, _PAL3)
+    result = analyze_regions(rgb, alpha, _PAL3, None, [])
+    assert isinstance(result, MultiRegionResult)
+    assert len(result.plans) == 1                      # default region only
+    assert np.array_equal(result.plans[0].bands, baseline.bands)
+    assert result.plans[0].coverage == baseline.coverage
+
+
+def test_analyze_regions_partitions_pixels_exclusively():
+    rgb = np.random.default_rng(2).integers(0, 255, (20, 20, 3), dtype=np.uint8)
+    alpha = np.full((20, 20), 255, dtype=np.uint8)
+    left = np.zeros((20, 20), bool); left[:, :10] = True
+    region = Region("Left", left, _PAL3, default_coverage(3))
+    result = analyze_regions(rgb, alpha, _PAL3, None, [region])
+    # Default (right half) + one user region (left half)
+    assert len(result.plans) == 2
+    subs = [p.sub_mask for p in result.plans]
+    assert not (subs[0] & subs[1]).any()               # disjoint
+    union = subs[0] | subs[1]
+    assert np.array_equal(union, result.mask)          # covers exactly the mini
+    assert result.combined_rgb.shape == rgb.shape
+
+
+def test_analyze_regions_bands_within_submask_only():
+    rgb = np.random.default_rng(3).integers(0, 255, (16, 16, 3), dtype=np.uint8)
+    alpha = np.full((16, 16), 255, dtype=np.uint8)
+    top = np.zeros((16, 16), bool); top[:8, :] = True
+    region = Region("Top", top, _PAL3, default_coverage(3))
+    result = analyze_regions(rgb, alpha, _PAL3, None, [region])
+    for p in result.plans:
+        # Off the region's sub-mask, bands are -1 (never assigned outside it).
+        assert (p.bands[~p.sub_mask] == -1).all()
+        assert set(np.unique(p.bands[p.sub_mask])) <= set(range(3))

@@ -8,8 +8,11 @@ from PIL import Image
 from .banding import band_light
 from .lighting import luminance_light
 from .masking import compute_mask
-from .overlay import BandStep, compose_panel, paint_preview, per_band_images, render_legend
+from .overlay import (
+    BandStep, compose_panel, paint_preview, paint_regions, per_band_images, render_legend,
+)
 from .palette import PaintColor, coverage_pct, default_coverage, role_names
+from .regions import Region, assign_owners
 
 
 @dataclass
@@ -69,3 +72,53 @@ def analyze(
         coverage = default_coverage(len(palette))
     shading = prepare_shading(rgb, alpha)
     return band_and_render(rgb, shading.mask, shading.light, palette, coverage)
+
+
+@dataclass
+class RegionPlan:
+    name: str
+    sub_mask: np.ndarray
+    bands: np.ndarray
+    colors: list[np.ndarray]
+    names: list[str]
+    roles: list[str]
+    coverage: list[float]
+    steps: list[BandStep]
+
+
+@dataclass
+class MultiRegionResult:
+    mask: np.ndarray
+    light: np.ndarray
+    plans: list[RegionPlan]
+    combined_rgb: np.ndarray
+
+
+def plan_region(rgb, sub_mask, light, name, palette, coverage) -> RegionPlan:
+    colors = [p.rgb for p in palette]
+    names = [p.name for p in palette]
+    roles = role_names(len(palette))
+    bands = band_light(light, sub_mask, coverage)
+    cov = coverage_pct(bands, sub_mask, len(palette))
+    steps = per_band_images(rgb, bands, sub_mask, colors)
+    return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps)
+
+
+def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None) -> MultiRegionResult:
+    regions = regions or []
+    if coverage is None:
+        coverage = default_coverage(len(default_palette))
+    shading = prepare_shading(rgb, alpha)
+    mask, light = shading.mask, shading.light
+    owner = assign_owners(mask, [r.mask for r in regions])
+    plans: list[RegionPlan] = []
+    default_sub = owner == -1
+    if default_sub.any():
+        plans.append(plan_region(rgb, default_sub, light, "Default", default_palette, coverage))
+    for i, r in enumerate(regions):
+        sub = owner == i
+        if not sub.any():
+            continue
+        plans.append(plan_region(rgb, sub, light, r.name, r.palette, r.coverage))
+    combined = paint_regions(rgb, plans)
+    return MultiRegionResult(mask, light, plans, combined)
