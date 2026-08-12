@@ -34,3 +34,23 @@ def test_delta_e00_orders_by_similarity():
 
 def test_delta_e00_black_white_is_large():
     assert delta_e00(lab_of_hex("#000000"), lab_of_hex("#ffffff")) > 90.0
+
+
+def test_linear_blend_midpoint_lighter_than_srgb_average():
+    from mini_highlight_advisor.color import linear_blend
+    r, g, b = linear_blend([(0, 0, 0), (255, 255, 255)], [1, 1])
+    assert 180 < r < 195          # linear-light mid ≈ 188, not the 127 of an sRGB average
+    assert abs(r - g) < 1e-6 and abs(g - b) < 1e-6
+
+
+def test_linear_blend_respects_parts():
+    from mini_highlight_advisor.color import linear_blend
+    dark = linear_blend([(0, 0, 0), (255, 255, 255)], [3, 1])
+    light = linear_blend([(0, 0, 0), (255, 255, 255)], [1, 3])
+    assert dark[0] < light[0]
+
+
+def test_linear_blend_single_is_identity():
+    from mini_highlight_advisor.color import linear_blend
+    r, g, b = linear_blend([(120, 60, 30)], [1])
+    assert abs(r - 120) < 1.0 and abs(g - 60) < 1.0 and abs(b - 30) < 1.0

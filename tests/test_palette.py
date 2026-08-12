@@ -118,3 +118,13 @@ def test_default_ramp_length_and_seed():
     assert len(ramp) == 6
     assert ramp[0].hex == DEFAULT_PALETTE[0].hex
     assert all(hasattr(p, "hex") for p in ramp)
+
+
+def test_paintcolor_finish_defaults_matte():
+    from mini_highlight_advisor.palette import PaintColor
+    assert PaintColor("X", "#111111").finish == "matte"
+
+
+def test_paintcolor_finish_explicit():
+    from mini_highlight_advisor.palette import PaintColor
+    assert PaintColor("Silver", "#c9cccd", finish="metallic").finish == "metallic"

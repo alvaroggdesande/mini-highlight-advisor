@@ -110,3 +110,59 @@ def test_reverted_names_collide_but_load_by_code():
     assert find_by_code(cat, "72.001").name == "Dead White"      # Game Color
     assert find_by_code(cat, "72.061").name == "Khaki"           # was "Khaki game"
     assert find_by_code(cat, "72.016").name == "Royal Purple"    # was "Royal Purple model"→ Game
+
+
+def test_load_defaults_finish_matte(tmp_path):
+    import json
+    from mini_highlight_advisor.catalog import load_catalog
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({"paints": [{"code": "70.950", "name": "Black", "hex": "#1b1b1b"}]}))
+    assert load_catalog(p)[0].finish == "matte"
+
+
+def test_load_reads_metallic_finish(tmp_path):
+    import json
+    from mini_highlight_advisor.catalog import load_catalog
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({"paints": [
+        {"code": "77.101", "name": "Sterling Silver", "hex": "#d5d7d6", "finish": "metallic"}]}))
+    assert load_catalog(p)[0].finish == "metallic"
+
+
+def test_validate_rejects_bad_finish():
+    from mini_highlight_advisor.catalog import validate_catalog
+    with pytest.raises(ValueError) as exc:
+        validate_catalog([{"code": "1", "name": "Glitterbomb", "hex": "#111111", "finish": "glitter"}])
+    assert "finish" in str(exc.value) and "Glitterbomb" in str(exc.value)
+
+
+def test_known_metallics_tagged_after_curation():
+    from mini_highlight_advisor.catalog import load_catalog, find_by_code
+    cat = load_catalog()
+    # All 14 non-TMM metallic codes that must be explicitly tagged metallic.
+    # (The TMM range is covered separately by test_all_tmm_entries_are_metallic.)
+    for code in [
+        "70.800", "70.865", "70.863", "70.997", "70.878",
+        "72.052", "72.053", "72.054", "72.055", "72.056",
+        "72.057", "72.058", "72.059", "72.060",
+    ]:
+        p = find_by_code(cat, code)
+        assert p is not None and p.finish == "metallic", code
+
+
+def test_colour_named_paints_stay_matte():
+    from mini_highlight_advisor.catalog import load_catalog, find_by_code
+    cat = load_catalog()
+    # must-stay-matte: metal-named-but-matte false-positives (e.g. "Gold Yellow",
+    # "Bronze Fleshtone"), plus a neutral control (72.045 Charred Brown — no metal
+    # keyword, confirms the assertion covers non-keyword paints too)
+    for code in ["72.007", "72.036", "72.002", "70.897", "72.045"]:
+        p = find_by_code(cat, code)
+        assert p is not None and p.finish == "matte", code
+
+
+def test_all_tmm_entries_are_metallic():
+    from mini_highlight_advisor.catalog import load_catalog
+    cat = load_catalog()
+    tmm = [p for p in cat if p.paint_range == "True Metallic Metal"]
+    assert tmm and all(p.finish == "metallic" for p in tmm)

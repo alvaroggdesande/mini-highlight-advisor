@@ -73,3 +73,23 @@ def delta_e00(lab1, lab2) -> float:
         + (delta_Hp / S_H) ** 2
         + R_T * (delta_Cp / S_C) * (delta_Hp / S_H)
     )
+
+
+def _linear_to_srgb255(v: float) -> float:
+    v = max(0.0, min(1.0, v))
+    s = 12.92 * v if v <= 0.0031308 else 1.055 * (v ** (1 / 2.4)) - 0.055
+    return s * 255.0
+
+
+def linear_blend(rgbs, parts) -> tuple[float, float, float]:
+    """Blend sRGB colours (0-255 seqs) by integer `parts` in linear-light space.
+
+    Physically more honest than averaging sRGB directly. Still an approximation of
+    real pigment mixing — callers label the result 'approx'.
+    """
+    total = float(sum(parts))
+    acc = [0.0, 0.0, 0.0]
+    for rgb, w in zip(rgbs, parts):
+        for k in range(3):
+            acc[k] += w * _srgb_to_linear(float(rgb[k]))
+    return tuple(_linear_to_srgb255(acc[k] / total) for k in range(3))  # type: ignore[return-value]
