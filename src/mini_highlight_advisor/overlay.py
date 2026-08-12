@@ -72,7 +72,7 @@ def edge_steps(rgb, light, mask, colors, sensitivity: float = 0.5,
                extreme: bool = False, alpha: float = 0.78,
                start_index: int = 0) -> list[BandStep]:
     n = len(colors)
-    two_tier = extreme and n >= 4
+    two_tier = extreme and n >= 5  # n>=5 => top two bands are both highlight-tier
     main_color = colors[-2] if two_tier else colors[-1]
     main = edge_mask(light, mask, sensitivity)
     steps = [BandStep(

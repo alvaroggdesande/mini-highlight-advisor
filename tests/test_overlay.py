@@ -249,3 +249,12 @@ def test_edge_steps_one_tier_fallback_few_colors():
     colors = [np.array([c, c, c], np.float32) for c in (10, 150, 255)]  # 3 bands
     steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=3)
     assert len(steps) == 1  # not enough distinct highlight colours -> one tier
+
+
+def test_edge_steps_one_tier_fallback_four_bands():
+    """4 bands = [Shadow, Base, Midtone, Highlight] -> only ONE highlight-tier
+    colour, so extreme still falls back to one tier. Two-tier needs n >= 5."""
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 90, 170, 255)]  # 4 bands
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=4)
+    assert len(steps) == 1  # n < 5 -> one tier
