@@ -94,13 +94,15 @@ def edge_steps(rgb, light, mask, colors, sensitivity: float = 0.5,
     return steps
 
 
-def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
+def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78, edge_overlays=None) -> np.ndarray:
     base = rgb.astype(np.float32)
     out = base.copy()
     out[~mask] = out[~mask] * _DIM
     for b, color in enumerate(colors):
         m = (bands == b) & mask
         out[m] = (1 - alpha) * base[m] + alpha * color
+    for emask, color in (edge_overlays or []):
+        out[emask] = (1 - alpha) * base[emask] + alpha * color
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
@@ -114,6 +116,10 @@ def paint_regions(rgb, plans, alpha: float = 0.78) -> np.ndarray:
     for p in plans:
         for b, color in enumerate(p.colors):
             m = (p.bands == b) & p.sub_mask
+            out[m] = (1 - alpha) * base[m] + alpha * color
+    for p in plans:
+        for emask, color in (getattr(p, 'edge_overlays', None) or []):
+            m = emask & p.sub_mask
             out[m] = (1 - alpha) * base[m] + alpha * color
     return np.clip(out, 0, 255).astype(np.uint8)
 

@@ -258,3 +258,18 @@ def test_edge_steps_one_tier_fallback_four_bands():
     colors = [np.array([c, c, c], np.float32) for c in (10, 90, 170, 255)]  # 4 bands
     steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=4)
     assert len(steps) == 1  # n < 5 -> one tier
+
+
+def test_paint_preview_draws_edge_overlay():
+    size = 20
+    rgb = np.zeros((size, size, 3), np.uint8)
+    mask = np.ones((size, size), bool)
+    bands = np.zeros((size, size), np.int32)
+    colors = [np.array([0, 0, 0], np.float32)]
+    edge = np.zeros((size, size), bool)
+    edge[5, :] = True
+    red = np.array([255, 0, 0], np.float32)
+    out = paint_preview(rgb, bands, mask, colors, edge_overlays=[(edge, red)])
+    # row 5 should carry red; a non-edge row should not
+    assert out[5, 10, 0] > 150
+    assert out[0, 10, 0] < 50
