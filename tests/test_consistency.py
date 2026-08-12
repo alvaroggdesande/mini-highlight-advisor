@@ -19,6 +19,11 @@ def test_edge_highlight_role():
     assert "fine" in note.lower() or "tip" in note.lower()
 
 
+def test_bright_highlight_role():
+    note = annotate(_res(), role="Bright Highlight")
+    assert "gradually" in note.lower() or "build up" in note.lower()
+
+
 def test_mix_adds_water_ratio():
     res = MatchResult("mix", "#8a8a88", [PaintColor("Black", "#1b1b1b"),
                       PaintColor("White", "#f3f3ee")], [1, 1], 3.0, None, "x")

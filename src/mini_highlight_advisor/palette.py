@@ -44,7 +44,7 @@ def role_names(n: int) -> list[str]:
 
 
 def default_coverage(n: int) -> list[float]:
-    # Linear decreasing weights: shadow widest, edge highlight thinnest.
+    # Linear decreasing weights: shadow widest, bright highlight thinnest.
     weights = list(range(n, 0, -1))
     total = sum(weights)
     return [w / total for w in weights]
