@@ -18,6 +18,12 @@ _FLOW = ("ink", "wash", "contrast")
 
 
 def _paint_type_caveat(paints: list[PaintColor]) -> str:
+    finishes = {getattr(p, "finish", "matte") for p in paints}
+    if "metallic" in finishes:
+        return "Metallic: stir often, settles."
+    if "wash" in finishes or "contrast" in finishes:
+        return "Flows: one pass."
+    # Fallback keyword sniff for finish-less / custom paints.
     blob = " ".join(f"{p.name} {p.paint_range or ''}" for p in paints).lower()
     if any(k in blob for k in _METALLIC):
         return "Metallic: stir often, settles."

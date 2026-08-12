@@ -41,3 +41,15 @@ def test_low_opacity_caveat():
 def test_unknown_role_no_dilution_but_still_string():
     note = annotate(_res(), role="")
     assert isinstance(note, str)
+
+
+def test_metallic_caveat_by_finish_flag():
+    res = _res(paints=[PaintColor("Sterling Silver", "#d5d7d6", finish="metallic")])
+    note = annotate(res, role="Base")
+    assert "stir" in note.lower() or "settle" in note.lower()
+
+
+def test_wash_caveat_by_finish_flag():
+    res = _res(paints=[PaintColor("Some Shade", "#405060", finish="wash")])
+    note = annotate(res, role="Base")
+    assert "flow" in note.lower() or "one pass" in note.lower()
