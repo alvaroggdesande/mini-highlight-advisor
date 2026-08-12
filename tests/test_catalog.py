@@ -139,8 +139,13 @@ def test_validate_rejects_bad_finish():
 def test_known_metallics_tagged_after_curation():
     from mini_highlight_advisor.catalog import load_catalog, find_by_code
     cat = load_catalog()
-    # TMM range + real metallics hiding in Model/Game Color
-    for code in ["77.101", "70.997", "70.865", "72.052", "72.054", "72.055", "72.059"]:
+    # All 14 non-TMM metallic codes that must be explicitly tagged metallic.
+    # (The TMM range is covered separately by test_all_tmm_entries_are_metallic.)
+    for code in [
+        "70.800", "70.865", "70.863", "70.997", "70.878",
+        "72.052", "72.053", "72.054", "72.055", "72.056",
+        "72.057", "72.058", "72.059", "72.060",
+    ]:
         p = find_by_code(cat, code)
         assert p is not None and p.finish == "metallic", code
 
@@ -148,7 +153,9 @@ def test_known_metallics_tagged_after_curation():
 def test_colour_named_paints_stay_matte():
     from mini_highlight_advisor.catalog import load_catalog, find_by_code
     cat = load_catalog()
-    # keyword false-positives that are NOT metallic paints — must remain matte
+    # must-stay-matte: metal-named-but-matte false-positives (e.g. "Gold Yellow",
+    # "Bronze Fleshtone"), plus a neutral control (72.045 Charred Brown — no metal
+    # keyword, confirms the assertion covers non-keyword paints too)
     for code in ["72.007", "72.036", "72.002", "70.897", "72.045"]:
         p = find_by_code(cat, code)
         assert p is not None and p.finish == "matte", code

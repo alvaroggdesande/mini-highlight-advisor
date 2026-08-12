@@ -140,3 +140,42 @@ def test_two_paint_kept_when_third_barely_helps():
     t = Target("#8a8a88", None, "matte")          # black+white already nails it
     res = match(t, owned=[BLACK, WHITE, NEARW], catalog=[BLACK, WHITE, NEARW])
     assert res.tier == "mix" and len(res.paints) == 2
+
+
+def test_buy_hint_excludes_codeless_owned_paint():
+    """I1: a code-less paint the user already owns must NOT appear as a buy-hint.
+
+    Setup:
+    - Target: vivid yellow (matte, specific shade) — placed so the code-less
+      custom yellow is in owned but NOT close enough to be a tier-1/2 match
+      (ΔE > CLOSE_THRESHOLD from target) and no mix is possible (only one
+      matte paint owned), forcing tier 4 unreachable.
+    - Catalog: only that same code-less paint (the nearest match for the finish).
+    - Expected: buy_hint is None (the sole catalog candidate is already owned).
+
+    With the old code-only filter (`"" not in owned_codes`), the code-less paint
+    passes the filter and IS returned as buy_hint — making the assertion FAIL
+    against the buggy code. After the fix (set-based identity check), it is
+    excluded and buy_hint is None.
+    """
+    # A code-less custom orange — deliberately placed far from the target blue.
+    # ΔE between #e07010 (orange) and #4a7ad9 (blue) is >> CLOSE_THRESHOLD.
+    CUSTOM_ORANGE = PaintColor("Custom Orange", "#e07010", finish="matte")
+
+    # Target: a vivid blue that CUSTOM_ORANGE cannot match (too far for exact/close)
+    # and no mix is possible (only one matte paint owned).
+    res = match(
+        Target("#4a7ad9", None, "matte"),
+        owned=[CUSTOM_ORANGE],
+        catalog=[CUSTOM_ORANGE],
+    )
+    assert res.tier == "unreachable", (
+        f"Expected unreachable (orange cannot match blue), got {res.tier}"
+    )
+    # The critical assertion: the owned code-less paint must NOT be the buy hint.
+    assert res.buy_hint is not CUSTOM_ORANGE, (
+        "buy_hint must not be a paint the user already owns (code-less identity bug)"
+    )
+    assert res.buy_hint is None, (
+        "with only the owned code-less paint in catalog, buy_hint must be None"
+    )

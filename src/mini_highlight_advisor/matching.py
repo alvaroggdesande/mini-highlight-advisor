@@ -152,6 +152,7 @@ def match(target: Target, owned: list[PaintColor], catalog: list[PaintColor]) ->
         return m is not None and m[2] <= MIX_ACCEPT_THRESHOLD and m[2] < nearest_single_d
 
     chosen = best2 if _ok(best2) else None
+    # A valid triple beats an invalid/absent pair even without the margin improvement.
     if _ok(best3) and (best2 is None or best3[2] <= best2[2] - TRIPLE_IMPROVE_MARGIN):
         chosen = best3
     if chosen is not None:
@@ -160,8 +161,14 @@ def match(target: Target, owned: list[PaintColor], catalog: list[PaintColor]) ->
                            _mix_phrase(paints, parts, target.finish))
 
     # Tier 4: unreachable + buy hint from same-finish catalogue
+    owned_set = set(owned)
     owned_codes = {p.code for p in owned if p.code}
-    unowned = [p for p in catalog if p.finish == target.finish and p.code not in owned_codes]
+    unowned = [
+        p for p in catalog
+        if p.finish == target.finish
+        and p not in owned_set
+        and (not p.code or p.code not in owned_codes)
+    ]
     buy = min(unowned, key=lambda p: delta_e00(t_lab, lab_of_hex(p.hex))) if unowned else None
     nearest = ranked[0] if ranked else None
     d_near = nearest_single_d if ranked else float("nan")
