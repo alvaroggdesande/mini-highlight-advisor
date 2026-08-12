@@ -13,7 +13,9 @@ _COVERAGE_NOTES = {
     "Base": "the main body of the surface",
     "Midtone": "flat, gently-lit panels",
     "Highlight": "raised areas facing the light",
-    "Edge Highlight": "sharpest top edges only",
+    "Bright Highlight": "the brightest broad zones",
+    "Edge Highlight": "the crisp lit rim of every plate",
+    "Extreme Edge Highlight": "sharpest edges only, the final pop",
 }
 
 _DIM = 0.25

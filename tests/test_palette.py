@@ -17,7 +17,7 @@ def test_default_palette_is_five_dark_to_light():
 
 
 def test_role_names_known_and_generic():
-    assert role_names(5) == ["Shadow", "Base", "Midtone", "Highlight", "Edge Highlight"]
+    assert role_names(5) == ["Shadow", "Base", "Midtone", "Highlight", "Bright Highlight"]
     assert role_names(2) == ["Layer 1", "Layer 2"]
 
 
@@ -68,11 +68,11 @@ def test_default_palette_entries_have_codes():
 def test_role_names_six_and_seven():
     from mini_highlight_advisor.palette import role_names
     assert role_names(6) == [
-        "Shadow", "Deep Base", "Base", "Midtone", "Highlight", "Edge Highlight"
+        "Shadow", "Deep Base", "Base", "Midtone", "Highlight", "Bright Highlight"
     ]
     assert role_names(7) == [
         "Shadow", "Deep Base", "Base", "Midtone", "Upper Midtone",
-        "Highlight", "Edge Highlight",
+        "Highlight", "Bright Highlight",
     ]
 
 
