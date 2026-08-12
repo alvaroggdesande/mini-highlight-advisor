@@ -50,8 +50,8 @@ def overlay(rgb, edge, color=(255, 40, 200)):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for fx in FIXTURES:
-        stem = os.path.splitext(os.path.basename(fx))[0][:24]
+    for i, fx in enumerate(FIXTURES):
+        stem = f"fx{i}_" + os.path.splitext(os.path.basename(fx))[0][-18:]
         rgb, alpha = load_image(fx)
         mask = compute_mask(rgb, alpha)
         light = luminance_light(rgb, mask)
