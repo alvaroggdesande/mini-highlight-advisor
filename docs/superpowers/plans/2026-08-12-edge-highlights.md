@@ -682,9 +682,10 @@ git commit -m "feat: overlay edge lines on combined preview"
 ### Task 6: Naming cleanup — top tonal band is no longer "Edge Highlight"
 
 **Files:**
-- Modify: `src/mini_highlight_advisor/palette.py:33-40` (`_ROLE_NAMES` lists).
+- Modify: `src/mini_highlight_advisor/palette.py:33-40` (`_ROLE_NAMES` lists); also fix the stale `default_coverage` comment ("edge highlight thinnest" → "bright highlight thinnest").
 - Modify: `src/mini_highlight_advisor/overlay.py:9-15` (`_COVERAGE_NOTES`).
-- Test: `tests/test_palette.py` (adjust any assertion on the old name).
+- Modify: `src/mini_highlight_advisor/consistency.py:7-13` (`ROLE_DILUTION`) — the old `"Edge Highlight"` key was the top *tonal* band's dilution advice; after the rename the tonal band is `"Bright Highlight"`, so add that key. Keep `"Edge Highlight"` (its "thinned, fine controlled tip" advice now correctly describes the real edge step) and add `"Extreme Edge Highlight"`.
+- Test: `tests/test_palette.py` (adjust assertions on the old top-band name) and `tests/test_consistency.py` (add a `"Bright Highlight"` role test).
 
 **Interfaces:**
 - Consumes: nothing new.
