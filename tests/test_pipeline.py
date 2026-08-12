@@ -34,7 +34,7 @@ def test_analyze_populates_per_band_steps():
     alpha = np.full((32, 32), 255, dtype=np.uint8)  # full-model alpha, fast path
     palette = [PaintColor("A", "#202020"), PaintColor("B", "#808080"), PaintColor("C", "#f0f0f0")]
 
-    result = analyze(rgb, alpha, palette)
+    result = analyze(rgb, alpha, palette, edges=False)
 
     assert len(result.steps) == len(palette)
     assert result.steps[-1].is_last is True
@@ -118,3 +118,23 @@ def test_leftover_plan_is_named_whole_mini():
     res = analyze_regions(rgb, alpha, DEFAULT_PALETTE[:3], regions=[])
     assert WHOLE_MINI == "Whole mini"
     assert [p.name for p in res.plans] == [WHOLE_MINI]
+
+
+def test_analyze_appends_edge_step_by_default():
+    rgb, alpha = load_image(FIXTURE)
+    res = analyze(rgb, alpha, DEFAULT_PALETTE)
+    kinds = [s.kind for s in res.steps]
+    assert kinds.count("band") == len(DEFAULT_PALETTE)
+    assert kinds.count("edge") == 1  # extreme off by default
+
+
+def test_analyze_no_edge_when_disabled():
+    rgb, alpha = load_image(FIXTURE)
+    res = analyze(rgb, alpha, DEFAULT_PALETTE, edges=False)
+    assert all(s.kind == "band" for s in res.steps)
+
+
+def test_analyze_two_edge_steps_with_extreme():
+    rgb, alpha = load_image(FIXTURE)
+    res = analyze(rgb, alpha, DEFAULT_PALETTE, extreme_edge=True)
+    assert [s.kind for s in res.steps].count("edge") == 2

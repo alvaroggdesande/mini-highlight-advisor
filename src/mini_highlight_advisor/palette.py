@@ -32,10 +32,10 @@ DEFAULT_PALETTE = [
 _ROLES = {
     3: ["Shadow", "Base", "Highlight"],
     4: ["Shadow", "Base", "Midtone", "Highlight"],
-    5: ["Shadow", "Base", "Midtone", "Highlight", "Edge Highlight"],
-    6: ["Shadow", "Deep Base", "Base", "Midtone", "Highlight", "Edge Highlight"],
+    5: ["Shadow", "Base", "Midtone", "Highlight", "Bright Highlight"],
+    6: ["Shadow", "Deep Base", "Base", "Midtone", "Highlight", "Bright Highlight"],
     7: ["Shadow", "Deep Base", "Base", "Midtone", "Upper Midtone",
-        "Highlight", "Edge Highlight"],
+        "Highlight", "Bright Highlight"],
 }
 
 
@@ -44,7 +44,7 @@ def role_names(n: int) -> list[str]:
 
 
 def default_coverage(n: int) -> list[float]:
-    # Linear decreasing weights: shadow widest, edge highlight thinnest.
+    # Linear decreasing weights: shadow widest, bright highlight thinnest.
     weights = list(range(n, 0, -1))
     total = sum(weights)
     return [w / total for w in weights]

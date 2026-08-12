@@ -9,7 +9,9 @@ ROLE_DILUTION = {
     "Base": "2 thin coats, milk-like.",
     "Midtone": "thinned more, build up gradually.",
     "Highlight": "thinned more, build up gradually.",
+    "Bright Highlight": "thinned more, build up gradually.",
     "Edge Highlight": "thinned, fine controlled tip.",
+    "Extreme Edge Highlight": "thinned, fine controlled tip.",
 }
 
 _METALLIC = ("metal", "steel", "gold", "silver", "bronze", "chrome", "gunmetal", "iron")

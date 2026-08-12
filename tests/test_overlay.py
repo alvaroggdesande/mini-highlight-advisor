@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from types import SimpleNamespace
-from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board
+from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board, edge_steps
 
 
 def test_paint_preview_colors_bands_and_darkens_background():
@@ -211,3 +211,63 @@ def test_swatch_board_returns_image_and_grows_with_rows():
     assert isinstance(img, Image.Image)
     assert img.width > 0 and img.height > 0
     assert swatch_board(regs).height > swatch_board(regs[:1]).height
+
+
+# Edge steps tests
+
+def _two_plate_rgb(size=40):
+    light = np.full((size, size), 120.0, np.float32)
+    light[:, : size // 2] = 200.0
+    rgb = np.stack([light, light, light], -1).astype(np.uint8)
+    mask = np.ones((size, size), bool)
+    return rgb, light, mask
+
+
+def test_edge_steps_one_tier_by_default():
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 80, 150, 220, 255)]
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=False, start_index=5)
+    assert len(steps) == 1
+    assert steps[0].kind == "edge"
+    assert steps[0].label == "Edge Highlight"
+    assert steps[0].index == 5
+
+
+def test_edge_steps_two_tier_when_extreme():
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 80, 150, 220, 255)]
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=5)
+    assert [s.label for s in steps] == ["Edge Highlight", "Extreme Edge Highlight"]
+    assert steps[-1].is_last is True
+    assert steps[0].is_last is False
+
+
+def test_edge_steps_one_tier_fallback_few_colors():
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 150, 255)]  # 3 bands
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=3)
+    assert len(steps) == 1  # not enough distinct highlight colours -> one tier
+
+
+def test_edge_steps_one_tier_fallback_four_bands():
+    """4 bands = [Shadow, Base, Midtone, Highlight] -> only ONE highlight-tier
+    colour, so extreme still falls back to one tier. Two-tier needs n >= 5."""
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 90, 170, 255)]  # 4 bands
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=4)
+    assert len(steps) == 1  # n < 5 -> one tier
+
+
+def test_paint_preview_draws_edge_overlay():
+    size = 20
+    rgb = np.zeros((size, size, 3), np.uint8)
+    mask = np.ones((size, size), bool)
+    bands = np.zeros((size, size), np.int32)
+    colors = [np.array([0, 0, 0], np.float32)]
+    edge = np.zeros((size, size), bool)
+    edge[5, :] = True
+    red = np.array([255, 0, 0], np.float32)
+    out = paint_preview(rgb, bands, mask, colors, edge_overlays=[(edge, red)])
+    # row 5 should carry red; a non-edge row should not
+    assert out[5, 10, 0] > 150
+    assert out[0, 10, 0] < 50

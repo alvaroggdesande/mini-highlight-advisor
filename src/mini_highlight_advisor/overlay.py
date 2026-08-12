@@ -6,12 +6,16 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from .edges import edge_mask, extreme_edge_mask
+
 _COVERAGE_NOTES = {
     "Shadow": "deepest recesses",
     "Base": "the main body of the surface",
     "Midtone": "flat, gently-lit panels",
     "Highlight": "raised areas facing the light",
-    "Edge Highlight": "sharpest top edges only",
+    "Bright Highlight": "the brightest broad zones",
+    "Edge Highlight": "the crisp lit rim of every plate",
+    "Extreme Edge Highlight": "sharpest edges only, the final pop",
 }
 
 _DIM = 0.25
@@ -27,7 +31,8 @@ class BandStep:
     cumulative_rgb: np.ndarray
     exact_rgb: np.ndarray | None
     is_last: bool
-
+    kind: str = "band"
+    label: str | None = None
 
 
 def _desat_dim(rgb) -> np.ndarray:
@@ -64,13 +69,41 @@ def per_band_images(rgb, bands, mask, colors, alpha: float = 0.78) -> list[BandS
     return steps
 
 
-def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78) -> np.ndarray:
+def edge_steps(rgb, light, mask, colors, sensitivity: float = 0.5,
+               extreme: bool = False, alpha: float = 0.78,
+               start_index: int = 0) -> list[BandStep]:
+    n = len(colors)
+    two_tier = extreme and n >= 5  # n>=5 => top two bands are both highlight-tier
+    main_color = colors[-2] if two_tier else colors[-1]
+    main = edge_mask(light, mask, sensitivity)
+    steps = [BandStep(
+        index=start_index,
+        zone_rgb=_zone_render(rgb, main),
+        cumulative_rgb=_render_step(rgb, main, main_color, alpha),
+        exact_rgb=_render_step(rgb, main, main_color, alpha),
+        is_last=not two_tier, kind="edge", label="Edge Highlight",
+    )]
+    if two_tier:
+        ext = extreme_edge_mask(light, mask, sensitivity)
+        steps.append(BandStep(
+            index=start_index + 1,
+            zone_rgb=_zone_render(rgb, ext),
+            cumulative_rgb=_render_step(rgb, ext, colors[-1], alpha),
+            exact_rgb=_render_step(rgb, ext, colors[-1], alpha),
+            is_last=True, kind="edge", label="Extreme Edge Highlight",
+        ))
+    return steps
+
+
+def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78, edge_overlays=None) -> np.ndarray:
     base = rgb.astype(np.float32)
     out = base.copy()
     out[~mask] = out[~mask] * _DIM
     for b, color in enumerate(colors):
         m = (bands == b) & mask
         out[m] = (1 - alpha) * base[m] + alpha * color
+    for emask, color in (edge_overlays or []):
+        out[emask] = (1 - alpha) * base[emask] + alpha * color
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
@@ -84,6 +117,10 @@ def paint_regions(rgb, plans, alpha: float = 0.78) -> np.ndarray:
     for p in plans:
         for b, color in enumerate(p.colors):
             m = (p.bands == b) & p.sub_mask
+            out[m] = (1 - alpha) * base[m] + alpha * color
+    for p in plans:
+        for emask, color in (getattr(p, 'edge_overlays', None) or []):
+            m = emask & p.sub_mask
             out[m] = (1 - alpha) * base[m] + alpha * color
     return np.clip(out, 0, 255).astype(np.uint8)
 

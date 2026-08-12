@@ -103,9 +103,22 @@ def _points_from_object(obj) -> list[tuple[float, float]]:
 def _render_region_steps(steps, roles, names, coverage) -> None:
     # Shared paint-along step renderer for both the single-palette and the
     # per-region plans. `coverage` is per-band realized percentages.
-    for step, role, name, cov in zip(steps, roles, names, coverage):
-        cum_cov = sum(coverage[step.index:])
-        st.markdown(f"**Step {step.index + 1} — {role} · {name}**")
+    # Edge steps (step.kind == "edge") are appended after tonal steps; their
+    # index is >= len(roles), so we guard the roles/names lookup with step.label.
+    for step in steps:
+        if step.label:
+            # Edge step — label is set ("Edge Highlight" / "Extreme Edge Highlight")
+            caption_text = step.label
+            name_text = step.label
+            cum_cov = 0.0
+            cov = 0.0
+            st.markdown(f"**Step {step.index + 1} — {step.label}**")
+        else:
+            caption_text = roles[step.index]
+            name_text = names[step.index]
+            cum_cov = sum(coverage[step.index:])
+            cov = coverage[step.index]
+            st.markdown(f"**Step {step.index + 1} — {caption_text} · {name_text}**")
         if step.is_last:
             c1, c2 = st.columns(2)
             c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
@@ -421,8 +434,18 @@ with tab_mini:
                     st.caption(row.note)
 
         st.divider()
+        st.markdown("**Edge highlights**")
+        edges = st.checkbox("Edge highlights", value=True, key="edge_hl")
+        extreme_edge = st.checkbox("Extreme edge highlight", value=False,
+                                   key="edge_extreme", disabled=not edges)
+        edge_sensitivity = st.slider("Edge sensitivity", 0.0, 1.0, 0.5, 0.05,
+                                     key="edge_sens", disabled=not edges,
+                                     help="Few sharpest edges (left) to more edges (right).")
+
         wp, wcov, drawn = book.analyze_args()
-        multi = analyze_regions(rgb, alpha, wp, wcov, drawn)
+        multi = analyze_regions(rgb, alpha, wp, wcov, drawn,
+                                edges=edges, extreme_edge=extreme_edge,
+                                edge_sensitivity=edge_sensitivity)
         st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
                  use_container_width=True)
         st.subheader("Colour schemes — all regions")
