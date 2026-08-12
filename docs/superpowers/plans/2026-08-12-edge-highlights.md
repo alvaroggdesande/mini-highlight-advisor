@@ -734,39 +734,40 @@ git commit -m "refactor: rename top tonal band to Bright Highlight; edge labels 
 
 ---
 
-### Task 7: UI — per-region edge toggles + sensitivity slider
+### Task 7: UI — global edge toggles + sensitivity slider
 
 Streamlit UI; verified by running the app (repo convention: no unit test for `app.py`; the user runs the smoke).
 
+**Design correction:** `analyze_regions` applies edge settings **globally** to every region (its `edges`/`extreme_edge`/`edge_sensitivity` params are not per-region — see Task 4). So the controls are **global**, not per-region. (Per-region edge control is a possible future enhancement that would require `analyze_regions` to accept per-region edge settings — out of scope here.)
+
 **Files:**
-- Modify: `app.py`
+- Modify: `app.py` (the app calls `analyze_regions(rgb, alpha, wp, wcov, drawn)` at ~line 425).
 
 **Interfaces:**
-- Consumes: `analyze` / `analyze_regions` edge params (Task 4).
-- Produces: three widgets whose values are passed as `edges`, `extreme_edge`, `edge_sensitivity`.
+- Consumes: `analyze_regions` edge params (Task 4).
+- Produces: three global widgets whose values are passed as `edges`, `extreme_edge`, `edge_sensitivity`.
 
 - [ ] **Step 1: Add the widgets**
 
-Near the existing per-region palette/coverage controls, add (keys namespaced per region so multiple regions don't collide):
+Add three **global** widgets near the other global render controls (fixed keys, not per-region). `extreme_edge` and the slider are disabled when `edges` is off:
 
 ```python
-edges = st.checkbox("Edge highlights", value=True, key=f"edges_{region_key}")
+edges = st.checkbox("Edge highlights", value=True, key="edge_hl")
 extreme_edge = st.checkbox("Extreme edge highlight", value=False,
-                           key=f"extreme_{region_key}", disabled=not edges)
+                           key="edge_extreme", disabled=not edges)
 edge_sensitivity = st.slider("Edge sensitivity", 0.0, 1.0, 0.5, 0.05,
-                             key=f"edgesens_{region_key}", disabled=not edges,
+                             key="edge_sens", disabled=not edges,
                              help="Few sharpest edges (left) to more edges (right).")
 ```
 
-- [ ] **Step 2: Thread into the analyze call**
+- [ ] **Step 2: Thread into the analyze_regions call**
 
-Pass the widget values into the existing `analyze(...)` / `analyze_regions(...)` call:
+Pass the widget values into the existing `analyze_regions(...)` call (keep its existing positional args; add the three as keywords):
 
 ```python
-result = analyze_regions(
-    rgb, alpha, default_palette, coverage=coverage, regions=regions,
-    edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
-)
+multi = analyze_regions(rgb, alpha, wp, wcov, drawn,
+                        edges=edges, extreme_edge=extreme_edge,
+                        edge_sensitivity=edge_sensitivity)
 ```
 
 - [ ] **Step 3: Label edge steps in the step display**
@@ -777,7 +778,12 @@ Where the app renders each `BandStep` caption, prefer `step.label` when set:
 caption = step.label or roles[step.index]
 ```
 
-- [ ] **Step 4: Manual smoke (user runs)**
+- [ ] **Step 4a: Parse check (implementer runs)**
+
+Since there is no unit test for `app.py`, the implementer confirms it still imports/parses:
+`.venv/Scripts/python -m py_compile app.py` (expected: no output, exit 0). Do NOT launch Streamlit.
+
+- [ ] **Step 4b: Manual smoke (user runs)**
 
 Run: `streamlit run app.py`
 Verify: upload the fixture; the plan gains a final "Edge Highlight" step tracing plate rims; toggling "Extreme edge highlight" adds an "Extreme Edge Highlight" step; the sensitivity slider changes how many edges appear; turning "Edge highlights" off removes the extra steps and preview lines.
