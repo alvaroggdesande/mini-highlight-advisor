@@ -12,6 +12,7 @@ class PaintColor:
     brand: str | None = None
     paint_range: str | None = None
     code: str = ""
+    finish: str = "matte"
 
     @property
     def rgb(self) -> np.ndarray:

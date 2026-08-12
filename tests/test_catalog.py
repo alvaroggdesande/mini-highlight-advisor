@@ -110,3 +110,27 @@ def test_reverted_names_collide_but_load_by_code():
     assert find_by_code(cat, "72.001").name == "Dead White"      # Game Color
     assert find_by_code(cat, "72.061").name == "Khaki"           # was "Khaki game"
     assert find_by_code(cat, "72.016").name == "Royal Purple"    # was "Royal Purple model"→ Game
+
+
+def test_load_defaults_finish_matte(tmp_path):
+    import json
+    from mini_highlight_advisor.catalog import load_catalog
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({"paints": [{"code": "70.950", "name": "Black", "hex": "#1b1b1b"}]}))
+    assert load_catalog(p)[0].finish == "matte"
+
+
+def test_load_reads_metallic_finish(tmp_path):
+    import json
+    from mini_highlight_advisor.catalog import load_catalog
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({"paints": [
+        {"code": "77.101", "name": "Sterling Silver", "hex": "#d5d7d6", "finish": "metallic"}]}))
+    assert load_catalog(p)[0].finish == "metallic"
+
+
+def test_validate_rejects_bad_finish():
+    from mini_highlight_advisor.catalog import validate_catalog
+    with pytest.raises(ValueError) as exc:
+        validate_catalog([{"code": "1", "name": "Glitterbomb", "hex": "#111111", "finish": "glitter"}])
+    assert "finish" in str(exc.value) and "Glitterbomb" in str(exc.value)

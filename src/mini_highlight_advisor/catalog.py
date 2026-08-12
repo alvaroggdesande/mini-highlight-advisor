@@ -9,6 +9,7 @@ from .palette import PaintColor
 CATALOG_PATH = Path(__file__).parent / "data" / "vallejo_paints.json"
 
 _HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+_FINISHES = {"matte", "metallic", "wash", "contrast"}
 
 
 def validate_catalog(paints: list[dict]) -> None:
@@ -31,6 +32,12 @@ def validate_catalog(paints: list[dict]) -> None:
             raise ValueError(
                 f"Catalogue paint {name!r} ({code}) has invalid hex {hexv!r}; expected #rrggbb."
             )
+        fin = p.get("finish")
+        if fin is not None and fin not in _FINISHES:
+            raise ValueError(
+                f"Catalogue paint {name!r} ({code}) has invalid finish {fin!r}; "
+                f"expected one of {sorted(_FINISHES)}."
+            )
         if code in seen_codes:
             raise ValueError(f"Duplicate catalogue paint code {code!r} (name {name!r}).")
         seen_codes.add(code)
@@ -47,6 +54,7 @@ def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
             brand=p.get("brand"),
             paint_range=p.get("range"),
             code=p.get("code", ""),
+            finish=p.get("finish", "matte"),
         )
         for p in paints
     ]
