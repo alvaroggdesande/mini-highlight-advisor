@@ -35,7 +35,6 @@ class BandStep:
     label: str | None = None
 
 
-
 def _desat_dim(rgb) -> np.ndarray:
     lum = rgb.astype(np.float32) @ _LUMA
     grey = np.stack([lum, lum, lum], axis=-1)

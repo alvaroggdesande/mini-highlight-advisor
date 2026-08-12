@@ -112,12 +112,13 @@ def _render_region_steps(steps, roles, names, coverage) -> None:
             name_text = step.label
             cum_cov = 0.0
             cov = 0.0
+            st.markdown(f"**Step {step.index + 1} — {step.label}**")
         else:
             caption_text = roles[step.index]
             name_text = names[step.index]
             cum_cov = sum(coverage[step.index:])
             cov = coverage[step.index]
-        st.markdown(f"**Step {step.index + 1} — {caption_text} · {name_text}**")
+            st.markdown(f"**Step {step.index + 1} — {caption_text} · {name_text}**")
         if step.is_last:
             c1, c2 = st.columns(2)
             c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)

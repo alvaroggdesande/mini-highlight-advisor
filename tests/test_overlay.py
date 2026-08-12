@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from types import SimpleNamespace
-from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board
+from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board, edge_steps
 
 
 def test_paint_preview_colors_bands_and_darkens_background():
@@ -214,8 +214,6 @@ def test_swatch_board_returns_image_and_grows_with_rows():
 
 
 # Edge steps tests
-from mini_highlight_advisor.overlay import edge_steps
-
 
 def _two_plate_rgb(size=40):
     light = np.full((size, size), 120.0, np.float32)
