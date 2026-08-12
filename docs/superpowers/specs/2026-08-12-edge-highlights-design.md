@@ -47,9 +47,10 @@ untouched.** Append edge-highlight step(s) after the tonal steps, per region:
   ("Edge Highlight" then "Extreme Edge Highlight" — names already in
   `data/recipes_builtin.json`).
 
-**Guard:** two-tier needs two distinct highlight colours. For palettes without them
-(e.g. 3-band `[Shadow, Base, Highlight]`), fall back to **one-tier** using the single
-lightest paint, regardless of the extreme-edge toggle.
+**Guard:** two-tier needs two distinct highlight-tier colours. Per the role taxonomy
+the top two bands are both highlight-tier only at **n ≥ 5** (`Highlight` +
+`Bright Highlight`); at n = 3–4 there is a single highlight, so extreme falls back to
+**one-tier** using the single lightest paint, regardless of the extreme-edge toggle.
 
 Rejected alternatives (from brainstorming): *reallocating* the brightest bands out of
 broad zones (more faithful but more disruptive — deferred); *region-seam separation

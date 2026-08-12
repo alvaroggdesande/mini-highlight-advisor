@@ -353,6 +353,15 @@ def test_edge_steps_one_tier_fallback_few_colors():
     colors = [np.array([c, c, c], np.float32) for c in (10, 150, 255)]  # 3 bands
     steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=3)
     assert len(steps) == 1  # not enough distinct highlight colours -> one tier
+
+
+def test_edge_steps_one_tier_fallback_four_bands():
+    """4 bands = [Shadow, Base, Midtone, Highlight] -> only ONE highlight-tier
+    colour, so extreme still falls back to one tier. Two-tier needs n >= 5."""
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 90, 170, 255)]  # 4 bands
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=4)
+    assert len(steps) == 1  # n < 5 -> one tier
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -383,7 +392,7 @@ def edge_steps(rgb, light, mask, colors, sensitivity: float = 0.5,
                extreme: bool = False, alpha: float = 0.78,
                start_index: int = 0) -> list[BandStep]:
     n = len(colors)
-    two_tier = extreme and n >= 2
+    two_tier = extreme and n >= 5  # n>=5 => top two bands are both highlight-tier
     main_color = colors[-2] if two_tier else colors[-1]
     main = edge_mask(light, mask, sensitivity)
     steps = [BandStep(
@@ -534,9 +543,10 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         steps = steps + edge_steps(rgb, light, sub_mask, colors,
                                    sensitivity=edge_sensitivity,
                                    extreme=extreme_edge, start_index=len(palette))
+        two_tier = extreme_edge and len(colors) >= 5  # match edge_steps guard
         overlays = [(edge_mask(light, sub_mask, edge_sensitivity),
-                     colors[-2] if (extreme_edge and len(colors) >= 2) else colors[-1])]
-        if extreme_edge and len(colors) >= 2:
+                     colors[-2] if two_tier else colors[-1])]
+        if two_tier:
             overlays.append((extreme_edge_mask(light, sub_mask, edge_sensitivity), colors[-1]))
     return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps, overlays)
 
