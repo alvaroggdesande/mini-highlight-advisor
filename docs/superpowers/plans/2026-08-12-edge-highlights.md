@@ -178,7 +178,8 @@ def test_edge_is_thin():
     light, mask = _two_plate()
     e = edge_mask(light, mask, 0.5)
     per_row = e.sum(axis=1)
-    assert per_row[per_row > 0].max() <= 3
+    # <=4: the Gaussian pre-blur widens a hard step by ~1px vs a raw Sobel line
+    assert per_row[per_row > 0].max() <= 4
 
 
 def test_dim_plate_still_edges():
@@ -191,6 +192,16 @@ def test_dim_plate_still_edges():
 def test_flat_region_has_no_edges():
     light = np.full((40, 40), 150.0, np.float32)
     mask = np.ones((40, 40), bool)
+    assert edge_mask(light, mask, 0.5).sum() == 0
+
+
+def test_speckle_is_dropped():
+    """Isolated high-gradient specks (texture/primer grain, e.g. a gravel base)
+    must be removed by the connected-component filter; only line-like edges survive."""
+    light = np.full((60, 60), 120.0, np.float32)
+    for (r, c) in [(10, 10), (20, 40), (35, 15), (48, 50), (30, 30)]:
+        light[r, c] = 240.0  # scattered bright specks, no long edge among them
+    mask = np.ones((60, 60), bool)
     assert edge_mask(light, mask, 0.5).sum() == 0
 
 
@@ -215,18 +226,22 @@ Expected: FAIL with `ModuleNotFoundError: mini_highlight_advisor.edges`.
 
 - [ ] **Step 3: Implement `edges.py`**
 
-Use the operator confirmed by the spike. Default below is Sobel + percentile + bright-side (swap in Canny if the spike chose it — the tests are behavioural and must still pass):
+Operator confirmed by the spike gate (2026-08-12): **Sobel ≈ p88 + Gaussian pre-blur + connected-component despeckle, bright-side filtered.** Canny was rejected (too noisy on primer grain / textured bases). Implement exactly:
 
 ```python
-"""Edge-highlight masks. Operator chosen by spikes/edge_highlight_spike.py: <FILL: e.g. sobel_p85>."""
+"""Edge-highlight masks. Operator (spike gate 2026-08-12): Sobel gradient at ~p88
+with a Gaussian pre-blur and connected-component speckle removal, bright-side
+filtered. Canny rejected (too noisy on primer grain and textured bases)."""
 from __future__ import annotations
 
 import cv2
 import numpy as np
 
+_MIN_EDGE_AREA = 8  # drop connected components smaller than this (texture speckle)
+
 
 def _grad_mag(light: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    l = light.astype(np.float32)
+    l = cv2.GaussianBlur(light.astype(np.float32), (3, 3), 0)  # calm primer grain
     gx = cv2.Sobel(l, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(l, cv2.CV_32F, 0, 1, ksize=3)
     mag = np.hypot(gx, gy)
@@ -239,6 +254,16 @@ def _bright_side(light: np.ndarray, mask: np.ndarray, win: int = 9) -> np.ndarra
     return (light.astype(np.float32) >= local) & mask
 
 
+def _despeckle(edges: np.ndarray, min_area: int = _MIN_EDGE_AREA) -> np.ndarray:
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(
+        edges.astype(np.uint8), connectivity=8)
+    out = np.zeros(edges.shape, bool)
+    for i in range(1, n):  # 0 is background
+        if stats[i, cv2.CC_STAT_AREA] >= min_area:
+            out[labels == i] = True
+    return out
+
+
 def edge_mask(light: np.ndarray, mask: np.ndarray, sensitivity: float = 0.5) -> np.ndarray:
     mask = mask.astype(bool)
     mag = _grad_mag(light, mask)
@@ -246,11 +271,11 @@ def edge_mask(light: np.ndarray, mask: np.ndarray, sensitivity: float = 0.5) -> 
     vals = vals[vals > 0]
     if vals.size == 0:
         return np.zeros(mask.shape, bool)
-    # more sensitive -> lower percentile -> more edges
-    pct = float(np.clip(95.0 - 25.0 * sensitivity, 60.0, 99.0))
+    # sensitivity 0.5 -> ~p88; more sensitive -> lower percentile -> more edges
+    pct = float(np.clip(94.0 - 12.0 * sensitivity, 82.0, 97.0))
     thr = np.percentile(vals, pct)
     strong = (mag >= thr) & mask
-    return strong & _bright_side(light, mask)
+    return _despeckle(strong & _bright_side(light, mask))
 
 
 def extreme_edge_mask(light: np.ndarray, mask: np.ndarray, sensitivity: float = 0.5) -> np.ndarray:
@@ -265,7 +290,7 @@ def extreme_edge_mask(light: np.ndarray, mask: np.ndarray, sensitivity: float = 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/Scripts/python -m pytest tests/test_edges.py -v`
-Expected: PASS (6 tests).
+Expected: PASS (7 tests).
 
 - [ ] **Step 5: Commit**
 
