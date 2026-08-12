@@ -211,3 +211,41 @@ def test_swatch_board_returns_image_and_grows_with_rows():
     assert isinstance(img, Image.Image)
     assert img.width > 0 and img.height > 0
     assert swatch_board(regs).height > swatch_board(regs[:1]).height
+
+
+# Edge steps tests
+from mini_highlight_advisor.overlay import edge_steps
+
+
+def _two_plate_rgb(size=40):
+    light = np.full((size, size), 120.0, np.float32)
+    light[:, : size // 2] = 200.0
+    rgb = np.stack([light, light, light], -1).astype(np.uint8)
+    mask = np.ones((size, size), bool)
+    return rgb, light, mask
+
+
+def test_edge_steps_one_tier_by_default():
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 80, 150, 220, 255)]
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=False, start_index=5)
+    assert len(steps) == 1
+    assert steps[0].kind == "edge"
+    assert steps[0].label == "Edge Highlight"
+    assert steps[0].index == 5
+
+
+def test_edge_steps_two_tier_when_extreme():
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 80, 150, 220, 255)]
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=5)
+    assert [s.label for s in steps] == ["Edge Highlight", "Extreme Edge Highlight"]
+    assert steps[-1].is_last is True
+    assert steps[0].is_last is False
+
+
+def test_edge_steps_one_tier_fallback_few_colors():
+    rgb, light, mask = _two_plate_rgb()
+    colors = [np.array([c, c, c], np.float32) for c in (10, 150, 255)]  # 3 bands
+    steps = edge_steps(rgb, light, mask, colors, sensitivity=0.5, extreme=True, start_index=3)
+    assert len(steps) == 1  # not enough distinct highlight colours -> one tier

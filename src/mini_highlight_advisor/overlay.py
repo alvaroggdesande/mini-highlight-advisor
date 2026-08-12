@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from .edges import edge_mask, extreme_edge_mask
+
 _COVERAGE_NOTES = {
     "Shadow": "deepest recesses",
     "Base": "the main body of the surface",
@@ -27,6 +29,8 @@ class BandStep:
     cumulative_rgb: np.ndarray
     exact_rgb: np.ndarray | None
     is_last: bool
+    kind: str = "band"
+    label: str | None = None
 
 
 
@@ -61,6 +65,32 @@ def per_band_images(rgb, bands, mask, colors, alpha: float = 0.78) -> list[BandS
         exact = None if is_last else _render_step(rgb, (bands == k) & mask, color, alpha)
         steps.append(BandStep(index=k, zone_rgb=zone, cumulative_rgb=cumulative,
                               exact_rgb=exact, is_last=is_last))
+    return steps
+
+
+def edge_steps(rgb, light, mask, colors, sensitivity: float = 0.5,
+               extreme: bool = False, alpha: float = 0.78,
+               start_index: int = 0) -> list[BandStep]:
+    n = len(colors)
+    two_tier = extreme and n >= 4
+    main_color = colors[-2] if two_tier else colors[-1]
+    main = edge_mask(light, mask, sensitivity)
+    steps = [BandStep(
+        index=start_index,
+        zone_rgb=_zone_render(rgb, main),
+        cumulative_rgb=_render_step(rgb, main, main_color, alpha),
+        exact_rgb=_render_step(rgb, main, main_color, alpha),
+        is_last=not two_tier, kind="edge", label="Edge Highlight",
+    )]
+    if two_tier:
+        ext = extreme_edge_mask(light, mask, sensitivity)
+        steps.append(BandStep(
+            index=start_index + 1,
+            zone_rgb=_zone_render(rgb, ext),
+            cumulative_rgb=_render_step(rgb, ext, colors[-1], alpha),
+            exact_rgb=_render_step(rgb, ext, colors[-1], alpha),
+            is_last=True, kind="edge", label="Extreme Edge Highlight",
+        ))
     return steps
 
 
