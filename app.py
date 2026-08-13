@@ -15,7 +15,7 @@ from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
-from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
+from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask, polygons_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from PIL import Image
@@ -260,9 +260,9 @@ with tab_mini:
                     if not objs:
                         st.warning("Trace a lasso around an area on the image first.")
                     else:
-                        pts = _points_from_object(objs[-1])
                         sx, sy = src_w / disp_w, src_h / disp_h
-                        rmask = polygon_to_mask(scale_points(pts, sx, sy), (src_h, src_w)) & shading.mask
+                        rings = [scale_points(_points_from_object(o), sx, sy) for o in objs]
+                        rmask = polygons_to_mask(rings, (src_h, src_w)) & shading.mask
                         if not rmask.any():
                             st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
                         else:
