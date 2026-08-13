@@ -34,3 +34,11 @@ def polygon_to_mask(points, shape) -> np.ndarray:
     if len(points) >= 3:
         ImageDraw.Draw(img).polygon([(float(x), float(y)) for x, y in points], fill=1)
     return np.array(img, dtype=bool)
+
+
+def polygons_to_mask(point_lists, shape) -> np.ndarray:
+    """Union of several polygon rings into one boolean mask (shape = (h, w))."""
+    out = np.zeros(shape, dtype=bool)
+    for pts in point_lists:
+        out |= polygon_to_mask(pts, shape)
+    return out
