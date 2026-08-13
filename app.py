@@ -9,7 +9,7 @@ from mini_highlight_advisor import collection
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.palette import (
     DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
-    default_coverage, remainder_pct, slider_max_pct, default_ramp,
+    default_coverage, remainder_pct, slider_max_pct, default_ramp, valid_hex,
 )
 from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
@@ -354,17 +354,28 @@ with tab_mini:
                 hexv = c2.color_picker(
                     f"hex {i + 1}", key=f"slot_hex_{i}", label_visibility="collapsed",
                 )
+                pasted = c3.text_input(
+                    f"paste hex {i + 1}", value=hexv, key=f"slot_hexinput_{i}",
+                    label_visibility="collapsed",
+                )
+                norm = valid_hex(pasted)
+                if norm is None:
+                    c3.caption("⚠️ invalid hex")
+                elif norm != hexv:
+                    st.session_state[f"slot_hex_{i}"] = norm
+                    st.rerun()
                 paint = PaintColor(f"Custom {i + 1}", hexv)
                 palette.append(paint)
                 near = collection.nearest_paint(paint.rgb, CATALOG)
                 if near is not None:
                     owned_badge = "✅ owned" if near.code in set(picked) else "⚠️ not owned"
-                    c3.caption(f"Closest: {near.name} · {near.paint_range or ''} · {near.code} ({owned_badge})")
+                    c3.caption(f"{hexv} · closest: {near.name} · {near.code} ({owned_badge})")
             else:
                 paint = find_by_code(CATALOG, slot_sel)
                 c2.markdown(_swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
                 palette.append(paint)
-                c3.write("✅ owned" if paint.code in set(picked) else "⚠️ not owned")
+                badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
+                c3.write(f"{paint.hex} · {badge}")
 
         # --- Coverage per layer (remainder model) ---
         st.markdown("**Coverage** (% of the model each layer occupies)")
