@@ -50,6 +50,14 @@ class RegionBook:
         else:
             self.drawn[g - 1].coverage = coverage
 
+    def set_name_at(self, g: int, name: str) -> None:
+        if g == 0:
+            raise ValueError("cannot rename the 'Whole mini' region")
+        self._check(g)
+        clean = name.strip()
+        if clean:
+            self.drawn[g - 1].name = clean
+
     def add(self, mask: np.ndarray, name: str,
             palette: list[PaintColor], coverage: list[float]) -> int:
         self.drawn.append(Region(name, mask, palette, coverage))

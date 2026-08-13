@@ -54,3 +54,34 @@ def test_linear_blend_single_is_identity():
     from mini_highlight_advisor.color import linear_blend
     r, g, b = linear_blend([(120, 60, 30)], [1])
     assert abs(r - 120) < 1.0 and abs(g - 60) < 1.0 and abs(b - 30) < 1.0
+
+
+def test_rgb_to_hex_clamps_and_formats():
+    from mini_highlight_advisor.color import rgb_to_hex
+    assert rgb_to_hex((0, 0, 0)) == "#000000"
+    assert rgb_to_hex((255, 255, 255)) == "#ffffff"
+    assert rgb_to_hex((300, -5, 128)) == "#ff0080"      # clamp out-of-range
+
+
+def test_lab_roundtrip_is_near_identity():
+    from mini_highlight_advisor.color import hex_to_rgb, rgb_to_lab, lab_to_rgb
+    for hexv in ("#000000", "#ffffff", "#6d7173", "#7a1f22", "#3f6db0"):
+        r0, g0, b0 = hex_to_rgb(hexv)
+        r1, g1, b1 = lab_to_rgb(rgb_to_lab((r0, g0, b0)))
+        assert abs(r1 - r0) < 2 and abs(g1 - g0) < 2 and abs(b1 - b0) < 2
+
+
+def test_blend_hex_lab_black_white_is_mid_grey():
+    from mini_highlight_advisor.color import blend_hex_lab
+    out = blend_hex_lab("#000000", "#ffffff")
+    r = int(out[1:3], 16)
+    assert out[1:3] == out[3:5] == out[5:7]     # neutral grey
+    assert 108 <= r <= 128                       # perceptual mid (L~50), not linear-bright
+
+
+def test_blend_hex_lab_symmetric_and_endpoints():
+    from mini_highlight_advisor.color import blend_hex_lab
+    assert blend_hex_lab("#123456", "#abcdef") == blend_hex_lab("#abcdef", "#123456")
+    same = blend_hex_lab("#4488cc", "#4488cc")
+    r, g, b = int(same[1:3], 16), int(same[3:5], 16), int(same[5:7], 16)
+    assert abs(r - 0x44) <= 1 and abs(g - 0x88) <= 1 and abs(b - 0xcc) <= 1

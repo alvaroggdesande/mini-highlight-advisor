@@ -9,13 +9,14 @@ from mini_highlight_advisor import collection
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.palette import (
     DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
-    default_coverage, remainder_pct, slider_max_pct, default_ramp,
+    default_coverage, remainder_pct, slider_max_pct, default_ramp, valid_hex,
 )
+from mini_highlight_advisor.color import blend_hex_lab
 from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
-from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
+from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask, polygons_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from PIL import Image
@@ -78,6 +79,26 @@ CATALOG = load_catalog()
 CUSTOM = "(custom target)"
 CODE_LABEL = {p.code: f"{p.name} · {p.paint_range or ''} · {p.code}" for p in CATALOG}
 CATALOG_CODES = [p.code for p in CATALOG]
+
+
+def _apply_paste_hex(i: int) -> None:
+    # Runs on the paste field's change, before the rerun, on committed state.
+    # Apply a pasted hex to the slot's colour only when the user edited the field
+    # (never on every rerun), so it can't clobber a colour-picker drag or a blend.
+    norm = valid_hex(st.session_state.get(f"slot_hexinput_{i}", ""))
+    if norm is not None:
+        st.session_state[f"slot_hex_{i}"] = norm
+
+
+def _blend_neighbours(i: int, n: int) -> None:
+    # Fill interior slot i with the Lab-midpoint of its neighbours. Runs as a
+    # button on_click callback — BEFORE the rerun instantiates the slot widgets —
+    # so writing slot_hex_{i}/slot_code_{i} is allowed (writing them in the loop
+    # body, after the selectbox/picker are instantiated, raises StreamlitAPIException).
+    lo = st.session_state.get(f"slot_hex_{i - 1}", ramp_hex(i - 1, n))
+    hi = st.session_state.get(f"slot_hex_{i + 1}", ramp_hex(i + 1, n))
+    st.session_state[f"slot_hex_{i}"] = blend_hex_lab(lo, hi)
+    st.session_state[f"slot_code_{i}"] = CUSTOM
 
 
 def _swatch(hexv: str, size: str = "1em") -> str:
@@ -260,9 +281,9 @@ with tab_mini:
                     if not objs:
                         st.warning("Trace a lasso around an area on the image first.")
                     else:
-                        pts = _points_from_object(objs[-1])
                         sx, sy = src_w / disp_w, src_h / disp_h
-                        rmask = polygon_to_mask(scale_points(pts, sx, sy), (src_h, src_w)) & shading.mask
+                        rings = [scale_points(_points_from_object(o), sx, sy) for o in objs]
+                        rmask = polygons_to_mask(rings, (src_h, src_w)) & shading.mask
                         if not rmask.any():
                             st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
                         else:
@@ -270,6 +291,8 @@ with tab_mini:
                                      default_ramp(st.session_state["n"]),
                                      [c / 100 for c in _current_cov_seed(st.session_state["n"])])
                             st.session_state.pop("_loaded_g", None)
+                            for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
+                                st.session_state.pop(_k, None)
                             st.session_state["draw_mode"] = False
                             st.rerun()
                 if c_cancel.button("Cancel"):
@@ -279,10 +302,20 @@ with tab_mini:
             if sel >= 1 and st.button("🗑 Delete this region"):
                 book.remove(sel)
                 st.session_state.pop("_loaded_g", None)
+                for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
+                    st.session_state.pop(_k, None)
                 st.rerun()
 
         st.divider()
         st.markdown(f"### Editing: **{book.names()[sel]}**")
+
+        # Rename the selected drawn region (Whole mini / index 0 is fixed).
+        if sel >= 1:
+            renamed = st.text_input("Region name", value=book.names()[sel], key=f"rename_{sel}")
+            if renamed.strip() and renamed.strip() != book.names()[sel]:
+                book.set_name_at(sel, renamed)
+                st.session_state.pop("_loaded_g", None)
+                st.rerun()
 
         # --- Rehydrate editor widgets from the book (the source of truth) ---
         # Streamlit garbage-collects widget-state keys that weren't rendered during
@@ -346,17 +379,30 @@ with tab_mini:
                 hexv = c2.color_picker(
                     f"hex {i + 1}", key=f"slot_hex_{i}", label_visibility="collapsed",
                 )
+                pasted = c3.text_input(
+                    f"paste hex {i + 1}", value=hexv, key=f"slot_hexinput_{i}",
+                    on_change=_apply_paste_hex, args=(i,), label_visibility="collapsed",
+                )
+                if pasted and valid_hex(pasted) is None:
+                    c3.caption("⚠️ invalid hex")
                 paint = PaintColor(f"Custom {i + 1}", hexv)
                 palette.append(paint)
                 near = collection.nearest_paint(paint.rgb, CATALOG)
                 if near is not None:
                     owned_badge = "✅ owned" if near.code in set(picked) else "⚠️ not owned"
-                    c3.caption(f"Closest: {near.name} · {near.paint_range or ''} · {near.code} ({owned_badge})")
+                    c3.caption(f"{hexv} · closest: {near.name} · {near.code} ({owned_badge})")
             else:
                 paint = find_by_code(CATALOG, slot_sel)
                 c2.markdown(_swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
                 palette.append(paint)
-                c3.write("✅ owned" if paint.code in set(picked) else "⚠️ not owned")
+                st.session_state[f"slot_hex_{i}"] = paint.hex
+                badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
+                c3.write(f"{paint.hex} · {badge}")
+
+            # Interior slots can be filled with the Lab-midpoint of their neighbours.
+            if 0 < i < n - 1:
+                c1.button("↕ blend neighbours", key=f"blend_{i}",
+                          on_click=_blend_neighbours, args=(i, n))
 
         # --- Coverage per layer (remainder model) ---
         st.markdown("**Coverage** (% of the model each layer occupies)")

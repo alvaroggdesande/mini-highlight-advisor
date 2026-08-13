@@ -36,3 +36,25 @@ def test_polygon_to_mask_fills_interior_not_exterior():
     assert m.shape == (6, 6)
     assert m[2, 2]            # inside
     assert not m[0, 0]       # outside
+
+
+def test_polygons_to_mask_unions_disjoint_shapes():
+    from mini_highlight_advisor.regions import polygons_to_mask
+    a = [(0, 0), (0, 2), (2, 2), (2, 0)]      # top-left block
+    b = [(5, 5), (5, 7), (7, 7), (7, 5)]      # bottom-right block
+    m = polygons_to_mask([a, b], (8, 8))
+    assert m.dtype == bool and m.shape == (8, 8)
+    assert m[1, 1] and m[6, 6]                # both filled
+    assert not m[1, 6]                        # gap between them stays empty
+
+
+def test_polygons_to_mask_single_matches_polygon_to_mask():
+    from mini_highlight_advisor.regions import polygons_to_mask, polygon_to_mask
+    sq = [(1, 1), (1, 4), (4, 4), (4, 1)]
+    assert np.array_equal(polygons_to_mask([sq], (6, 6)), polygon_to_mask(sq, (6, 6)))
+
+
+def test_polygons_to_mask_empty_is_all_false():
+    from mini_highlight_advisor.regions import polygons_to_mask
+    m = polygons_to_mask([], (4, 4))
+    assert m.shape == (4, 4) and not m.any()
