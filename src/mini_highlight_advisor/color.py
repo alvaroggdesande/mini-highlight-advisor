@@ -93,3 +93,35 @@ def linear_blend(rgbs, parts) -> tuple[float, float, float]:
         for k in range(3):
             acc[k] += w * _srgb_to_linear(float(rgb[k]))
     return tuple(_linear_to_srgb255(acc[k] / total) for k in range(3))  # type: ignore[return-value]
+
+
+def lab_to_rgb(lab) -> tuple[float, float, float]:
+    """Inverse of rgb_to_lab: CIE-Lab (D65) -> sRGB 0-255 floats."""
+    L, a, b = lab
+    fy = (L + 16) / 116.0
+    fx = fy + a / 500.0
+    fz = fy - b / 200.0
+
+    def finv(t: float) -> float:
+        return t ** 3 if t ** 3 > 0.008856 else (t - 16 / 116) / 7.787
+
+    xn, yn, zn = 0.95047, 1.0, 1.08883
+    x, y, z = xn * finv(fx), yn * finv(fy), zn * finv(fz)
+    r = x * 3.2406 + y * -1.5372 + z * -0.4986
+    g = x * -0.9689 + y * 1.8758 + z * 0.0415
+    bl = x * 0.0557 + y * -0.2040 + z * 1.0570
+    return (_linear_to_srgb255(r), _linear_to_srgb255(g), _linear_to_srgb255(bl))
+
+
+def rgb_to_hex(rgb) -> str:
+    """Clamp/round an sRGB 0-255 triple to '#rrggbb'."""
+    r, g, b = (max(0, min(255, int(round(v)))) for v in rgb)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def blend_hex_lab(h1: str, h2: str) -> str:
+    """Perceptual midpoint of two hex colours, blended in CIE-Lab."""
+    l1 = lab_of_hex(h1)
+    l2 = lab_of_hex(h2)
+    mid = tuple((a + b) / 2.0 for a, b in zip(l1, l2))
+    return rgb_to_hex(lab_to_rgb(mid))
