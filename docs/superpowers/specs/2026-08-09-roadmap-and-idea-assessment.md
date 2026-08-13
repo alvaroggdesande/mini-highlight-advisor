@@ -183,3 +183,135 @@ refine brush; (b) edge-snap the lasso to the sculpt's own luminance/depth edge; 
 exclusive pixel assignment + feathered boundaries. Note the seam is *semantically* where
 a separating edge highlight belongs (edge-highlight-as-region-separation), so it is a
 feature to exploit, not only a defect to fix.
+
+## Session 3 addendum (2026-08-13) — three new ideas + colored-mini reframe
+
+Context: the whole "enabler arc" is shipped (own-palette, manual regions, Region UX
+v2/v3, coverage sliders, band-cap 7, mix advisor, palette-matcher v2, edge highlights).
+What remains is the big fork (colored-mini) plus polish. Three ideas raised this
+session, captured here for later refinement — **none committed yet**.
+
+### Idea A — Save/load "mini projects" (persistence layer)
+
+**What:** load a few photos of a specific miniature, save the whole working state, and
+reload it in a later session. Today everything is in-session only; the plan is lost on
+refresh. Directly serves the documented prep-vs-paint workflow (the highlight map is
+*"stared at for days while painting"*) — persistence is what makes the tool usable
+across the days you actually paint.
+
+**How to store it (offline/free lock, line 138, decides this):**
+- **V1 = filesystem, no DB.** A `minis/` folder; each mini = a subfolder with source
+  photo(s) + a `manifest.json` (palette, coverage, band count, regions as **polygon
+  coordinates**, not baked masks — compact, resolution-independent).
+- SQLite only if hundreds of minis + search is ever needed. Cloud "mini DB" only when
+  this becomes a hosted multi-user web app — then it's just *where* the manifest lives,
+  not *what* it is. The core is already "UI-agnostic" (CLAUDE.md), so the manifest is
+  the portable unit; the cloud port is a later swap.
+
+**Key design point:** define the container as **"a mini = N photos, each with its own
+plan,"** even if V1 fills only one photo. That schema is *also* the natural home for
+multi-angle (#8 reframed) and colored-mini. Building a one-photo-only save format now
+would force a rewrite when multi-angle lands.
+
+**Ordering / blockers:** no ML risk, no premise fight; independent of the spike.
+Highest *immediate personal* value, but it is product *maturity*, not product *ceiling*.
+Soft dependency: its container schema should be fixed *before* multi-angle is built so
+the two share one format.
+
+### Idea B — Photo-quality guide + live input check
+
+**What:** (1) a short written shooting guide (3/4 raking light from one direction; avoid
+on-axis flash which flattens form; fill the frame; neutral background; sharp focus), and
+(2) a small in-app **input-quality check** that warns when luminance variance is too low
+(no form to read), when the image is clipped over/under-exposed, or resolution is too
+small. Input quality caps output quality because the engine reads *caught light* — a
+flat-lit photo starves the exact signal it needs.
+
+**Cheap empirical path:** shoot the *same* mini ~5 ways, run each through the pipeline,
+eyeball which bands come out cleanest — this *produces* the guide instead of guessing it,
+and doubles as fixtures for the input-check thresholds.
+
+**Ordering / blockers:** cheapest, compounding, protects every future plan (including
+colored-mini). No blockers. Good "slow moment" work or a warm-up before the spike.
+
+### Idea C — Colored-mini spike, reframed (supersedes the #10 framing above)
+
+**Vision confirmed:** upload a WIP mini (basecoated / washed) → the app advises how to
+*continue* (next highlight placement + colours). This is the **market** bet (WIP photos
+are the common case) vs. the **niche** (primer-stage photos, today's tool).
+
+**Not a new output format:** it's the *same* overlay + step-images + palette, with the
+darkest band anchored to the *existing basecoat* instead of primer grey, advising upward.
+
+**De-risking insight — we already own a form sensor.** The app already runs a **depth
+model** (`masking.py` fallback). Depth = pure geometry = form, blind to paint colour.
+Luminance is used today only because it's a sharper read of catchable light *on primer*;
+on a colored mini where luminance is corrupted by paint, **depth becomes the clean form
+signal.** So the spike's first, nearly-free test is: swap the shading map from luminance
+to depth on a colored fixture and see if the bands still read.
+
+**Full outcome decision tree (what the throwaway spike buys — days, not weeks):**
+
+| Outcome | Meaning | Cost to act |
+|---|---|---|
+| 1. Depth / lightness-high-pass cleanly recovers form on painted surfaces | Full colored-mini engine viable — big unlock | Medium (reuses depth + band engine) |
+| 2. Works only on *flat-basecoated* regions, not already-shaded ones | Ship "basecoat support" — manual regions already deliver ~80%; market widens primed→basecoated without solving decomposition | **Low** |
+| 3. Depth rescues it where luminance fails | Depth-driven banding path, on infra already shipped | Medium, low novelty risk |
+| 4. Signal gone on genuinely shaded minis; nothing cheap recovers it | Stay in niche, ceiling known | Zero (bought certainty) |
+
+Outcomes 2 and 3 are both likely and both cheap; even 4 is a win (stops a multi-week
+wall). No version of the spike loses more than a couple of days. **This is why the spike
+comes before any engine commitment.**
+
+### First-pass ordering (to refine)
+
+1. **Idea B (photo guide + input check)** — cheapest, unblocks nothing but protects
+   everything; good warm-up.
+2. **Idea C spike** — highest information, decides the ceiling, throwaway cost. Do before
+   any colored-mini engine work.
+3. **Idea A (persistence)** — high personal value; fix its container schema to be
+   multi-photo so multi-angle and colored-mini reuse it. Sequence after the spike verdict
+   only because the verdict may add fields to the manifest (e.g. per-photo base-paint
+   state); the *skeleton* schema can be designed independently.
+4. **Multi-angle (#8 reframed)** — cheap breadth once A's container exists.
+
+### Session 3b — colored-mini vision refined (research)
+
+**Core-value reframe (the unifying thesis).** The product is *one* thing: **upload a
+photo → get layer-by-layer highlight PLACEMENT; stop guessing.** Primed / WIP / finished
+are just different **inputs** to that; techniques are different **output styles** of it.
+This reframes the whole roadmap around placement, not around "colored support" per se.
+Differentiator: generic painting guides are everywhere but non-spatial ("highlight the
+edges", someone else's mini). Nobody delivers *per-photo, layer-by-layer placement on the
+model in your hand.* That's the moat; the target user is the beginner who has neither
+technique nor good guessing (advanced painters guess well already).
+
+**Code finding that de-risks the spike.** `masking.py` already runs
+`Depth-Anything-V2-Small` on every no-alpha image, but only thresholds it to a silhouette
+— the raw **depth values (pure form, blind to paint) are discarded.** `banding.py` is
+**source-agnostic** (bands whatever light field it's given, per region). So "use depth
+instead of luminance as the shading map on a colored mini" = feed an array already in
+memory into a function that already exists. The spike tests *result quality*, not
+buildability.
+
+**Per-question verdicts:**
+- **Two modes?** UI yes (pick primed vs painted → selects the form-extractor); engine no
+  — one pipeline, swappable form source (luminance for primer, depth for painted).
+- **Basecoats → regions?** Plausibly **yes**, and it's the inverse of the SAM-on-primer
+  failure: basecoated minis *have* hue boundaries, so cheap classical clustering
+  (Lab k-means / SLIC superpixels, both in the shipped opencv, no LLM) can propose
+  regions. WIP input is *better* for auto-regions than primer. Worth a spike sub-test.
+- **More than basecoats → critique placement ("your highlight is wrong")?** Hardest,
+  speculative. Possible in principle via depth-form-peaks vs luminance-bright-peaks
+  disagreement, but fragile. **Phase-3, high-risk; do not promise.** Spike tells us if the
+  signal is even clean enough to attempt.
+- **Finished mini ('eavy metal) input?** Two real uses: (a) reference to label *your*
+  mini's regions (already the roadmap's painted-reference labeling); (b) extract the
+  *pros'* highlight map from the finished mini itself — works well per-region because
+  finished highlights are deliberately high-contrast, so reading bright quantiles recovers
+  expert placement. A legit teaching feature, possibly easier than WIP.
+- **Techniques?** Regions are the unlock. Each technique = placement curve + tint + paint
+  choice: drybrush = top bands on high-pass texture within region ✅; TMM = metallic paint
+  + edge highlight ✅; NMM = extreme-contrast curve ✅ but fake reflections not derivable
+  ⚠️; OSL = photograph-from-glow-direction + band tint ✅. "Free" for what the engine can
+  *read*; not derivable for what a human *invents*.
