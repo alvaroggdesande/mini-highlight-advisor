@@ -49,3 +49,23 @@ def test_analyze_args_shape():
     wp, cov, drawn = b.analyze_args()
     assert len(wp) == 3 and len(cov) == 3
     assert len(drawn) == 1 and drawn[0].name == "Cloak"
+
+def test_set_name_at_renames_drawn_region():
+    b = new_book(3)
+    b.add(_mask(), "Cloak", default_ramp(3), default_coverage(3))
+    b.set_name_at(1, "Robe")
+    assert b.names() == ["Whole mini", "Robe"]
+
+def test_set_name_at_rejects_blank_keeps_old():
+    b = new_book(3)
+    b.add(_mask(), "Cloak", default_ramp(3), default_coverage(3))
+    b.set_name_at(1, "   ")
+    assert b.names() == ["Whole mini", "Cloak"]
+
+def test_set_name_at_cannot_rename_whole_mini():
+    b = new_book(3)
+    try:
+        b.set_name_at(0, "Nope")
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
