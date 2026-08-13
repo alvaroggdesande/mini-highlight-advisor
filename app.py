@@ -284,6 +284,14 @@ with tab_mini:
         st.divider()
         st.markdown(f"### Editing: **{book.names()[sel]}**")
 
+        # Rename the selected drawn region (Whole mini / index 0 is fixed).
+        if sel >= 1:
+            renamed = st.text_input("Region name", value=book.names()[sel], key=f"rename_{sel}")
+            if renamed.strip() and renamed.strip() != book.names()[sel]:
+                book.set_name_at(sel, renamed)
+                st.session_state.pop("_loaded_g", None)
+                st.rerun()
+
         # --- Rehydrate editor widgets from the book (the source of truth) ---
         # Streamlit garbage-collects widget-state keys that weren't rendered during
         # a run. A button that reruns before these editor widgets render (draw-mode
