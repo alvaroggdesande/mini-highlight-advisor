@@ -81,6 +81,15 @@ CODE_LABEL = {p.code: f"{p.name} · {p.paint_range or ''} · {p.code}" for p in 
 CATALOG_CODES = [p.code for p in CATALOG]
 
 
+def _apply_paste_hex(i: int) -> None:
+    # Runs on the paste field's change, before the rerun, on committed state.
+    # Apply a pasted hex to the slot's colour only when the user edited the field
+    # (never on every rerun), so it can't clobber a colour-picker drag or a blend.
+    norm = valid_hex(st.session_state.get(f"slot_hexinput_{i}", ""))
+    if norm is not None:
+        st.session_state[f"slot_hex_{i}"] = norm
+
+
 def _swatch(hexv: str, size: str = "1em") -> str:
     return (
         f"<span style='display:inline-block;width:{size};height:{size};"
@@ -271,6 +280,8 @@ with tab_mini:
                                      default_ramp(st.session_state["n"]),
                                      [c / 100 for c in _current_cov_seed(st.session_state["n"])])
                             st.session_state.pop("_loaded_g", None)
+                            for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
+                                st.session_state.pop(_k, None)
                             st.session_state["draw_mode"] = False
                             st.rerun()
                 if c_cancel.button("Cancel"):
@@ -280,6 +291,8 @@ with tab_mini:
             if sel >= 1 and st.button("🗑 Delete this region"):
                 book.remove(sel)
                 st.session_state.pop("_loaded_g", None)
+                for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
+                    st.session_state.pop(_k, None)
                 st.rerun()
 
         st.divider()
@@ -357,14 +370,10 @@ with tab_mini:
                 )
                 pasted = c3.text_input(
                     f"paste hex {i + 1}", value=hexv, key=f"slot_hexinput_{i}",
-                    label_visibility="collapsed",
+                    on_change=_apply_paste_hex, args=(i,), label_visibility="collapsed",
                 )
-                norm = valid_hex(pasted)
-                if norm is None:
+                if pasted and valid_hex(pasted) is None:
                     c3.caption("⚠️ invalid hex")
-                elif norm != hexv:
-                    st.session_state[f"slot_hex_{i}"] = norm
-                    st.rerun()
                 paint = PaintColor(f"Custom {i + 1}", hexv)
                 palette.append(paint)
                 near = collection.nearest_paint(paint.rgb, CATALOG)
@@ -375,6 +384,7 @@ with tab_mini:
                 paint = find_by_code(CATALOG, slot_sel)
                 c2.markdown(_swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
                 palette.append(paint)
+                st.session_state[f"slot_hex_{i}"] = paint.hex
                 badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
                 c3.write(f"{paint.hex} · {badge}")
 
