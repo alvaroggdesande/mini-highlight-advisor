@@ -56,6 +56,19 @@ def ramp_hex(i: int, n: int) -> str:
     return f"#{v:02x}{v:02x}{v:02x}"
 
 
+def valid_hex(s: str) -> str | None:
+    """Normalise a user-typed hex to '#rrggbb' lower-case, or None if invalid.
+    Accepts '#rgb'/'#rrggbb' with any case and an optional leading '#'."""
+    if not s:
+        return None
+    h = s.strip().lstrip("#").lower()
+    if len(h) == 3 and all(c in "0123456789abcdef" for c in h):
+        h = "".join(c * 2 for c in h)
+    if len(h) == 6 and all(c in "0123456789abcdef" for c in h):
+        return f"#{h}"
+    return None
+
+
 def remainder_pct(others: list[float]) -> float:
     # The lightest band absorbs whatever the other sliders leave.
     return max(0.0, 100.0 - sum(others))

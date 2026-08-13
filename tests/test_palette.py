@@ -128,3 +128,18 @@ def test_paintcolor_finish_defaults_matte():
 def test_paintcolor_finish_explicit():
     from mini_highlight_advisor.palette import PaintColor
     assert PaintColor("Silver", "#c9cccd", finish="metallic").finish == "metallic"
+
+
+def test_valid_hex_accepts_and_normalises():
+    from mini_highlight_advisor.palette import valid_hex
+    assert valid_hex("#AABBCC") == "#aabbcc"
+    assert valid_hex("aabbcc") == "#aabbcc"      # leading # optional
+    assert valid_hex("#abc") == "#aabbcc"        # short form expands
+
+
+def test_valid_hex_rejects_bad_input():
+    from mini_highlight_advisor.palette import valid_hex
+    assert valid_hex("xyz") is None
+    assert valid_hex("#12") is None
+    assert valid_hex("#12345") is None
+    assert valid_hex("") is None
