@@ -11,6 +11,7 @@ from mini_highlight_advisor.palette import (
     DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
     default_coverage, remainder_pct, slider_max_pct, default_ramp, valid_hex,
 )
+from mini_highlight_advisor.color import blend_hex_lab
 from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
@@ -376,6 +377,15 @@ with tab_mini:
                 palette.append(paint)
                 badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
                 c3.write(f"{paint.hex} · {badge}")
+
+            # Interior slots can be filled with the Lab-midpoint of their neighbours.
+            if 0 < i < n - 1:
+                if c1.button("↕ blend neighbours", key=f"blend_{i}"):
+                    lo = st.session_state.get(f"slot_hex_{i - 1}", ramp_hex(i - 1, n))
+                    hi = st.session_state.get(f"slot_hex_{i + 1}", ramp_hex(i + 1, n))
+                    st.session_state[f"slot_hex_{i}"] = blend_hex_lab(lo, hi)
+                    st.session_state[f"slot_code_{i}"] = CUSTOM
+                    st.rerun()
 
         # --- Coverage per layer (remainder model) ---
         st.markdown("**Coverage** (% of the model each layer occupies)")
