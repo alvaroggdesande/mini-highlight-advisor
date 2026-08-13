@@ -90,6 +90,17 @@ def _apply_paste_hex(i: int) -> None:
         st.session_state[f"slot_hex_{i}"] = norm
 
 
+def _blend_neighbours(i: int, n: int) -> None:
+    # Fill interior slot i with the Lab-midpoint of its neighbours. Runs as a
+    # button on_click callback — BEFORE the rerun instantiates the slot widgets —
+    # so writing slot_hex_{i}/slot_code_{i} is allowed (writing them in the loop
+    # body, after the selectbox/picker are instantiated, raises StreamlitAPIException).
+    lo = st.session_state.get(f"slot_hex_{i - 1}", ramp_hex(i - 1, n))
+    hi = st.session_state.get(f"slot_hex_{i + 1}", ramp_hex(i + 1, n))
+    st.session_state[f"slot_hex_{i}"] = blend_hex_lab(lo, hi)
+    st.session_state[f"slot_code_{i}"] = CUSTOM
+
+
 def _swatch(hexv: str, size: str = "1em") -> str:
     return (
         f"<span style='display:inline-block;width:{size};height:{size};"
@@ -390,12 +401,8 @@ with tab_mini:
 
             # Interior slots can be filled with the Lab-midpoint of their neighbours.
             if 0 < i < n - 1:
-                if c1.button("↕ blend neighbours", key=f"blend_{i}"):
-                    lo = st.session_state.get(f"slot_hex_{i - 1}", ramp_hex(i - 1, n))
-                    hi = st.session_state.get(f"slot_hex_{i + 1}", ramp_hex(i + 1, n))
-                    st.session_state[f"slot_hex_{i}"] = blend_hex_lab(lo, hi)
-                    st.session_state[f"slot_code_{i}"] = CUSTOM
-                    st.rerun()
+                c1.button("↕ blend neighbours", key=f"blend_{i}",
+                          on_click=_blend_neighbours, args=(i, n))
 
         # --- Coverage per layer (remainder model) ---
         st.markdown("**Coverage** (% of the model each layer occupies)")
