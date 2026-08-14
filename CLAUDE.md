@@ -11,7 +11,8 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 ## Module map (`src/mini_highlight_advisor/`)
 
 - `masking.py` — `load_image` (returns `rgb, alpha`) and `compute_mask`
-  (alpha fast-path; depth-model fallback when there's no alpha channel).
+  (alpha fast-path; OpenCV GrabCut fallback when there's no alpha channel — no
+  model download).
 - `lighting.py` — `luminance_light`: CLAHE-enhanced grayscale as the shading map.
 - `banding.py` — `band_light`: coverage-controlled curved banding into layers.
 - `palette.py` — `PaintColor`, `DEFAULT_PALETTE`, `role_names`, coverage helpers.
@@ -50,7 +51,8 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 
 ## Working here
 
-- Environment: CPU torch + transformers + opencv + streamlit in `.venv` (py 3.11).
+- Environment: opencv + pillow + numpy + streamlit in `.venv` (py 3.11). (torch +
+  transformers were dropped — the mask fallback is OpenCV GrabCut now.)
 - Tests: `.venv/Scripts/python -m pytest`. Run the app: `streamlit run app.py`.
 - Process: brainstorm → spec (`docs/superpowers/specs/`) → plan
   (`docs/superpowers/plans/`) → subagent-driven implementation. Feature branch +
