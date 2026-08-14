@@ -38,3 +38,29 @@ def test_empty_mask_returns_non_crashing_advice():
     assert len(results) >= 1
     assert results[0].ok is False
     assert "no mini detected" in results[0].detail.lower()
+
+
+def test_mostly_black_fails_exposure_crushed():
+    rgb = np.zeros((200, 200, 3), dtype=np.uint8)  # all crushed to black
+    results = check_input(rgb, _full_mask(200, 200))
+    exposure = next(r for r in results if r.id == "exposure")
+    assert exposure.ok is False
+    assert "crushed" in exposure.detail.lower()
+    assert "raise exposure" in exposure.detail.lower()
+
+
+def test_mostly_white_fails_exposure_blown():
+    rgb = np.full((200, 200, 3), 255, dtype=np.uint8)  # all blown out
+    results = check_input(rgb, _full_mask(200, 200))
+    exposure = next(r for r in results if r.id == "exposure")
+    assert exposure.ok is False
+    assert "blown" in exposure.detail.lower()
+    assert "lower exposure" in exposure.detail.lower()
+
+
+def test_balanced_gradient_passes_exposure():
+    grad = np.tile(np.linspace(20, 235, 200, dtype=np.uint8), (200, 1))
+    rgb = np.stack([grad, grad, grad], axis=-1)
+    results = check_input(rgb, _full_mask(200, 200))
+    exposure = next(r for r in results if r.id == "exposure")
+    assert exposure.ok is True

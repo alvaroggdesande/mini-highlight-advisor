@@ -7,6 +7,10 @@ import numpy as np
 
 # --- Tuning constants (raw grey 0-255 inside the mask) --------------------
 FLAT_SPREAD_MAX = 60  # p95-p5 below this => lighting too flat to read form
+CRUSH_VALUE = 4          # grey <= this counts as crushed-to-black
+CRUSH_FRAC_MAX = 0.25    # >25% crushed => shadow detail lost
+BLOWN_VALUE = 250        # grey >= this counts as blown-out
+BLOWN_FRAC_MAX = 0.05    # >5% blown => highlight detail lost
 
 
 @dataclass
@@ -38,6 +42,29 @@ def _check_lighting(gray: np.ndarray, mask: np.ndarray) -> CheckResult:
     return CheckResult("lighting", "Lighting", ok, spread, detail)
 
 
+def _check_exposure(gray: np.ndarray, mask: np.ndarray) -> CheckResult:
+    inside = gray[mask]
+    crushed = float(np.mean(inside <= CRUSH_VALUE))
+    blown = float(np.mean(inside >= BLOWN_VALUE))
+    crushed_bad = crushed > CRUSH_FRAC_MAX
+    blown_bad = blown > BLOWN_FRAC_MAX
+    ok = not (crushed_bad or blown_bad)
+    parts = []
+    if crushed_bad:
+        parts.append(
+            f"{crushed * 100:.0f}% of the mini is crushed to black — raise exposure "
+            "or add a fill light; shadow detail is lost."
+        )
+    if blown_bad:
+        parts.append(
+            f"{blown * 100:.0f}% is blown out — lower exposure and diffuse the light."
+        )
+    detail = " ".join(parts) if parts else (
+        "Exposure looks balanced — shadows and highlights both hold detail."
+    )
+    return CheckResult("exposure", "Exposure", ok, max(crushed, blown), detail)
+
+
 def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
     if not mask.any():
         return [CheckResult(
@@ -47,4 +74,5 @@ def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
     gray = _to_gray(rgb)
     return [
         _check_lighting(gray, mask),
+        _check_exposure(gray, mask),
     ]
