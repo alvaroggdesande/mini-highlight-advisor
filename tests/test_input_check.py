@@ -3,7 +3,9 @@ import numpy as np
 from mini_highlight_advisor.input_check import check_input, CheckResult
 from mini_highlight_advisor.masking import load_image, compute_mask
 
-PRIMED_FIXTURE = "fixtures/skaven-hero/primed.png"
+# primed_hand.png has a real alpha cutout (tight mask on the primed mini); primed.png
+# is opaque black-on-black, so its mask is the whole frame and would pollute the checks.
+PRIMED_FIXTURE = "fixtures/skaven-hero/primed_hand.png"
 
 
 def _full_mask(h, w):
@@ -135,5 +137,4 @@ def test_known_good_primed_photo_passes_all_checks():
     results = check_input(rgb, mask)
     failed = [r.id for r in results if not r.ok]
     assert failed == [], f"known-good photo failed checks: {failed}"
-    # Every detail is a non-empty, actionable string.
     assert all(isinstance(r.detail, str) and r.detail.strip() for r in results)
