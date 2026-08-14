@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 from mini_highlight_advisor.input_check import check_input, CheckResult
 
@@ -64,3 +65,24 @@ def test_balanced_gradient_passes_exposure():
     results = check_input(rgb, _full_mask(200, 200))
     exposure = next(r for r in results if r.id == "exposure")
     assert exposure.ok is True
+
+
+def test_sharp_checkerboard_passes_focus():
+    tile = np.kron(np.array([[0, 1], [1, 0]]), np.ones((10, 10)))
+    board = np.tile(tile, (10, 10)).astype(np.uint8) * 255
+    rgb = np.stack([board, board, board], axis=-1)
+    results = check_input(rgb, _full_mask(*board.shape))
+    focus = next(r for r in results if r.id == "focus")
+    assert focus.ok is True
+
+
+def test_blurred_image_fails_focus_with_advice():
+    tile = np.kron(np.array([[0, 1], [1, 0]]), np.ones((10, 10)))
+    board = np.tile(tile, (10, 10)).astype(np.uint8) * 255
+    blurred = cv2.GaussianBlur(board, (0, 0), sigmaX=8)
+    rgb = np.stack([blurred, blurred, blurred], axis=-1)
+    results = check_input(rgb, _full_mask(*blurred.shape))
+    focus = next(r for r in results if r.id == "focus")
+    assert focus.ok is False
+    assert "focus" in focus.detail.lower()
+    assert "steady" in focus.detail.lower()  # actionable fix present

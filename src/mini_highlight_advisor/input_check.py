@@ -11,6 +11,7 @@ CRUSH_VALUE = 4          # grey <= this counts as crushed-to-black
 CRUSH_FRAC_MAX = 0.25    # >25% crushed => shadow detail lost
 BLOWN_VALUE = 250        # grey >= this counts as blown-out
 BLOWN_FRAC_MAX = 0.05    # >5% blown => highlight detail lost
+MIN_FOCUS_VAR = 100.0  # variance of Laplacian below this => soft / out of focus
 
 
 @dataclass
@@ -65,6 +66,20 @@ def _check_exposure(gray: np.ndarray, mask: np.ndarray) -> CheckResult:
     return CheckResult("exposure", "Exposure", ok, max(crushed, blown), detail)
 
 
+def _check_focus(gray: np.ndarray, mask: np.ndarray) -> CheckResult:
+    lap = cv2.Laplacian(gray, cv2.CV_64F)
+    var = float(lap[mask].var())
+    ok = var >= MIN_FOCUS_VAR
+    if ok:
+        detail = "Sharp."
+    else:
+        detail = (
+            "Photo looks soft / out of focus — refocus on the mini and hold steady "
+            "(use a timer or brace your hands)."
+        )
+    return CheckResult("focus", "Focus", ok, var, detail)
+
+
 def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
     if not mask.any():
         return [CheckResult(
@@ -75,4 +90,5 @@ def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
     return [
         _check_lighting(gray, mask),
         _check_exposure(gray, mask),
+        _check_focus(gray, mask),
     ]
