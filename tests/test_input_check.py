@@ -86,3 +86,31 @@ def test_blurred_image_fails_focus_with_advice():
     assert focus.ok is False
     assert "focus" in focus.detail.lower()
     assert "steady" in focus.detail.lower()  # actionable fix present
+
+
+def test_tiny_mask_fails_framing_low_coverage():
+    rgb = np.full((400, 400, 3), 128, dtype=np.uint8)
+    mask = np.zeros((400, 400), dtype=bool)
+    mask[0:20, 0:20] = True  # ~0.25% coverage, tiny area
+    results = check_input(rgb, mask)
+    framing = next(r for r in results if r.id == "resolution")
+    assert framing.ok is False
+    assert framing.label == "Framing"
+    assert "frame" in framing.detail.lower()
+
+
+def test_well_framed_mask_passes_framing():
+    rgb = np.full((400, 400, 3), 128, dtype=np.uint8)
+    mask = np.zeros((400, 400), dtype=bool)
+    mask[50:350, 100:300] = True  # 60_000 px, 37.5% coverage
+    results = check_input(rgb, mask)
+    framing = next(r for r in results if r.id == "resolution")
+    assert framing.ok is True
+
+
+def test_check_input_order_is_stable():
+    rgb = np.full((400, 400, 3), 128, dtype=np.uint8)
+    mask = np.zeros((400, 400), dtype=bool)
+    mask[50:350, 100:300] = True
+    ids = [r.id for r in check_input(rgb, mask)]
+    assert ids == ["lighting", "exposure", "focus", "resolution"]

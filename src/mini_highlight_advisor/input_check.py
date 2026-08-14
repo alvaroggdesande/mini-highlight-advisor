@@ -12,6 +12,8 @@ CRUSH_FRAC_MAX = 0.25    # >25% crushed => shadow detail lost
 BLOWN_VALUE = 250        # grey >= this counts as blown-out
 BLOWN_FRAC_MAX = 0.05    # >5% blown => highlight detail lost
 MIN_FOCUS_VAR = 100.0  # variance of Laplacian below this => soft / out of focus
+MIN_MASK_AREA = 40_000   # fewer masked px than this => too low-res for clean bands
+MIN_COVERAGE = 0.15      # mini fills <15% of the frame => move closer / crop
 
 
 @dataclass
@@ -80,6 +82,22 @@ def _check_focus(gray: np.ndarray, mask: np.ndarray) -> CheckResult:
     return CheckResult("focus", "Focus", ok, var, detail)
 
 
+def _check_framing(mask: np.ndarray) -> CheckResult:
+    area = int(mask.sum())
+    coverage = float(mask.mean())
+    ok = area >= MIN_MASK_AREA and coverage >= MIN_COVERAGE
+    if ok:
+        detail = f"Mini fills {coverage * 100:.0f}% of the frame."
+    elif coverage < MIN_COVERAGE:
+        detail = (
+            f"The mini fills only {coverage * 100:.0f}% of the frame — move closer "
+            "or crop so it fills most of the frame."
+        )
+    else:
+        detail = "Photo resolution is low — use a larger image."
+    return CheckResult("resolution", "Framing", ok, float(area), detail)
+
+
 def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
     if not mask.any():
         return [CheckResult(
@@ -91,4 +109,5 @@ def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
         _check_lighting(gray, mask),
         _check_exposure(gray, mask),
         _check_focus(gray, mask),
+        _check_framing(mask),
     ]
