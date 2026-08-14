@@ -19,6 +19,7 @@ from mini_highlight_advisor.matching import target_from_paint, target_from_hex
 from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask, polygons_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
+from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE
 from PIL import Image
 
 
@@ -488,6 +489,21 @@ with tab_mini:
                                      key="edge_sens", disabled=not edges,
                                      help="Few sharpest edges (left) to more edges (right).")
 
+        # --- Photo quality panel (non-blocking) ---
+        # `shading.mask` is the mask computed (and cached) by `_shading()` above —
+        # it is the same mask by value that `analyze_regions` will use; reusing it here
+        # adds no extra depth-model run.
+        try:
+            st.subheader("\U0001F4F7 Photo quality")
+            for r in check_input(rgb, shading.mask):
+                line = f"**{r.label}** — {r.detail}"
+                (st.success if r.ok else st.warning)(line)
+            with st.expander("How to photograph your mini"):
+                st.markdown(SHOOTING_GUIDE)
+        except Exception:
+            st.caption("Photo-quality check unavailable for this image.")
+
+        st.divider()
         wp, wcov, drawn = book.analyze_args()
         multi = analyze_regions(rgb, alpha, wp, wcov, drawn,
                                 edges=edges, extreme_edge=extreme_edge,
