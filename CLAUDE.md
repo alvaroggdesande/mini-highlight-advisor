@@ -14,7 +14,9 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
   (alpha fast-path; OpenCV GrabCut fallback when there's no alpha channel — no
   model download).
 - `lighting.py` — `luminance_light`: CLAHE-enhanced grayscale as the shading map.
-- `banding.py` — `band_light`: coverage-controlled curved banding into layers.
+- `banding.py` — `band_light`: coverage-controlled curved banding into layers;
+  `relief_recommended_bands`: max band count a region's tonal spread honestly
+  supports (drives the render-only relief cap for flat regions).
 - `palette.py` — `PaintColor`, `DEFAULT_PALETTE`, `role_names`, coverage helpers.
 - `overlay.py` — rendering: `paint_preview` (combined panel), `render_legend`,
   `compose_panel`, and `per_band_images` → `BandStep` (the paint-along steps).

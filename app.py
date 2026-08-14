@@ -489,6 +489,11 @@ with tab_mini:
                                      key="edge_sens", disabled=not edges,
                                      help="Few sharpest edges (left) to more edges (right).")
 
+        relief_cap = st.checkbox(
+            "Auto-reduce bands on flat regions", value=True, key="relief_cap",
+            help="A flat region can't show every highlight band — cap it to what the "
+                 "relief supports. Untick to force your full band count everywhere.")
+
         # --- Photo quality panel (non-blocking) ---
         # `shading.mask` is the mask computed (and cached) by `_shading()` above —
         # it is the same mask by value that `analyze_regions` will use; reusing it here
@@ -507,7 +512,8 @@ with tab_mini:
         wp, wcov, drawn = book.analyze_args()
         multi = analyze_regions(rgb, alpha, wp, wcov, drawn,
                                 edges=edges, extreme_edge=extreme_edge,
-                                edge_sensitivity=edge_sensitivity)
+                                edge_sensitivity=edge_sensitivity,
+                                relief_cap=relief_cap)
         st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
                  use_container_width=True)
         st.subheader("Colour schemes — all regions")
@@ -516,6 +522,12 @@ with tab_mini:
         st.caption("Work dark to light within each region.")
         for plan in multi.plans:
             st.markdown(f"### {plan.name}")
+            if plan.capped:
+                st.warning(
+                    f"“{plan.name}” looks fairly flat — showing {len(plan.names)} "
+                    f"band(s) instead of {plan.requested_bands}. Untick "
+                    f"“Auto-reduce bands on flat regions” to force all "
+                    f"{plan.requested_bands}.")
             _render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage)
     except Exception as e:
         st.error("Error processing image — see traceback below.")
