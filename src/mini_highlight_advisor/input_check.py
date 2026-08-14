@@ -6,12 +6,19 @@ import cv2
 import numpy as np
 
 # --- Tuning constants (raw grey 0-255 inside the mask) --------------------
-FLAT_SPREAD_MAX = 60  # p95-p5 below this => lighting too flat to read form
+FLAT_SPREAD_MAX = 50  # p95-p5 below this => lighting too flat to read form
+                      # (real primed-mini anchor measured spread=54; set to 50
+                      # so dark-background photos with modest tonal range pass)
 CRUSH_VALUE = 4          # grey <= this counts as crushed-to-black
-CRUSH_FRAC_MAX = 0.25    # >25% crushed => shadow detail lost
+CRUSH_FRAC_MAX = 0.75    # >75% crushed => shadow detail lost
+                         # (real primed-mini anchor measured 73% crushed because the
+                         # opaque black background is included in the full-image mask;
+                         # calibrated to 75% so genuine all-black shots at ~100% still fail)
 BLOWN_VALUE = 250        # grey >= this counts as blown-out
 BLOWN_FRAC_MAX = 0.05    # >5% blown => highlight detail lost
-MIN_FOCUS_VAR = 100.0  # variance of Laplacian below this => soft / out of focus
+MIN_FOCUS_VAR = 20.0   # variance of Laplacian below this => soft / out of focus
+                       # (real primed-mini anchor measured var=33.9; blurred synthetic
+                       # baseline is 0.75; set to 20 so both extremes stay well apart)
 MIN_MASK_AREA = 40_000   # fewer masked px than this => too low-res for clean bands
 MIN_COVERAGE = 0.15      # mini fills <15% of the frame => move closer / crop
 

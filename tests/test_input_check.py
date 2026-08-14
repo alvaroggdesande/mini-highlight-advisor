@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 from mini_highlight_advisor.input_check import check_input, CheckResult
+from mini_highlight_advisor.masking import load_image, compute_mask
+
+PRIMED_FIXTURE = "fixtures/skaven-hero/primed.png"
 
 
 def _full_mask(h, w):
@@ -124,3 +127,13 @@ def test_check_input_order_is_stable():
     mask[50:350, 100:300] = True
     ids = [r.id for r in check_input(rgb, mask)]
     assert ids == ["lighting", "exposure", "focus", "resolution"]
+
+
+def test_known_good_primed_photo_passes_all_checks():
+    rgb, alpha = load_image(PRIMED_FIXTURE)
+    mask = compute_mask(rgb, alpha)
+    results = check_input(rgb, mask)
+    failed = [r.id for r in results if not r.ok]
+    assert failed == [], f"known-good photo failed checks: {failed}"
+    # Every detail is a non-empty, actionable string.
+    assert all(isinstance(r.detail, str) and r.detail.strip() for r in results)
