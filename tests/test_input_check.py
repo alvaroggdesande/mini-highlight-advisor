@@ -29,3 +29,12 @@ def test_check_input_returns_lighting_first():
     rgb = np.full((50, 50, 3), 128, dtype=np.uint8)
     results = check_input(rgb, _full_mask(50, 50))
     assert results[0].id == "lighting"
+
+
+def test_empty_mask_returns_non_crashing_advice():
+    rgb = np.full((50, 50, 3), 128, dtype=np.uint8)
+    mask = np.zeros((50, 50), dtype=bool)
+    results = check_input(rgb, mask)  # must not raise
+    assert len(results) >= 1
+    assert results[0].ok is False
+    assert "no mini detected" in results[0].detail.lower()

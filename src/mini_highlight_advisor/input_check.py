@@ -39,6 +39,11 @@ def _check_lighting(gray: np.ndarray, mask: np.ndarray) -> CheckResult:
 
 
 def check_input(rgb: np.ndarray, mask: np.ndarray) -> list[CheckResult]:
+    if not mask.any():
+        return [CheckResult(
+            "input", "Photo", False, 0.0,
+            "No mini detected in the photo — check the image or background removal.",
+        )]
     gray = _to_gray(rgb)
     return [
         _check_lighting(gray, mask),
