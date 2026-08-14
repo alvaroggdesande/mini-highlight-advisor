@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from mini_highlight_advisor.input_check import check_input, CheckResult
+from mini_highlight_advisor.input_check import check_input, CheckResult, SHOOTING_GUIDE
 from mini_highlight_advisor.masking import load_image, compute_mask
 
 # primed_hand.png has a real alpha cutout (tight mask on the primed mini); primed.png
@@ -138,3 +138,9 @@ def test_known_good_primed_photo_passes_all_checks():
     failed = [r.id for r in results if not r.ok]
     assert failed == [], f"known-good photo failed checks: {failed}"
     assert all(isinstance(r.detail, str) and r.detail.strip() for r in results)
+
+
+def test_shooting_guide_covers_the_key_points():
+    text = SHOOTING_GUIDE.lower()
+    for keyword in ["raking", "flash", "frame", "background", "focus"]:
+        assert keyword in text, f"shooting guide missing '{keyword}'"
