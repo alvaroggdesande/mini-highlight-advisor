@@ -18,20 +18,25 @@ def mask_from_alpha(alpha: np.ndarray, thresh: int = 128) -> np.ndarray:
     return _largest_blob((alpha > thresh).astype(np.uint8) * 255)
 
 
-def mask_from_depthmap(depth: np.ndarray) -> np.ndarray:
-    d = depth.astype(np.float32)
-    d = (d - d.min()) / (np.ptp(d) + 1e-9) if np.ptp(d) > 1e-9 else np.zeros_like(d)
-    d8 = (d * 255).astype(np.uint8)
-    _, binary = cv2.threshold(d8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return _largest_blob(binary)
+def mask_from_grabcut(rgb: np.ndarray, iters: int = 5, border: int = 8) -> np.ndarray:
+    """Classical foreground cutout for photos without an alpha channel.
 
-
-def mask_from_depth(rgb: np.ndarray, model: str = "depth-anything/Depth-Anything-V2-Small-hf") -> np.ndarray:
-    from transformers import pipeline
-
-    pipe = pipeline(task="depth-estimation", model=model)
-    depth = np.asarray(pipe(Image.fromarray(rgb))["depth"], dtype=np.float32)
-    return mask_from_depthmap(depth)
+    GrabCut seeded with a border-inset rectangle: everything inside the rect is
+    "probable foreground", the thin border is "definite background". Assumes the
+    mini is roughly centred and fills most of the frame (what the input-check
+    panel nudges users toward). Zero model download — replaces the old depth
+    fallback. Bg-removed PNGs remain the fast path via the alpha branch.
+    """
+    h, w = rgb.shape[:2]
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    gc = np.zeros((h, w), dtype=np.uint8)
+    bgd = np.zeros((1, 65), dtype=np.float64)
+    fgd = np.zeros((1, 65), dtype=np.float64)
+    b = min(border, max(0, min(h, w) // 2 - 1))
+    rect = (b, b, max(1, w - 2 * b), max(1, h - 2 * b))
+    cv2.grabCut(bgr, gc, rect, bgd, fgd, iters, cv2.GC_INIT_WITH_RECT)
+    fg = np.isin(gc, (cv2.GC_FGD, cv2.GC_PR_FGD)).astype(np.uint8) * 255
+    return _largest_blob(fg)
 
 
 def load_image(path: str, max_side: int = 768) -> tuple[np.ndarray, np.ndarray | None]:
@@ -53,4 +58,4 @@ def load_image(path: str, max_side: int = 768) -> tuple[np.ndarray, np.ndarray |
 def compute_mask(rgb: np.ndarray, alpha: np.ndarray | None, alpha_thresh: int = 128) -> np.ndarray:
     if alpha is not None:
         return mask_from_alpha(alpha, alpha_thresh)
-    return mask_from_depth(rgb)
+    return mask_from_grabcut(rgb)
