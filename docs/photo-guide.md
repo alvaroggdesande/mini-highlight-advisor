@@ -8,4 +8,6 @@
 - **Plain, neutral background.** A clean backdrop helps isolate the mini.
 - **Sharp focus, steady hands.** Focus on the mini and use a timer or brace your hands
   to avoid blur.
-- **A zenithal-primed (grey/white) mini reads best** — it is already a shading map.
+- **Any plain grey or black prime works** — the shadows come from your *lighting*, not
+  the primer, so raking side light matters far more than how you primed. (A zenithal
+  prime adds a built-in top-down gradient, but it is a bonus, not a requirement.)
