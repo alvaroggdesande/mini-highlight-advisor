@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
-from mini_highlight_advisor.input_check import check_input, CheckResult, SHOOTING_GUIDE
+from mini_highlight_advisor.input_check import (
+    check_input, CheckResult, SHOOTING_GUIDE,
+    FLAT_SPREAD_MAX, MIN_FOCUS_VAR,
+)
 from mini_highlight_advisor.masking import load_image, compute_mask
 
 # primed_hand.png has a real alpha cutout (tight mask on the primed mini); primed.png
@@ -29,6 +32,7 @@ def test_high_contrast_gradient_passes_lighting():
     lighting = next(r for r in results if r.id == "lighting")
     assert lighting.ok is True
     assert isinstance(lighting, CheckResult)
+    assert lighting.value >= FLAT_SPREAD_MAX
 
 
 def test_check_input_returns_lighting_first():
@@ -79,6 +83,7 @@ def test_sharp_checkerboard_passes_focus():
     results = check_input(rgb, _full_mask(*board.shape))
     focus = next(r for r in results if r.id == "focus")
     assert focus.ok is True
+    assert focus.value >= MIN_FOCUS_VAR
 
 
 def test_blurred_image_fails_focus_with_advice():
@@ -144,3 +149,13 @@ def test_shooting_guide_covers_the_key_points():
     text = SHOOTING_GUIDE.lower()
     for keyword in ["raking", "flash", "frame", "background", "focus"]:
         assert keyword in text, f"shooting guide missing '{keyword}'"
+
+
+def test_bimodal_image_fails_exposure_both_crushed_and_blown():
+    half = np.zeros((200, 200, 3), dtype=np.uint8)
+    half[:, 100:] = 255  # left half black, right half white
+    results = check_input(half, np.ones((200, 200), dtype=bool))
+    exposure = next(r for r in results if r.id == "exposure")
+    assert exposure.ok is False
+    assert "crushed" in exposure.detail.lower()
+    assert "blown" in exposure.detail.lower()

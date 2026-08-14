@@ -15,5 +15,6 @@ def test_input_check_panel_inputs_are_available():
     mask[50:350, 100:300] = True
     results = check_input(rgb, mask)
     assert [r.id for r in results] == ["lighting", "exposure", "focus", "resolution"]
-    assert all(hasattr(r, "ok") and r.detail for r in results)
+    assert all(isinstance(r.ok, bool) for r in results)
+    assert all(r.detail.strip() for r in results)
     assert SHOOTING_GUIDE.strip()

@@ -491,17 +491,17 @@ with tab_mini:
 
         # --- Photo quality panel (non-blocking) ---
         # `shading.mask` is the mask computed (and cached) by `_shading()` above —
-        # it is the same mask `analyze_regions` will use internally; reusing it here
+        # it is the same mask by value that `analyze_regions` will use; reusing it here
         # adds no extra depth-model run.
-        st.subheader("\U0001F4F7 Photo quality")
-        for r in check_input(rgb, shading.mask):
-            line = f"**{r.label}** — {r.detail}"
-            if r.ok:
-                st.success(line)
-            else:
-                st.warning(line)
-        with st.expander("How to photograph your mini"):
-            st.markdown(SHOOTING_GUIDE)
+        try:
+            st.subheader("\U0001F4F7 Photo quality")
+            for r in check_input(rgb, shading.mask):
+                line = f"**{r.label}** — {r.detail}"
+                (st.success if r.ok else st.warning)(line)
+            with st.expander("How to photograph your mini"):
+                st.markdown(SHOOTING_GUIDE)
+        except Exception:
+            st.caption("Photo-quality check unavailable for this image.")
 
         st.divider()
         wp, wcov, drawn = book.analyze_args()
