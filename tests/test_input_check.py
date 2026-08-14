@@ -108,6 +108,16 @@ def test_well_framed_mask_passes_framing():
     assert framing.ok is True
 
 
+def test_small_image_fails_framing_low_resolution():
+    rgb = np.full((400, 400, 3), 128, dtype=np.uint8)
+    mask = np.zeros((400, 400), dtype=bool)
+    mask[50:150, 50:350] = True  # 100x300 = 30_000 px area (< 40_000) but 18.75% coverage (>= 0.15)
+    results = check_input(rgb, mask)
+    framing = next(r for r in results if r.id == "resolution")
+    assert framing.ok is False
+    assert "resolution" in framing.detail.lower() or "larger image" in framing.detail.lower()
+
+
 def test_check_input_order_is_stable():
     rgb = np.full((400, 400, 3), 128, dtype=np.uint8)
     mask = np.zeros((400, 400), dtype=bool)
