@@ -37,7 +37,12 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 
 ## Hard constraints (v1)
 
-- **Primed / monochrome minis only** (luminance is the shading signal).
+- **Primed / monochrome minis only** (luminance is the shading signal). Capture
+  reality: minis are black/grey primed and often shot with on-axis flash, which
+  *flattens* form — a raking side light is strongly preferred (see the shooting
+  guide). NOT zenithal-primed; the engine relies on the *lighting*, not a baked-in
+  gradient. On-axis flash is the flat-lighting worst case (see the 2026-08-14
+  roadmap addendum).
 - **Manual regions supported.** "Whole mini" is the default region (owns
   leftover pixels); users lasso extra regions, each with its own editable
   palette + coverage. Region outlines are immutable once drawn (grow-a-region

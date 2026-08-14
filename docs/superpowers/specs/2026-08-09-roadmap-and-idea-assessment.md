@@ -183,3 +183,114 @@ refine brush; (b) edge-snap the lasso to the sculpt's own luminance/depth edge; 
 exclusive pixel assignment + feathered boundaries. Note the seam is *semantically* where
 a separating edge highlight belongs (edge-highlight-as-region-separation), so it is a
 feature to exploit, not only a defect to fix.
+
+## Addendum (2026-08-14): capture-reality correction, relief-recovery research, refactoring merge
+
+Three updates fold in here: (1) a correction to the assumed capture conditions, (2) a
+deep-research pass on whether the "blocked" colored-mini / relief-recovery problem is
+now solvable with newer tech, and (3) refactoring priorities merged into the roadmap.
+
+### Correction to "current v1 state" — the lighting premise is weaker than written
+
+The original doc assumed a zenithal-primed mini (a baked-in top-down shading gradient
+the luminance engine reads). **Reality: minis are black or grey primed — NOT zenithal —
+and photographed with ON-AXIS / FRONTAL FLASH** (light co-located with the lens). This is
+the flat-lighting *worst case*: co-axial light suppresses form and cast shadows, so a
+single photo carries very little directional shading to read. Consequence: the engine is
+not merely "limited to primed minis" — on frontal flash it is fighting physics even on a
+grey primer. This reframes the whole colored-mini fork: the block is **partly physical
+(missing shadow signal), not only algorithmic (albedo/shadow confusion).**
+
+### Relief-recovery research verdict — no single-image model unblocks this
+
+Deep-research pass (2026-08-14, 22 sources, adversarially verified). Headline: **no
+single-image method, however new, defeats the bottleneck, because the information isn't
+in the frontal-flash photo.** Remove albedo perfectly and the shading layer is still
+near-flat. The two real unblocks both change the *input*, not the model.
+
+- **Single-image AI (baseline only, low confidence).** StableNormal (SIGGRAPH Asia 2024,
+  arXiv:2406.16864) is SOTA and estimates normals *directly* (YOSO + SG-DRN refinement),
+  avoiding the depth→differentiate smoothing that killed `depth_spike`. But it is trained
+  on scene-scale data, unvalidated on 28-32mm objects, and cannot invent shadow signal
+  frontal flash removed. Intrinsic decomposition (Colorful Diffuse Intrinsic, ACM TOG
+  2024) separates albedo from shading but outputs NO geometry, and the shading it returns
+  is the near-flat one. Neither solves the core physics.
+- **Cheapest real win — change the capture, not the code.** Move the light OFF-axis / add
+  a second light so form shadows return. Nearly free (a photography instruction), and it
+  restores signal for both the existing luminance engine and any normal estimator. Fits
+  the existing OSL insight ("photograph under the light you want").
+- **The genuine colored-mini unblock — phone photometric stereo (multi-shot).** PS
+  recovers normals AND albedo *separately* by construction, so shape stops depending on
+  paint colour — the real defeat of dark albedo. Phone-feasible variants: SDM-UniPS
+  (uncalibrated, no known light directions, CVPR 2023), near-field point-light PS
+  (LUCES-MV, validated at 30-40cm phone distance, 2024), DMDPS (phone display as
+  programmable light, 2025). Caveats from verification: none tested on black primer under
+  true frontal flash; lab "0.2mm" figures don't transfer to handheld; single-shot
+  colour-multiplexed PS was REFUTED. Needs a 3-4 shot protocol; black primer stays
+  low-SNR.
+- **STL path (unchanged).** Where the mesh exists, render curvature / ambient-occlusion /
+  cavity maps directly — sidesteps recovery. Pose tools (MegaPose, FoundationPose) exist
+  for photo-overlay; registration-free "guidance on a render" is the cheap path.
+- **Polarization (not a bet).** Albedo-independent orientation cue (Poppy, 2026 preprint;
+  cross-polar) but weakest exactly on dark/low-polarization surfaces — i.e. black primer —
+  and needs a polarization sensor.
+- **Prior art:** BrushForge (brushforgeapp.com) — active hobby-painting app, do a
+  competitive look.
+
+### Revised colored-mini fork — three de-risked bets, not one monolith
+
+The old doc listed colored-mini (#10) as a single "highest value / highest risk /
+needs a spike" fork. Replace with, in order:
+
+1. **Per-region luminance normalization** — cheapest; reuses existing manual regions.
+   Inside a single-material region albedo is ~constant, so luminance variation there *is*
+   relief. Extends the engine to colored minis region-by-region for near-free. Fails on
+   dark albedo (no dynamic range) and multi-colour-within-one-region.
+2. **Off-axis capture guidance** — free; the highest-ROI change overall. Fixes the
+   frontal-flash physics problem for both primed and colored minis.
+3. **Phone photometric-stereo spike** — the real widen-the-funnel bet; multi-shot,
+   separates normals from albedo. This, not a bigger depth/normal model, is the path.
+4. *(optional, low confidence)* StableNormal direct-normal baseline; STL-render path for
+   the print segment.
+
+The prior "widen the funnel needs a colored-mini spike" framing is corrected: the fork is
+reopened by **changing capture**, not by a new model. The depth-refuted spike closed the
+single-image door for good.
+
+### Refactoring priorities (merged in — these are engineering, not features)
+
+- **Tier 0a — Drop torch + transformers.** The DPT depth model (~200MB download, drags in
+  torch) exists in `masking.py` ONLY as a mask fallback when the upload lacks alpha. That
+  is a depth transformer used to get a silhouette. Replace with: require
+  background-removed PNGs (already the README "fast path"), or `rembg`, or OpenCV GrabCut
+  (zero new deps). Deletes the biggest dependency, the silent first-run download, and an
+  untested path. Highest leverage, lowest risk.
+- **Tier 0b — Relief-confidence gate.** Per-region luminance variance / gradient energy;
+  warn + auto-cap band count when a region is too flat to justify N bands. Turns the
+  core "manufactured precision" weakness (rank banding always emits N crisp bands even on
+  flat relief) into a feature. Note this weakness is *worse* under frontal flash.
+- **Tier 2 (do only if still building on the UI / hosting):** cross-platform fonts
+  (`overlay.py` Windows-hardcoded paths); unpin Streamlit + retire the `image_to_url`
+  monkey-patch; decompose the 506-line `app.py` (extract palette/region render fns, tame
+  the 40+ session keys); name the magic mask constants (-1 off-mask, -2 unmask owner).
+
+### Consolidated prioritisation (features + refactors, tiers not a strict queue)
+
+- **Tier 0 (foundational refactors, before new features):** drop torch/transformers;
+  relief-confidence gate.
+- **Tier 1 (enablers, already shipped):** own-palette input (#4); manual regions (#1)
+  — note regions double as the cheap colored-mini unblock.
+- **Tier 2 (cheap polish / known flaws):** coverage sliders + band cap (#6/#7, shipped);
+  cross-platform fonts; Streamlit unpin; app.py decomposition — UI-conditional.
+- **Tier 3 (colored-mini fork):** per-region luminance norm → off-axis capture guidance →
+  phone-PS spike → (optional) StableNormal baseline / STL-render path.
+- **Deferred (unchanged):** PDF export (#11); multi-photo breadth (#8 reframe — note
+  phone-PS is the higher-value version of "multiple photos"); region mask-transfer; true
+  NMM horizon.
+
+**Strategic note:** the research does not reopen the "widen the funnel" bet cheaply. Every
+path past the primed-monochrome niche needs either a capture-behaviour change (off-axis
+light, multi-shot PS) or an STL. If the goal is a low-friction phone tool for the mass of
+painters, that friction is real and unavoidable — weigh it against extracting the strongest
+albedo-independent asset the repo already has (the palette matcher + mix advisor) as a
+standalone tool.
