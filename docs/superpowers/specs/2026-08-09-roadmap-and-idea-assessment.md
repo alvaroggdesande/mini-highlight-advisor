@@ -184,134 +184,113 @@ exclusive pixel assignment + feathered boundaries. Note the seam is *semanticall
 a separating edge highlight belongs (edge-highlight-as-region-separation), so it is a
 feature to exploit, not only a defect to fix.
 
-## Session 3 addendum (2026-08-13) — three new ideas + colored-mini reframe
+## Addendum (2026-08-14): capture-reality correction, relief-recovery research, refactoring merge
 
-Context: the whole "enabler arc" is shipped (own-palette, manual regions, Region UX
-v2/v3, coverage sliders, band-cap 7, mix advisor, palette-matcher v2, edge highlights).
-What remains is the big fork (colored-mini) plus polish. Three ideas raised this
-session, captured here for later refinement — **none committed yet**.
+Three updates fold in here: (1) a correction to the assumed capture conditions, (2) a
+deep-research pass on whether the "blocked" colored-mini / relief-recovery problem is
+now solvable with newer tech, and (3) refactoring priorities merged into the roadmap.
 
-### Idea A — Save/load "mini projects" (persistence layer)
+### Correction to "current v1 state" — the lighting premise is weaker than written
 
-**What:** load a few photos of a specific miniature, save the whole working state, and
-reload it in a later session. Today everything is in-session only; the plan is lost on
-refresh. Directly serves the documented prep-vs-paint workflow (the highlight map is
-*"stared at for days while painting"*) — persistence is what makes the tool usable
-across the days you actually paint.
+The original doc assumed a zenithal-primed mini (a baked-in top-down shading gradient
+the luminance engine reads). **Reality: minis are black or grey primed — NOT zenithal —
+and photographed with ON-AXIS / FRONTAL FLASH** (light co-located with the lens). This is
+the flat-lighting *worst case*: co-axial light suppresses form and cast shadows, so a
+single photo carries very little directional shading to read. Consequence: the engine is
+not merely "limited to primed minis" — on frontal flash it is fighting physics even on a
+grey primer. This reframes the whole colored-mini fork: the block is **partly physical
+(missing shadow signal), not only algorithmic (albedo/shadow confusion).**
 
-**How to store it (offline/free lock, line 138, decides this):**
-- **V1 = filesystem, no DB.** A `minis/` folder; each mini = a subfolder with source
-  photo(s) + a `manifest.json` (palette, coverage, band count, regions as **polygon
-  coordinates**, not baked masks — compact, resolution-independent).
-- SQLite only if hundreds of minis + search is ever needed. Cloud "mini DB" only when
-  this becomes a hosted multi-user web app — then it's just *where* the manifest lives,
-  not *what* it is. The core is already "UI-agnostic" (CLAUDE.md), so the manifest is
-  the portable unit; the cloud port is a later swap.
+### Relief-recovery research verdict — no single-image model unblocks this
 
-**Key design point:** define the container as **"a mini = N photos, each with its own
-plan,"** even if V1 fills only one photo. That schema is *also* the natural home for
-multi-angle (#8 reframed) and colored-mini. Building a one-photo-only save format now
-would force a rewrite when multi-angle lands.
+Deep-research pass (2026-08-14, 22 sources, adversarially verified). Headline: **no
+single-image method, however new, defeats the bottleneck, because the information isn't
+in the frontal-flash photo.** Remove albedo perfectly and the shading layer is still
+near-flat. The two real unblocks both change the *input*, not the model.
 
-**Ordering / blockers:** no ML risk, no premise fight; independent of the spike.
-Highest *immediate personal* value, but it is product *maturity*, not product *ceiling*.
-Soft dependency: its container schema should be fixed *before* multi-angle is built so
-the two share one format.
+- **Single-image AI (baseline only, low confidence).** StableNormal (SIGGRAPH Asia 2024,
+  arXiv:2406.16864) is SOTA and estimates normals *directly* (YOSO + SG-DRN refinement),
+  avoiding the depth→differentiate smoothing that killed `depth_spike`. But it is trained
+  on scene-scale data, unvalidated on 28-32mm objects, and cannot invent shadow signal
+  frontal flash removed. Intrinsic decomposition (Colorful Diffuse Intrinsic, ACM TOG
+  2024) separates albedo from shading but outputs NO geometry, and the shading it returns
+  is the near-flat one. Neither solves the core physics.
+- **Cheapest real win — change the capture, not the code.** Move the light OFF-axis / add
+  a second light so form shadows return. Nearly free (a photography instruction), and it
+  restores signal for both the existing luminance engine and any normal estimator. Fits
+  the existing OSL insight ("photograph under the light you want").
+- **The genuine colored-mini unblock — phone photometric stereo (multi-shot).** PS
+  recovers normals AND albedo *separately* by construction, so shape stops depending on
+  paint colour — the real defeat of dark albedo. Phone-feasible variants: SDM-UniPS
+  (uncalibrated, no known light directions, CVPR 2023), near-field point-light PS
+  (LUCES-MV, validated at 30-40cm phone distance, 2024), DMDPS (phone display as
+  programmable light, 2025). Caveats from verification: none tested on black primer under
+  true frontal flash; lab "0.2mm" figures don't transfer to handheld; single-shot
+  colour-multiplexed PS was REFUTED. Needs a 3-4 shot protocol; black primer stays
+  low-SNR.
+- **STL path (unchanged).** Where the mesh exists, render curvature / ambient-occlusion /
+  cavity maps directly — sidesteps recovery. Pose tools (MegaPose, FoundationPose) exist
+  for photo-overlay; registration-free "guidance on a render" is the cheap path.
+- **Polarization (not a bet).** Albedo-independent orientation cue (Poppy, 2026 preprint;
+  cross-polar) but weakest exactly on dark/low-polarization surfaces — i.e. black primer —
+  and needs a polarization sensor.
+- **Prior art:** BrushForge (brushforgeapp.com) — active hobby-painting app, do a
+  competitive look.
 
-### Idea B — Photo-quality guide + live input check
+### Revised colored-mini fork — three de-risked bets, not one monolith
 
-**What:** (1) a short written shooting guide (3/4 raking light from one direction; avoid
-on-axis flash which flattens form; fill the frame; neutral background; sharp focus), and
-(2) a small in-app **input-quality check** that warns when luminance variance is too low
-(no form to read), when the image is clipped over/under-exposed, or resolution is too
-small. Input quality caps output quality because the engine reads *caught light* — a
-flat-lit photo starves the exact signal it needs.
+The old doc listed colored-mini (#10) as a single "highest value / highest risk /
+needs a spike" fork. Replace with, in order:
 
-**Cheap empirical path:** shoot the *same* mini ~5 ways, run each through the pipeline,
-eyeball which bands come out cleanest — this *produces* the guide instead of guessing it,
-and doubles as fixtures for the input-check thresholds.
+1. **Per-region luminance normalization** — cheapest; reuses existing manual regions.
+   Inside a single-material region albedo is ~constant, so luminance variation there *is*
+   relief. Extends the engine to colored minis region-by-region for near-free. Fails on
+   dark albedo (no dynamic range) and multi-colour-within-one-region.
+2. **Off-axis capture guidance** — free; the highest-ROI change overall. Fixes the
+   frontal-flash physics problem for both primed and colored minis.
+3. **Phone photometric-stereo spike** — the real widen-the-funnel bet; multi-shot,
+   separates normals from albedo. This, not a bigger depth/normal model, is the path.
+4. *(optional, low confidence)* StableNormal direct-normal baseline; STL-render path for
+   the print segment.
 
-**Ordering / blockers:** cheapest, compounding, protects every future plan (including
-colored-mini). No blockers. Good "slow moment" work or a warm-up before the spike.
+The prior "widen the funnel needs a colored-mini spike" framing is corrected: the fork is
+reopened by **changing capture**, not by a new model. The depth-refuted spike closed the
+single-image door for good.
 
-### Idea C — Colored-mini spike, reframed (supersedes the #10 framing above)
+### Refactoring priorities (merged in — these are engineering, not features)
 
-**Vision confirmed:** upload a WIP mini (basecoated / washed) → the app advises how to
-*continue* (next highlight placement + colours). This is the **market** bet (WIP photos
-are the common case) vs. the **niche** (primer-stage photos, today's tool).
+- **Tier 0a — Drop torch + transformers.** The DPT depth model (~200MB download, drags in
+  torch) exists in `masking.py` ONLY as a mask fallback when the upload lacks alpha. That
+  is a depth transformer used to get a silhouette. Replace with: require
+  background-removed PNGs (already the README "fast path"), or `rembg`, or OpenCV GrabCut
+  (zero new deps). Deletes the biggest dependency, the silent first-run download, and an
+  untested path. Highest leverage, lowest risk.
+- **Tier 0b — Relief-confidence gate.** Per-region luminance variance / gradient energy;
+  warn + auto-cap band count when a region is too flat to justify N bands. Turns the
+  core "manufactured precision" weakness (rank banding always emits N crisp bands even on
+  flat relief) into a feature. Note this weakness is *worse* under frontal flash.
+- **Tier 2 (do only if still building on the UI / hosting):** cross-platform fonts
+  (`overlay.py` Windows-hardcoded paths); unpin Streamlit + retire the `image_to_url`
+  monkey-patch; decompose the 506-line `app.py` (extract palette/region render fns, tame
+  the 40+ session keys); name the magic mask constants (-1 off-mask, -2 unmask owner).
 
-**Not a new output format:** it's the *same* overlay + step-images + palette, with the
-darkest band anchored to the *existing basecoat* instead of primer grey, advising upward.
+### Consolidated prioritisation (features + refactors, tiers not a strict queue)
 
-**De-risking insight — we already own a form sensor.** The app already runs a **depth
-model** (`masking.py` fallback). Depth = pure geometry = form, blind to paint colour.
-Luminance is used today only because it's a sharper read of catchable light *on primer*;
-on a colored mini where luminance is corrupted by paint, **depth becomes the clean form
-signal.** So the spike's first, nearly-free test is: swap the shading map from luminance
-to depth on a colored fixture and see if the bands still read.
+- **Tier 0 (foundational refactors, before new features):** drop torch/transformers;
+  relief-confidence gate.
+- **Tier 1 (enablers, already shipped):** own-palette input (#4); manual regions (#1)
+  — note regions double as the cheap colored-mini unblock.
+- **Tier 2 (cheap polish / known flaws):** coverage sliders + band cap (#6/#7, shipped);
+  cross-platform fonts; Streamlit unpin; app.py decomposition — UI-conditional.
+- **Tier 3 (colored-mini fork):** per-region luminance norm → off-axis capture guidance →
+  phone-PS spike → (optional) StableNormal baseline / STL-render path.
+- **Deferred (unchanged):** PDF export (#11); multi-photo breadth (#8 reframe — note
+  phone-PS is the higher-value version of "multiple photos"); region mask-transfer; true
+  NMM horizon.
 
-**Full outcome decision tree (what the throwaway spike buys — days, not weeks):**
-
-| Outcome | Meaning | Cost to act |
-|---|---|---|
-| 1. Depth / lightness-high-pass cleanly recovers form on painted surfaces | Full colored-mini engine viable — big unlock | Medium (reuses depth + band engine) |
-| 2. Works only on *flat-basecoated* regions, not already-shaded ones | Ship "basecoat support" — manual regions already deliver ~80%; market widens primed→basecoated without solving decomposition | **Low** |
-| 3. Depth rescues it where luminance fails | Depth-driven banding path, on infra already shipped | Medium, low novelty risk |
-| 4. Signal gone on genuinely shaded minis; nothing cheap recovers it | Stay in niche, ceiling known | Zero (bought certainty) |
-
-Outcomes 2 and 3 are both likely and both cheap; even 4 is a win (stops a multi-week
-wall). No version of the spike loses more than a couple of days. **This is why the spike
-comes before any engine commitment.**
-
-### First-pass ordering (to refine)
-
-1. **Idea B (photo guide + input check)** — cheapest, unblocks nothing but protects
-   everything; good warm-up.
-2. **Idea C spike** — highest information, decides the ceiling, throwaway cost. Do before
-   any colored-mini engine work.
-3. **Idea A (persistence)** — high personal value; fix its container schema to be
-   multi-photo so multi-angle and colored-mini reuse it. Sequence after the spike verdict
-   only because the verdict may add fields to the manifest (e.g. per-photo base-paint
-   state); the *skeleton* schema can be designed independently.
-4. **Multi-angle (#8 reframed)** — cheap breadth once A's container exists.
-
-### Session 3b — colored-mini vision refined (research)
-
-**Core-value reframe (the unifying thesis).** The product is *one* thing: **upload a
-photo → get layer-by-layer highlight PLACEMENT; stop guessing.** Primed / WIP / finished
-are just different **inputs** to that; techniques are different **output styles** of it.
-This reframes the whole roadmap around placement, not around "colored support" per se.
-Differentiator: generic painting guides are everywhere but non-spatial ("highlight the
-edges", someone else's mini). Nobody delivers *per-photo, layer-by-layer placement on the
-model in your hand.* That's the moat; the target user is the beginner who has neither
-technique nor good guessing (advanced painters guess well already).
-
-**Code finding that de-risks the spike.** `masking.py` already runs
-`Depth-Anything-V2-Small` on every no-alpha image, but only thresholds it to a silhouette
-— the raw **depth values (pure form, blind to paint) are discarded.** `banding.py` is
-**source-agnostic** (bands whatever light field it's given, per region). So "use depth
-instead of luminance as the shading map on a colored mini" = feed an array already in
-memory into a function that already exists. The spike tests *result quality*, not
-buildability.
-
-**Per-question verdicts:**
-- **Two modes?** UI yes (pick primed vs painted → selects the form-extractor); engine no
-  — one pipeline, swappable form source (luminance for primer, depth for painted).
-- **Basecoats → regions?** Plausibly **yes**, and it's the inverse of the SAM-on-primer
-  failure: basecoated minis *have* hue boundaries, so cheap classical clustering
-  (Lab k-means / SLIC superpixels, both in the shipped opencv, no LLM) can propose
-  regions. WIP input is *better* for auto-regions than primer. Worth a spike sub-test.
-- **More than basecoats → critique placement ("your highlight is wrong")?** Hardest,
-  speculative. Possible in principle via depth-form-peaks vs luminance-bright-peaks
-  disagreement, but fragile. **Phase-3, high-risk; do not promise.** Spike tells us if the
-  signal is even clean enough to attempt.
-- **Finished mini ('eavy metal) input?** Two real uses: (a) reference to label *your*
-  mini's regions (already the roadmap's painted-reference labeling); (b) extract the
-  *pros'* highlight map from the finished mini itself — works well per-region because
-  finished highlights are deliberately high-contrast, so reading bright quantiles recovers
-  expert placement. A legit teaching feature, possibly easier than WIP.
-- **Techniques?** Regions are the unlock. Each technique = placement curve + tint + paint
-  choice: drybrush = top bands on high-pass texture within region ✅; TMM = metallic paint
-  + edge highlight ✅; NMM = extreme-contrast curve ✅ but fake reflections not derivable
-  ⚠️; OSL = photograph-from-glow-direction + band tint ✅. "Free" for what the engine can
-  *read*; not derivable for what a human *invents*.
+**Strategic note:** the research does not reopen the "widen the funnel" bet cheaply. Every
+path past the primed-monochrome niche needs either a capture-behaviour change (off-axis
+light, multi-shot PS) or an STL. If the goal is a low-friction phone tool for the mass of
+painters, that friction is real and unavoidable — weigh it against extracting the strongest
+albedo-independent asset the repo already has (the palette matcher + mix advisor) as a
+standalone tool.

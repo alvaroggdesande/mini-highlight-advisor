@@ -11,9 +11,11 @@ finished-job scorers (MyMiniScore) all solve a different problem.
 
 ## Scope (v1)
 
-- **Primed / zenithal-primed (monochrome) minis.** A primed model is already a
-  shading map, so the tool reads highlight relief from the photo's own
-  **luminance** (CLAHE-enhanced grayscale). Painted/coloured minis are future
+- **Primed (black or grey), monochrome minis.** The tool reads highlight relief from
+  the photo's own **luminance** (CLAHE-enhanced grayscale), so it needs directional
+  light on the sculpt: shoot with a **raking side light, not on-axis flash** (flash
+  flattens the form and erases the shading signal). A zenithal prime helps but isn't
+  required — the lighting does the work. Painted/coloured minis are future
   work — luminance there conflates dark paint with shadow.
 - **Manual regions.** Lasso areas (armour / blade / robe / skin) and give each
   its own editable palette + coverage; "Whole mini" owns whatever you don't

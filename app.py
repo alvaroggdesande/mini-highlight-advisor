@@ -72,8 +72,8 @@ st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
 st.title("Mini Highlight Advisor")
 st.caption(
     "Upload a photo of a primed miniature (background-removed PNG is fastest). "
-    "You'll get a painted preview + a paint-by-layer plan. Best on a well-lit, "
-    "ideally zenithal-primed model."
+    "You'll get a painted preview + a paint-by-layer plan. Best with a raking "
+    "side light (not on-axis flash) — that gives the sculpt the shadows the tool reads."
 )
 
 CATALOG = load_catalog()
