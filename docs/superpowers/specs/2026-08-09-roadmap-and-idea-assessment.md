@@ -294,3 +294,37 @@ light, multi-shot PS) or an STL. If the goal is a low-friction phone tool for th
 painters, that friction is real and unavoidable — weigh it against extracting the strongest
 albedo-independent asset the repo already has (the palette matcher + mix advisor) as a
 standalone tool.
+
+### Implementation note (2026-08-15) — Tier 3 Step 2 shipped as guidance; auto-detector refuted
+
+Executed **Tier 3 Step 2 (off-axis capture guidance)** on `feat/capture-relief-check`.
+Scope landed *smaller* than first proposed, for an evidence-backed reason.
+
+**What was proposed and dropped:** an "albedo-blind relief-energy" addition to
+`input_check._check_lighting` — high-pass residual std inside the mask — so the lighting
+check would catch flat frontal-flash on *colored* minis (where raw tonal spread is
+inflated by paint albedo and gives a false pass). A quick synthetic probe refuted it. On
+matched cases (200×200, single-image):
+
+| case | should | grey spread | hp_std | blur-spread |
+|---|---|---|---|---|
+| flat-flash **colored** (albedo blocks, no shading) | warn | 180 | 33.7 | 179.5 |
+| raking **colored** (albedo blocks × shading gradient) | pass | 192 | 22.5 | 179.3 |
+
+The bad case and the good case are indistinguishable on spread and blur-spread, and rank
+**backwards** on high-pass energy (a hard albedo edge emits more high-pass than smooth
+form shading). This is the intrinsic-image ambiguity again: **no cheap single-image
+statistic separates flat-flash from good raking light once paint is on.** Same wall the
+depth spike hit — confirms single-image is closed and only multi-shot PS (Step 3) reopens it.
+
+**What shipped instead (zero-regression):**
+- Sharpened the frontal-flash line in `SHOOTING_GUIDE` + `docs/photo-guide.md` to name the
+  mechanism (fills recesses / erases shadows) and call it the #1 cause of a flat result.
+- New `PAINTED_CAPTURE_NOTE` surfaced in the app photo-quality panel: scopes the automatic
+  lighting check to **primed** minis and puts capture discipline on the user for painted ones.
+- **Left `_check_lighting` logic untouched** — it already works correctly on primed minis
+  (probe: uniform grey spread 0 → warn; gradient spread 230 → pass); the false-pass only
+  exists in colored mode, which isn't a supported path yet, and can't be fixed cheaply.
+
+Next in the sequence: **Step 1 (per-region luminance normalization)**, then gate on whether
+to fund the **Step 3 phone-PS spike**.

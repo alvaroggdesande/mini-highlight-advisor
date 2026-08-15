@@ -9,16 +9,28 @@ import numpy as np
 SHOOTING_GUIDE = """\
 ### How to photograph your mini
 
-- **Raking side light.** Light the mini from one side at roughly 45° so the sculpt
-  casts soft shadows — that shading is exactly what the tool reads.
-- **No on-axis / built-in flash.** A flash pointing straight at the mini flattens the
-  form and erases the shading signal.
+- **Raking side light — the one that matters most.** Light the mini from one side at
+  roughly 45° so the sculpt casts soft shadows — that shading is exactly what the tool
+  reads.
+- **No on-axis / frontal flash.** A flash (or any light) pointing straight at the mini
+  fills its recesses and erases the very shadows the tool reads, flattening the form.
+  This is the #1 cause of a flat, low-detail result.
 - **Fill the frame.** Get close (or crop) so the mini occupies most of the photo.
 - **Plain, neutral background.** A clean backdrop helps isolate the mini.
 - **Sharp focus, steady hands.** Focus on the mini and use a timer or brace your hands
   to avoid blur.
 - **A zenithal-primed (grey/white) mini reads best** — it is already a shading map.
 """
+
+# Painted/colored minis: single-image analysis can't separate paint colour (albedo)
+# from shading, so the automatic lighting check below is only reliable on primed minis.
+# On painted minis good capture is on the user — surfaced in the app next to the check.
+PAINTED_CAPTURE_NOTE = (
+    "The automatic lighting check is reliable on **primed** (grey/black) minis. On a "
+    "**painted** mini the tool can't tell flat, on-axis flash from good lighting for "
+    "you — so it's on you to use a **raking side light (~45°) and no frontal flash**, "
+    "which matters even more once paint is on."
+)
 
 # --- Tuning constants (raw grey 0-255 inside the mask) --------------------
 FLAT_SPREAD_MAX = 60     # p95-p5 below this => lighting too flat to read form
