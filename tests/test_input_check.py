@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from mini_highlight_advisor.input_check import (
-    check_input, CheckResult, SHOOTING_GUIDE,
+    check_input, CheckResult, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE,
     FLAT_SPREAD_MAX, MIN_FOCUS_VAR,
 )
 from mini_highlight_advisor.masking import load_image, compute_mask
@@ -149,6 +149,24 @@ def test_shooting_guide_covers_the_key_points():
     text = SHOOTING_GUIDE.lower()
     for keyword in ["raking", "flash", "frame", "background", "focus"]:
         assert keyword in text, f"shooting guide missing '{keyword}'"
+
+
+def test_shooting_guide_names_why_on_axis_flash_fails():
+    # The flash line must explain the mechanism (fills recesses / erases shadows),
+    # not just say "no flash" — that mechanism is the whole reason capture matters.
+    text = SHOOTING_GUIDE.lower()
+    assert "on-axis" in text or "frontal" in text
+    assert "recess" in text or "erase" in text or "fills" in text
+
+
+def test_painted_capture_note_flags_auto_check_is_primed_only():
+    # On painted/colored minis the automatic lighting check can't tell flat-flash
+    # from good raking light (single-image albedo/shading ambiguity), so the note
+    # must put capture discipline on the user and say the auto-check is primed-only.
+    text = PAINTED_CAPTURE_NOTE.lower()
+    assert "paint" in text  # addresses painted/colored minis
+    assert "primed" in text  # scopes the automatic check to primed
+    assert "raking" in text or "side light" in text  # actionable capture fix
 
 
 def test_bimodal_image_fails_exposure_both_crushed_and_blown():

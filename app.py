@@ -19,7 +19,7 @@ from mini_highlight_advisor.matching import target_from_paint, target_from_hex
 from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask, polygons_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
-from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE
+from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
 from PIL import Image
 
 
@@ -503,6 +503,7 @@ with tab_mini:
             for r in check_input(rgb, shading.mask):
                 line = f"**{r.label}** — {r.detail}"
                 (st.success if r.ok else st.warning)(line)
+            st.caption(PAINTED_CAPTURE_NOTE)
             with st.expander("How to photograph your mini"):
                 st.markdown(SHOOTING_GUIDE)
         except Exception:
