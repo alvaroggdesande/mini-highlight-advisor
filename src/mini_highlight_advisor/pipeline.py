@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 from .banding import band_light, relief_recommended_bands
-from .lighting import luminance_light
+from .lighting import luminance_light, _clahe_gray, local_luminance_light
 from .masking import compute_mask
 from .edges import edge_mask, extreme_edge_mask
 from .overlay import (
@@ -102,6 +102,7 @@ class RegionPlan:
     edge_overlays: list | None = None
     capped: bool = False
     requested_bands: int | None = None
+    flat_albedo: bool = False
 
 
 @dataclass
@@ -115,10 +116,15 @@ class MultiRegionResult:
 def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 edges: bool = True, extreme_edge: bool = False,
                 edge_sensitivity: float = 0.5,
-                relief_cap: bool = False) -> RegionPlan:
+                relief_cap: bool = False, flat_albedo: bool = False) -> RegionPlan:
     requested_bands = len(palette)
     capped = False
-    if relief_cap:
+    if flat_albedo:
+        # Dark/low-dynamic-range region: no relief signal to band. Keep the base only.
+        capped = True
+        palette = palette[:1]
+        coverage = default_coverage(1)
+    elif relief_cap:
         k = relief_recommended_bands(light, sub_mask, requested_bands)
         if k < requested_bands:
             # Keep the darkest k paints (base + lower highlights); a flat region
@@ -144,13 +150,15 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         if two_tier:
             overlays.append((extreme_edge_mask(light, sub_mask, edge_sensitivity), colors[-1]))
     return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps, overlays,
-                      capped=capped, requested_bands=requested_bands)
+                      capped=capped, requested_bands=requested_bands,
+                      flat_albedo=flat_albedo)
 
 
 def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     edges: bool = True, extreme_edge: bool = False,
                     edge_sensitivity: float = 0.5,
-                    relief_cap: bool = False) -> MultiRegionResult:
+                    relief_cap: bool = False,
+                    per_region_norm: bool = False) -> MultiRegionResult:
     regions = regions or []
     if coverage is None:
         coverage = default_coverage(len(default_palette))
@@ -161,12 +169,25 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     default_sub = owner == -1
     ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
                relief_cap=relief_cap)
+
+    gray = _clahe_gray(rgb) if per_region_norm else None
+
+    def _region_light(sub):
+        if per_region_norm:
+            ll = local_luminance_light(gray, sub)
+            return ll.light, ll.flat
+        return light, False
+
     if default_sub.any():
-        plans.append(plan_region(rgb, default_sub, light, WHOLE_MINI, default_palette, coverage, **ekw))
+        lgt, flat = _region_light(default_sub)
+        plans.append(plan_region(rgb, default_sub, lgt, WHOLE_MINI, default_palette,
+                                 coverage, flat_albedo=flat, **ekw))
     for i, r in enumerate(regions):
         sub = owner == i
         if not sub.any():
             continue
-        plans.append(plan_region(rgb, sub, light, r.name, r.palette, r.coverage, **ekw))
+        lgt, flat = _region_light(sub)
+        plans.append(plan_region(rgb, sub, lgt, r.name, r.palette, r.coverage,
+                                 flat_albedo=flat, **ekw))
     combined = paint_regions(rgb, plans)
     return MultiRegionResult(mask, light, plans, combined)

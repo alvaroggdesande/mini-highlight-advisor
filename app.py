@@ -494,6 +494,12 @@ with tab_mini:
             help="A flat region can't show every highlight band — cap it to what the "
                  "relief supports. Untick to force your full band count everywhere.")
 
+        per_region_norm = st.checkbox(
+            "Colored / painted mini (experimental)", value=False, key="per_region_norm",
+            help="Normalize brightness per region so each painted colour reads its own "
+                 "relief. Off = primed-mini mode (default). Needs one lassoed region per "
+                 "material; very dark regions may be flagged as too low-contrast to read.")
+
         # --- Photo quality panel (non-blocking) ---
         # `shading.mask` is the mask computed (and cached) by `_shading()` above —
         # it is the same mask by value that `analyze_regions` will use; reusing it here
@@ -514,7 +520,8 @@ with tab_mini:
         multi = analyze_regions(rgb, alpha, wp, wcov, drawn,
                                 edges=edges, extreme_edge=extreme_edge,
                                 edge_sensitivity=edge_sensitivity,
-                                relief_cap=relief_cap)
+                                relief_cap=relief_cap,
+                                per_region_norm=per_region_norm)
         st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
                  use_container_width=True)
         st.subheader("Colour schemes — all regions")
@@ -523,7 +530,12 @@ with tab_mini:
         st.caption("Work dark to light within each region.")
         for plan in multi.plans:
             st.markdown(f"### {plan.name}")
-            if plan.capped:
+            if plan.flat_albedo:
+                st.warning(
+                    f"“{plan.name}” is too dark / low-contrast to read relief — showing "
+                    f"1 band. Try a paler basecoat here, or a stronger raking side light. "
+                    f"(Single-photo tools can’t recover form from a dark, flat colour.)")
+            elif plan.capped:
                 st.warning(
                     f"“{plan.name}” looks fairly flat — showing {len(plan.names)} "
                     f"band(s) instead of {plan.requested_bands}. Untick "
