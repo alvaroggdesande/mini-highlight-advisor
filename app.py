@@ -20,6 +20,7 @@ from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
+from ui import geometry
 from PIL import Image
 
 
@@ -110,18 +111,6 @@ def _swatch(hexv: str, size: str = "1em") -> str:
     )
 
 
-def _points_from_object(obj) -> list[tuple[float, float]]:
-    # Extract the traced vertices from a drawable-canvas (fabric.js) object.
-    # Freedraw/polygon objects expose the stroke as obj["path"], a list of SVG
-    # segments: ["M",x,y] / ["L",x,y] / ["Q",cx,cy,x,y] / ["z"]. The segment
-    # END point is always its last two numbers (Q's control point is ignored).
-    # Some versions use obj["points"] ([{"x":..,"y":..}]) instead.
-    # polygon_to_mask closes the ring, so a freehand (open) trace still fills.
-    if "points" in obj:
-        return [(p["x"], p["y"]) for p in obj["points"]]
-    return [(seg[-2], seg[-1]) for seg in obj.get("path", []) if len(seg) >= 3]
-
-
 def _render_region_steps(steps, roles, names, coverage) -> None:
     # Shared paint-along step renderer for both the single-palette and the
     # per-region plans. `coverage` is per-band realized percentages.
@@ -155,21 +144,6 @@ def _render_region_steps(steps, roles, names, coverage) -> None:
 def _current_cov_seed(n):
     from mini_highlight_advisor.palette import default_coverage
     return [round(f * 100, 1) for f in default_coverage(n)]
-
-
-def _region_outline_image(rgb, regions):
-    """RGB copy of the photo with each region's boundary drawn in a distinct
-    colour. Read-only preview — selection happens in the list."""
-    import cv2
-    import numpy as np
-    out = np.ascontiguousarray(rgb[..., :3]).copy()
-    colors = [(255, 40, 200), (40, 200, 255), (255, 200, 40), (120, 255, 120), (255, 120, 120)]
-    kernel = np.ones((3, 3), np.uint8)
-    for i, r in enumerate(regions):
-        m = r.mask.astype(np.uint8)
-        edge = (m - cv2.erode(m, kernel, iterations=2)).astype(bool)
-        out[edge] = colors[i % len(colors)]
-    return out
 
 
 tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
@@ -239,7 +213,7 @@ with tab_mini:
                 )
             else:
                 canvas = None
-                outline = _region_outline_image(rgb, book.drawn)
+                outline = geometry.region_outline_image(rgb, book.drawn)
                 st.image(outline, caption="Preview (region outlines)", use_container_width=True)
         with right:
             st.markdown("**Regions**")
@@ -283,7 +257,7 @@ with tab_mini:
                         st.warning("Trace a lasso around an area on the image first.")
                     else:
                         sx, sy = src_w / disp_w, src_h / disp_h
-                        rings = [scale_points(_points_from_object(o), sx, sy) for o in objs]
+                        rings = [scale_points(geometry.points_from_object(o), sx, sy) for o in objs]
                         rmask = polygons_to_mask(rings, (src_h, src_w)) & shading.mask
                         if not rmask.any():
                             st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
