@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,37 +101,61 @@ def _settings_from_dict(d: dict) -> ProjectSettings:
 def save_project(name, photo_bytes, photo_suffix, book, settings,
                  root: Path = PROJECTS_DIR, _now: str | None = None) -> str:
     slug = slugify(name)
-    dest = Path(root) / slug
-    dest.mkdir(parents=True, exist_ok=True)  # Task 4 replaces this with an atomic write
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    dest = root / slug
+    tmp = root / f".tmp-{slug}"
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+
     photo_file = f"photo{photo_suffix}"
-    (dest / photo_file).write_bytes(photo_bytes)
+    (tmp / photo_file).write_bytes(photo_bytes)
+
     drawn_entries = []
     for i, r in enumerate(book.drawn):
         mask_file = f"region_{i:02d}.png"
-        _write_mask(dest / mask_file, r.mask)
-        drawn_entries.append({
-            "name": r.name,
-            "palette": _palette_to_dicts(r.palette),
-            "coverage": list(r.coverage),
-            "mask_file": mask_file,
-        })
+        _write_mask(tmp / mask_file, r.mask)
+        drawn_entries.append({"name": r.name, "palette": _palette_to_dicts(r.palette),
+                              "coverage": list(r.coverage), "mask_file": mask_file})
+
+    now = _now or _now_iso()
     manifest = {
-        "schema_version": SCHEMA_VERSION,
-        "name": name,
-        "slug": slug,
-        "created_at": _now or _now_iso(),
-        "updated_at": _now or _now_iso(),
-        "photo_file": photo_file,
+        "schema_version": SCHEMA_VERSION, "name": name, "slug": slug,
+        "created_at": now, "updated_at": now, "photo_file": photo_file,
         "settings": _settings_to_dict(settings),
-        "book": {
-            "whole": {"palette": _palette_to_dicts(book.whole_palette),
-                      "coverage": list(book.whole_coverage)},
-            "drawn": drawn_entries,
-            "selected": book.selected,
-        },
+        "book": {"whole": {"palette": _palette_to_dicts(book.whole_palette),
+                           "coverage": list(book.whole_coverage)},
+                 "drawn": drawn_entries, "selected": book.selected},
     }
-    (dest / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (tmp / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    shutil.rmtree(dest, ignore_errors=True)
+    os.replace(tmp, dest)
     return slug
+
+
+def list_projects(root: Path = PROJECTS_DIR) -> list[ProjectMeta]:
+    root = Path(root)
+    if not root.exists():
+        return []
+    metas = []
+    for child in root.iterdir():
+        if not child.is_dir() or child.name.startswith(".tmp-"):
+            continue
+        mpath = child / "manifest.json"
+        if not mpath.exists():
+            continue
+        try:
+            m = json.loads(mpath.read_text(encoding="utf-8"))
+            metas.append(ProjectMeta(slug=m["slug"], name=m["name"],
+                                     updated_at=m["updated_at"]))
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return sorted(metas, key=lambda x: x.updated_at, reverse=True)
+
+
+def delete_project(slug: str, root: Path = PROJECTS_DIR) -> None:
+    shutil.rmtree(Path(root) / slug, ignore_errors=True)
 
 
 def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:

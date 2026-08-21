@@ -1,5 +1,6 @@
 # tests/test_projects.py
 import numpy as np
+import pytest
 
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.palette import PaintColor
@@ -75,3 +76,47 @@ def test_drawn_regions_roundtrip_masks_bit_identical(tmp_path):
     assert loaded.book.drawn[0].palette == book.drawn[0].palette
     assert loaded.book.drawn[0].coverage == book.drawn[0].coverage
     assert loaded.book.selected == 1
+
+
+def test_list_projects_sorted_by_updated_desc(tmp_path):
+    book = _whole_book()
+    projects.save_project("Alpha", b"A", ".png", book, _settings(), root=tmp_path,
+                          _now="2026-08-20T10:00:00+00:00")
+    projects.save_project("Beta", b"B", ".png", book, _settings(), root=tmp_path,
+                          _now="2026-08-21T10:00:00+00:00")
+    metas = projects.list_projects(root=tmp_path)
+    assert [m.name for m in metas] == ["Beta", "Alpha"]
+    assert metas[0].slug == "beta"
+
+
+def test_overwrite_by_name_drops_stale_region_masks(tmp_path):
+    from mini_highlight_advisor.region_state import RegionBook
+    from mini_highlight_advisor.regions import Region
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    m = np.zeros((4, 4), dtype=bool); m[0, 0] = True
+    two = RegionBook(default_ramp(5), default_coverage(5),
+                     drawn=[Region("R0", m, default_ramp(3), default_coverage(3)),
+                            Region("R1", m, default_ramp(3), default_coverage(3))])
+    projects.save_project("Same", b"P", ".png", two, _settings(), root=tmp_path)
+    # re-save under the same name with only ONE drawn region
+    one = RegionBook(default_ramp(5), default_coverage(5),
+                     drawn=[Region("R0", m, default_ramp(3), default_coverage(3))])
+    projects.save_project("Same", b"P", ".png", one, _settings(), root=tmp_path)
+    assert not (tmp_path / "same" / "region_01.png").exists()
+    assert len(projects.load_project("same", root=tmp_path).book.drawn) == 1
+
+
+def test_delete_project_removes_folder_and_is_idempotent(tmp_path):
+    projects.save_project("Gone", b"P", ".png", _whole_book(), _settings(), root=tmp_path)
+    projects.delete_project("gone", root=tmp_path)
+    assert not (tmp_path / "gone").exists()
+    projects.delete_project("gone", root=tmp_path)  # no error second time
+
+
+def test_list_skips_corrupt_manifest_but_load_raises(tmp_path):
+    projects.save_project("Good", b"P", ".png", _whole_book(), _settings(), root=tmp_path)
+    bad = tmp_path / "bad"; bad.mkdir()
+    (bad / "manifest.json").write_text("{ not json", encoding="utf-8")
+    assert [m.slug for m in projects.list_projects(root=tmp_path)] == ["good"]
+    with pytest.raises(Exception):
+        projects.load_project("bad", root=tmp_path)
