@@ -2,20 +2,14 @@ import os
 
 import streamlit as st
 
-from mini_highlight_advisor.palette import (
-    role_names,
-    default_ramp,
-)
-from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
+from mini_highlight_advisor.palette import role_names
+from mini_highlight_advisor.pipeline import analyze_regions
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
-from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask, polygons_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
-from ui import context, coverage_editor, geometry, helpers, keys, paints_tab, state, palette_editor
-from ui.compat import st_canvas
-from PIL import Image
+from ui import context, coverage_editor, helpers, paints_tab, state, palette_editor, regions_panel
 
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -56,91 +50,7 @@ with tab_mini:
             rgb, alpha, shading = helpers.shading(uploaded.getvalue(), suffix)
         src_h, src_w = rgb.shape[:2]
 
-        # Display geometry for the drawing canvas — computed once so both the
-        # left (canvas) and right (Add-region handler) columns can use it.
-        disp_w = min(600, src_w)
-        disp_h = round(src_h * disp_w / src_w)
-        draw_mode = st.session_state.get("draw_mode", False)
-
-        left, right = st.columns([3, 2])
-        with left:
-            # In draw mode the big left panel IS the drawing surface (st_canvas
-            # needs a wide, un-nested container to render — it collapses inside a
-            # narrow column/expander). Otherwise show the read-only outline preview.
-            if draw_mode and st_canvas is not None:
-                st.caption("Trace a lasso around an area below, then click **Add region** on the right.")
-                canvas = st_canvas(
-                    fill_color="rgba(255,40,200,0.25)", stroke_width=2, stroke_color="#ff28c8",
-                    background_image=Image.fromarray(rgb), height=disp_h, width=disp_w,
-                    drawing_mode="freedraw", key=f"canvas_{len(book.drawn)}",
-                )
-            else:
-                canvas = None
-                outline = geometry.region_outline_image(rgb, book.drawn)
-                st.image(outline, caption="Preview (region outlines)", use_container_width=True)
-        with right:
-            st.markdown("**Regions**")
-            labels = book.names()
-            sel = st.radio(
-                "Select a region to edit", list(range(len(labels))),
-                index=min(book.selected, len(labels) - 1),
-                format_func=lambda g: labels[g], key="region_radio",
-            )
-            state.load_region_into_widgets(book, sel)
-            book.selected = sel
-
-            st.divider()
-            if st_canvas is None:
-                st.info("Install `streamlit-drawable-canvas` to draw regions.")
-            elif not draw_mode:
-                if st.button("➕ Draw a new region"):
-                    st.session_state["draw_mode"] = True
-                    st.rerun()
-            else:
-                st.markdown("**New region** — lasso on the image, left.")
-                new_name = st.text_input("Region name", value=f"Region {len(book.drawn) + 1}")
-                c_add, c_cancel = st.columns(2)
-                if c_add.button("Add region", type="primary"):
-                    objs = (canvas.json_data or {}).get("objects", []) if canvas else []
-                    if not objs:
-                        st.warning("Trace a lasso around an area on the image first.")
-                    else:
-                        sx, sy = src_w / disp_w, src_h / disp_h
-                        rings = [scale_points(geometry.points_from_object(o), sx, sy) for o in objs]
-                        rmask = polygons_to_mask(rings, (src_h, src_w)) & shading.mask
-                        if not rmask.any():
-                            st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
-                        else:
-                            book.add(rmask, new_name.strip() or f"Region {len(book.drawn) + 1}",
-                                     default_ramp(st.session_state["n"]),
-                                     [c / 100 for c in helpers.current_cov_seed(st.session_state["n"])])
-                            st.session_state.pop(keys.LOADED_G, None)
-                            for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
-                                st.session_state.pop(_k, None)
-                            st.session_state["draw_mode"] = False
-                            st.rerun()
-                if c_cancel.button("Cancel"):
-                    st.session_state["draw_mode"] = False
-                    st.rerun()
-
-            if sel >= 1 and st.button("🗑 Delete this region"):
-                book.remove(sel)
-                st.session_state.pop(keys.LOADED_G, None)
-                for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
-                    st.session_state.pop(_k, None)
-                st.rerun()
-
-        st.divider()
-        st.markdown(f"### Editing: **{book.names()[sel]}**")
-
-        # Rename the selected drawn region (Whole mini / index 0 is fixed).
-        if sel >= 1:
-            renamed = st.text_input("Region name", value=book.names()[sel], key=f"rename_{sel}")
-            if renamed.strip() and renamed.strip() != book.names()[sel]:
-                book.set_name_at(sel, renamed)
-                st.session_state.pop(keys.LOADED_G, None)
-                st.rerun()
-
+        sel = regions_panel.render(book, rgb, shading, src_w, src_h)
         state.rehydrate_editor_widgets(book, sel)
 
         palette, n = palette_editor.render(book, sel, picked)
