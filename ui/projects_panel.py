@@ -47,8 +47,10 @@ def render_library() -> None:
             for k in [k for k in list(st.session_state) if k.startswith(keys.RENAME_PREFIX)]:
                 st.session_state.pop(k, None)
             st.rerun()
-        if c_del.button("Delete") and st.checkbox("Confirm delete", key="confirm_del"):
+        confirm_del = st.checkbox("Confirm delete", key=f"confirm_del_{slug}")
+        if c_del.button("Delete", disabled=not confirm_del):
             projects.delete_project(slug)
+            st.session_state.pop(f"confirm_del_{slug}", None)
             st.rerun()
 
 
@@ -64,7 +66,7 @@ def render_save(photo_bytes: bytes, photo_suffix: str, book) -> None:
             will_overwrite = False
         if will_overwrite:
             st.warning(f"A project named \"{name}\" exists — saving overwrites it.")
-        ok = (not will_overwrite) or st.checkbox("Confirm overwrite", key="confirm_ow")
+        ok = (not will_overwrite) or st.checkbox("Confirm overwrite", key=f"confirm_ow_{name}")
         if st.button("Save project", type="primary", disabled=not ok):
             try:
                 projects.save_project(name, photo_bytes, photo_suffix, book,
