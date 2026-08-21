@@ -18,7 +18,7 @@ from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
-from ui import geometry, helpers, keys, state
+from ui import geometry, helpers, keys, paints_tab, state
 from ui.compat import st_canvas
 from PIL import Image
 
@@ -68,26 +68,7 @@ tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
 
 # --- 🎨 Paints tab: inventory ---
 with tab_paints:
-    st.markdown("**My paints** (Vallejo)")
-    owned_codes = collection.load(catalog=CATALOG)
-    picked = st.multiselect(
-        "Paints you own", CATALOG_CODES,
-        default=sorted(owned_codes & set(CATALOG_CODES)),
-        format_func=lambda c: CODE_LABEL.get(c, c),
-        key="owned",
-    )
-    if set(picked) != owned_codes:
-        collection.save(set(picked))
-    owned_paints = [p for c in picked if (p := find_by_code(CATALOG, c)) is not None]
-
-    st.markdown("**Owned paints**")
-    if not owned_paints:
-        st.caption("No paints selected yet — tick the paints you own above.")
-    for p in owned_paints:
-        rng = p.paint_range or ""
-        st.markdown(f"{helpers.swatch(p.hex)}{p.name} · {rng} · {p.code}", unsafe_allow_html=True)
-
-    st.caption(f"Catalogue: {len(CATALOG)} paints (Vallejo Model Color + Game Color)")
+    picked, owned_paints = paints_tab.render()
 
 # --- 🖌️ Miniature tab: region-centric editor ---
 with tab_mini:
