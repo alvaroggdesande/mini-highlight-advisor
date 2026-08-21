@@ -1,24 +1,19 @@
 import os
-from collections import Counter
 
 import streamlit as st
 
-from mini_highlight_advisor.catalog import load_catalog, find_by_name, find_by_code
-from mini_highlight_advisor import collection
 from mini_highlight_advisor.palette import (
-    DEFAULT_PALETTE, PaintColor, role_names, ramp_hex,
-    default_coverage, remainder_pct, slider_max_pct, default_ramp, valid_hex,
+    role_names,
+    default_coverage, remainder_pct, slider_max_pct, default_ramp,
 )
-from mini_highlight_advisor.color import blend_hex_lab
 from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
-from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.matching import target_from_paint, target_from_hex
 from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask, polygons_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
-from ui import geometry, helpers, keys, paints_tab, state
+from ui import context, geometry, helpers, keys, paints_tab, state, palette_editor
 from ui.compat import st_canvas
 from PIL import Image
 
@@ -30,32 +25,6 @@ st.caption(
     "You'll get a painted preview + a paint-by-layer plan. Best with a raking "
     "side light (not on-axis flash) — that gives the sculpt the shadows the tool reads."
 )
-
-CATALOG = load_catalog()
-CUSTOM = "(custom target)"
-CODE_LABEL = {p.code: f"{p.name} · {p.paint_range or ''} · {p.code}" for p in CATALOG}
-CATALOG_CODES = [p.code for p in CATALOG]
-
-
-def _apply_paste_hex(i: int) -> None:
-    # Runs on the paste field's change, before the rerun, on committed state.
-    # Apply a pasted hex to the slot's colour only when the user edited the field
-    # (never on every rerun), so it can't clobber a colour-picker drag or a blend.
-    norm = valid_hex(st.session_state.get(f"slot_hexinput_{i}", ""))
-    if norm is not None:
-        st.session_state[f"slot_hex_{i}"] = norm
-
-
-def _blend_neighbours(i: int, n: int) -> None:
-    # Fill interior slot i with the Lab-midpoint of its neighbours. Runs as a
-    # button on_click callback — BEFORE the rerun instantiates the slot widgets —
-    # so writing slot_hex_{i}/slot_code_{i} is allowed (writing them in the loop
-    # body, after the selectbox/picker are instantiated, raises StreamlitAPIException).
-    lo = st.session_state.get(f"slot_hex_{i - 1}", ramp_hex(i - 1, n))
-    hi = st.session_state.get(f"slot_hex_{i + 1}", ramp_hex(i + 1, n))
-    st.session_state[f"slot_hex_{i}"] = blend_hex_lab(lo, hi)
-    st.session_state[f"slot_code_{i}"] = CUSTOM
-
 
 
 
@@ -174,74 +143,7 @@ with tab_mini:
 
         state.rehydrate_editor_widgets(book, sel)
 
-        # --- recipe loader ---
-        recipes = load_all()
-        recipe_by_name = {r.name: r for r in recipes}
-        name_counts = Counter(p.name for p in CATALOG)
-        choice = st.selectbox("Recipe", ["(none)"] + list(recipe_by_name))
-        if st.button("Load") and choice != "(none)":
-            pal = to_palette(recipe_by_name[choice])
-            st.session_state["n"] = max(3, min(5, len(pal)))
-            for i, p in enumerate(pal[:st.session_state["n"]]):
-                match = find_by_name(CATALOG, p.name)
-                unique = name_counts.get(p.name) == 1
-                st.session_state[f"slot_code_{i}"] = match.code if (match and unique) else CUSTOM
-                st.session_state[f"slot_hex_{i}"] = p.hex
-            st.rerun()
-
-        # --- Palette slots (dark to light) ---
-        # Seed "n" before the slider widget is created so the widget can own the value via key=
-        # without a conflicting value= argument causing a session_state warning.
-        st.session_state.setdefault("n", 5)
-        n = st.slider("Number of layers", 3, 7, key="n")
-        st.markdown("**Palette** (dark to light)")
-        palette = []
-        options = CATALOG_CODES + [CUSTOM]
-        for i in range(n):
-            if i < len(DEFAULT_PALETTE):
-                default = DEFAULT_PALETTE[i]
-            else:
-                default = PaintColor(f"Grey {i + 1}", ramp_hex(i, n))
-            st.session_state.setdefault(f"slot_code_{i}", default.code)
-            st.session_state.setdefault(f"slot_hex_{i}", default.hex)
-            default_code = st.session_state[f"slot_code_{i}"]
-            if default_code != CUSTOM and find_by_code(CATALOG, default_code) is None:
-                default_code = CUSTOM
-            c1, c2, c3 = st.columns([3, 1, 1])
-            slot_sel = c1.selectbox(
-                f"Layer {i + 1}", options,
-                index=options.index(default_code),
-                format_func=lambda c: CUSTOM if c == CUSTOM else CODE_LABEL.get(c, c),
-                key=f"slot_code_{i}",
-            )
-            if slot_sel == CUSTOM:
-                hexv = c2.color_picker(
-                    f"hex {i + 1}", key=f"slot_hex_{i}", label_visibility="collapsed",
-                )
-                pasted = c3.text_input(
-                    f"paste hex {i + 1}", value=hexv, key=f"slot_hexinput_{i}",
-                    on_change=_apply_paste_hex, args=(i,), label_visibility="collapsed",
-                )
-                if pasted and valid_hex(pasted) is None:
-                    c3.caption("⚠️ invalid hex")
-                paint = PaintColor(f"Custom {i + 1}", hexv)
-                palette.append(paint)
-                near = collection.nearest_paint(paint.rgb, CATALOG)
-                if near is not None:
-                    owned_badge = "✅ owned" if near.code in set(picked) else "⚠️ not owned"
-                    c3.caption(f"{hexv} · closest: {near.name} · {near.code} ({owned_badge})")
-            else:
-                paint = find_by_code(CATALOG, slot_sel)
-                c2.markdown(helpers.swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
-                palette.append(paint)
-                st.session_state[f"slot_hex_{i}"] = paint.hex
-                badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
-                c3.write(f"{paint.hex} · {badge}")
-
-            # Interior slots can be filled with the Lab-midpoint of their neighbours.
-            if 0 < i < n - 1:
-                c1.button("↕ blend neighbours", key=f"blend_{i}",
-                          on_click=_blend_neighbours, args=(i, n))
+        palette, n = palette_editor.render(book, sel, picked)
 
         # --- Coverage per layer (remainder model) ---
         st.markdown("**Coverage** (% of the model each layer occupies)")
@@ -288,13 +190,7 @@ with tab_mini:
         coverage = [p / 100.0 for p in (cov_pcts + [remainder])]  # fractions, sum == 1.0
 
         # --- Save current palette as a recipe ---
-        with st.expander("Save as recipe"):
-            rname = st.text_input("Recipe name", key="save_name")
-            if st.button("Save recipe") and rname.strip():
-                steps = [RecipeStep(label=r, hex=p.hex, paint_ref=(p.name if p.code else None))
-                         for r, p in zip(role_names(n), palette)]
-                save_user(Recipe(rname.strip(), steps))
-                st.success(f"Saved recipe '{rname.strip()}'.")
+        palette_editor.render_save_recipe(palette, n)
 
         # Write the edited palette/coverage back into the book for the selected region.
         book.set_palette_at(sel, palette)
@@ -311,7 +207,7 @@ with tab_mini:
         if not owned_paints:
             st.info("Tick the paints you own (Paints tab) to get match suggestions.")
         else:
-            for row in advise(match_targets, match_roles, owned_paints, CATALOG):
+            for row in advise(match_targets, match_roles, owned_paints, context.CATALOG):
                 r = row.result
                 chips = "".join(helpers.swatch(p.hex) for p in r.paints)
                 st.markdown(f"{chips} **{row.role}** — {r.phrase}", unsafe_allow_html=True)
