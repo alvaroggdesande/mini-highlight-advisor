@@ -67,7 +67,8 @@ def _write_mask(path: Path, mask: np.ndarray) -> None:
 
 
 def _read_mask(path: Path) -> np.ndarray:
-    return np.asarray(Image.open(path)).astype(bool)
+    with Image.open(path) as im:
+        return np.asarray(im).astype(bool)
 
 
 @dataclass(frozen=True)

@@ -44,6 +44,7 @@ def render_library() -> None:
             st.session_state[keys.RELIEF_CAP] = lp.settings.relief_cap
             st.session_state[keys.PER_REGION_NORM] = lp.settings.per_region_norm
             st.session_state.pop(keys.LOADED_G, None)
+            st.session_state.pop(keys.REGION_RADIO, None)
             for k in [k for k in list(st.session_state) if k.startswith(keys.RENAME_PREFIX)]:
                 st.session_state.pop(k, None)
             st.rerun()
