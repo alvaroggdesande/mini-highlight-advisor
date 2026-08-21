@@ -11,7 +11,7 @@ from PIL import Image
 
 from mini_highlight_advisor.regions import scale_points, polygons_to_mask
 from mini_highlight_advisor.palette import default_ramp
-from ui import compat, geometry, helpers, keys, state
+from ui import geometry, helpers, keys, state
 from ui.compat import st_canvas
 
 
