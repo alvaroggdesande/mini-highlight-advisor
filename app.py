@@ -18,7 +18,7 @@ from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
-from ui import geometry, helpers
+from ui import geometry, helpers, keys, state
 from ui.compat import st_canvas
 from PIL import Image
 
@@ -136,21 +136,7 @@ with tab_mini:
                 index=min(book.selected, len(labels) - 1),
                 format_func=lambda g: labels[g], key="region_radio",
             )
-            # On selection change, load that region's palette/coverage into widget keys.
-            if st.session_state.get("_loaded_g") != sel:
-                pal = book.palette_at(sel)
-                cov = book.coverage_at(sel)
-                st.session_state["n"] = len(pal)
-                for i, p in enumerate(pal):
-                    match = find_by_code(CATALOG, p.code) if p.code else None
-                    st.session_state[f"slot_code_{i}"] = p.code if match else CUSTOM
-                    st.session_state[f"slot_hex_{i}"] = p.hex
-                for i in range(len(cov) - 1):
-                    st.session_state[f"cov_pct_{i}"] = round(cov[i] * 100, 1)
-                st.session_state["cov_n"] = len(cov)
-                st.session_state["_loaded_g"] = sel
-                book.selected = sel
-                st.rerun()
+            state.load_region_into_widgets(book, sel)
             book.selected = sel
 
             st.divider()
@@ -178,7 +164,7 @@ with tab_mini:
                             book.add(rmask, new_name.strip() or f"Region {len(book.drawn) + 1}",
                                      default_ramp(st.session_state["n"]),
                                      [c / 100 for c in helpers.current_cov_seed(st.session_state["n"])])
-                            st.session_state.pop("_loaded_g", None)
+                            st.session_state.pop(keys.LOADED_G, None)
                             for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
                                 st.session_state.pop(_k, None)
                             st.session_state["draw_mode"] = False
@@ -189,7 +175,7 @@ with tab_mini:
 
             if sel >= 1 and st.button("🗑 Delete this region"):
                 book.remove(sel)
-                st.session_state.pop("_loaded_g", None)
+                st.session_state.pop(keys.LOADED_G, None)
                 for _k in [k for k in list(st.session_state) if k.startswith("rename_")]:
                     st.session_state.pop(_k, None)
                 st.rerun()
@@ -202,26 +188,10 @@ with tab_mini:
             renamed = st.text_input("Region name", value=book.names()[sel], key=f"rename_{sel}")
             if renamed.strip() and renamed.strip() != book.names()[sel]:
                 book.set_name_at(sel, renamed)
-                st.session_state.pop("_loaded_g", None)
+                st.session_state.pop(keys.LOADED_G, None)
                 st.rerun()
 
-        # --- Rehydrate editor widgets from the book (the source of truth) ---
-        # Streamlit garbage-collects widget-state keys that weren't rendered during
-        # a run. A button that reruns before these editor widgets render (draw-mode
-        # toggle, delete, recipe load, add/cancel) drops n / slot_* / cov_pct_*,
-        # after which they'd silently reappear at defaults and the write-back would
-        # corrupt the region. setdefault restores only the *missing* keys from the
-        # selected region, so live user edits (present keys) are untouched.
-        _pal = book.palette_at(sel)
-        _cov = book.coverage_at(sel)
-        st.session_state.setdefault("n", len(_pal))
-        for i, p in enumerate(_pal):
-            _has_code = bool(p.code) and find_by_code(CATALOG, p.code) is not None
-            st.session_state.setdefault(f"slot_code_{i}", p.code if _has_code else CUSTOM)
-            st.session_state.setdefault(f"slot_hex_{i}", p.hex)
-        for i in range(len(_cov) - 1):
-            st.session_state.setdefault(f"cov_pct_{i}", round(_cov[i] * 100, 1))
-        st.session_state.setdefault("cov_n", len(_cov))
+        state.rehydrate_editor_widgets(book, sel)
 
         # --- recipe loader ---
         recipes = load_all()
