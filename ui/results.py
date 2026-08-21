@@ -83,7 +83,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading) -> None:
             st.warning(
                 f"“{plan.name}” is too dark / low-contrast to read relief — showing "
                 f"1 band. Try a paler basecoat here, or a stronger raking side light. "
-                f"(Single-photo tools can't recover form from a dark, flat colour.)")
+                f"(Single-photo tools can’t recover form from a dark, flat colour.)")
         elif plan.capped:
             st.warning(
                 f"“{plan.name}” looks fairly flat — showing {len(plan.names)} "
