@@ -4,7 +4,7 @@ import streamlit as st
 
 from mini_highlight_advisor.palette import (
     role_names,
-    default_coverage, remainder_pct, slider_max_pct, default_ramp,
+    default_ramp,
 )
 from mini_highlight_advisor.pipeline import prepare_shading, analyze_regions
 from mini_highlight_advisor.advisor import advise
@@ -13,7 +13,7 @@ from mini_highlight_advisor.regions import Region, scale_points, polygon_to_mask
 from mini_highlight_advisor.overlay import swatch_board
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
-from ui import context, geometry, helpers, keys, paints_tab, state, palette_editor
+from ui import context, coverage_editor, geometry, helpers, keys, paints_tab, state, palette_editor
 from ui.compat import st_canvas
 from PIL import Image
 
@@ -145,49 +145,7 @@ with tab_mini:
 
         palette, n = palette_editor.render(book, sel, picked)
 
-        # --- Coverage per layer (remainder model) ---
-        st.markdown("**Coverage** (% of the model each layer occupies)")
-        roles_now = role_names(n)
-        cov_floor = 3.0
-        n_ctrl = n - 1  # controllable bands; the lightest band is the auto remainder
-        seed = [round(f * 100, 1) for f in default_coverage(n)]
-
-        def _cap_slider(idx: int) -> None:
-            # Runs on a slider's change, BEFORE the rerun, on committed state.
-            # Cap only the moved slider so the controllable total leaves the
-            # remainder band at least `cov_floor`. Touching one widget key inside
-            # its own on_change callback is the supported Streamlit pattern and
-            # avoids the mid-render read/write feedback loop.
-            key = f"cov_pct_{idx}"
-            others = [st.session_state[f"cov_pct_{j}"]
-                      for j in range(n_ctrl) if j != idx]
-            smax = slider_max_pct(others, floor=cov_floor)
-            if st.session_state[key] > smax:
-                st.session_state[key] = smax
-
-        # Seed once (fresh session) and reseed when the layer count changes.
-        if st.session_state.get("cov_n") != n:
-            for i in range(n_ctrl):
-                st.session_state[f"cov_pct_{i}"] = seed[i]
-            st.session_state["cov_n"] = n
-
-        if st.button("Reset to default curve"):
-            for i in range(n_ctrl):
-                st.session_state[f"cov_pct_{i}"] = seed[i]
-            st.rerun()
-
-        cov_pcts: list[float] = []
-        for i in range(n_ctrl):
-            val = st.slider(
-                f"{roles_now[i]}", 0.0, 100.0, step=0.5,
-                key=f"cov_pct_{i}", on_change=_cap_slider, args=(i,),
-            )
-            cov_pcts.append(val)
-
-        remainder = remainder_pct(cov_pcts)
-        st.caption(f"**{roles_now[-1]} · auto: {remainder:.1f}%**  (remainder — always keeps ≥ {cov_floor:.0f}%)")
-
-        coverage = [p / 100.0 for p in (cov_pcts + [remainder])]  # fractions, sum == 1.0
+        coverage = coverage_editor.render(n)
 
         # --- Save current palette as a recipe ---
         palette_editor.render_save_recipe(palette, n)
