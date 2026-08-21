@@ -23,6 +23,12 @@ SAVE_NAME = "save_name"          # recipe save name text input
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
 
+# --- projects (mini library) ---
+LOADED_PHOTO = "loaded_photo"          # {"bytes":..., "suffix":...} for a loaded project
+LOADED_NAME = "loaded_project_name"    # display name of the loaded project (save default)
+SAVE_PROJECT_NAME = "save_project_name"
+LOAD_SELECT = "load_project_select"
+
 
 # --- per-index builders ---
 def slot_code(i: int) -> str: return f"slot_code_{i}"

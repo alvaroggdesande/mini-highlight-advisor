@@ -4,8 +4,8 @@ import streamlit as st
 
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
-    coverage_editor, helpers, paints_tab, palette_editor,
-    regions_panel, results, state,
+    coverage_editor, helpers, keys, paints_tab, palette_editor,
+    projects_panel, regions_panel, results, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -33,15 +33,24 @@ with tab_mini:
         st.session_state["book"] = new_book(5)
     book: RegionBook = st.session_state["book"]
 
+    projects_panel.render_library()
+
     uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
-    if uploaded is None:
-        st.info("Upload a photo of a primed miniature to begin.")
+    if uploaded is not None:
+        photo_bytes = uploaded.getvalue()
+        photo_suffix = os.path.splitext(uploaded.name)[1]
+        st.session_state.pop(keys.LOADED_PHOTO, None)   # new upload detaches loaded project
+        st.session_state.pop(keys.LOADED_NAME, None)
+    elif st.session_state.get(keys.LOADED_PHOTO):
+        lp = st.session_state[keys.LOADED_PHOTO]
+        photo_bytes, photo_suffix = lp["bytes"], lp["suffix"]
+    else:
+        st.info("Upload a photo of a primed miniature to begin, or load a saved project above.")
         st.stop()
 
-    suffix = os.path.splitext(uploaded.name)[1]
     try:
         with st.spinner("Preparing shading (first run downloads the depth model if no alpha channel)..."):
-            rgb, alpha, shading = helpers.shading(uploaded.getvalue(), suffix)
+            rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
         src_h, src_w = rgb.shape[:2]
 
         sel = regions_panel.render(book, rgb, shading, src_w, src_h)
@@ -59,6 +68,8 @@ with tab_mini:
         book.set_coverage_at(sel, coverage)
 
         results.render(rgb, alpha, book, palette, picked, owned_paints, shading)
+
+        projects_panel.render_save(photo_bytes, photo_suffix, book)
     except Exception as e:
         st.error("Error processing image — see traceback below.")
         st.exception(e)
