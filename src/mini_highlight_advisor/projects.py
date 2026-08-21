@@ -7,8 +7,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
+from PIL import Image
+
 from .palette import PaintColor
 from .region_state import RegionBook
+from .regions import Region
 
 PROJECTS_DIR = Path(__file__).resolve().parents[2] / "user_data" / "projects"
 
@@ -56,6 +60,14 @@ def _palette_from_dicts(items: list[dict]) -> list[PaintColor]:
     ]
 
 
+def _write_mask(path: Path, mask: np.ndarray) -> None:
+    Image.fromarray(np.asarray(mask, dtype=bool)).save(path)
+
+
+def _read_mask(path: Path) -> np.ndarray:
+    return np.asarray(Image.open(path)).astype(bool)
+
+
 @dataclass(frozen=True)
 class LoadedProject:
     photo_bytes: bytes
@@ -91,6 +103,16 @@ def save_project(name, photo_bytes, photo_suffix, book, settings,
     dest.mkdir(parents=True, exist_ok=True)  # Task 4 replaces this with an atomic write
     photo_file = f"photo{photo_suffix}"
     (dest / photo_file).write_bytes(photo_bytes)
+    drawn_entries = []
+    for i, r in enumerate(book.drawn):
+        mask_file = f"region_{i:02d}.png"
+        _write_mask(dest / mask_file, r.mask)
+        drawn_entries.append({
+            "name": r.name,
+            "palette": _palette_to_dicts(r.palette),
+            "coverage": list(r.coverage),
+            "mask_file": mask_file,
+        })
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "name": name,
@@ -102,7 +124,7 @@ def save_project(name, photo_bytes, photo_suffix, book, settings,
         "book": {
             "whole": {"palette": _palette_to_dicts(book.whole_palette),
                       "coverage": list(book.whole_coverage)},
-            "drawn": [],   # Task 3 fills this
+            "drawn": drawn_entries,
             "selected": book.selected,
         },
     }
@@ -119,10 +141,17 @@ def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:
     photo_bytes = (mpath.parent / photo_file).read_bytes()
     photo_suffix = Path(photo_file).suffix
     b = m["book"]
+    drawn = [
+        Region(name=d["name"],
+               mask=_read_mask(mpath.parent / d["mask_file"]),
+               palette=_palette_from_dicts(d["palette"]),
+               coverage=list(d["coverage"]))
+        for d in b["drawn"]
+    ]
     book = RegionBook(
         whole_palette=_palette_from_dicts(b["whole"]["palette"]),
         whole_coverage=list(b["whole"]["coverage"]),
-        drawn=[],   # Task 3 fills this
+        drawn=drawn,
         selected=b["selected"],
     )
     return LoadedProject(photo_bytes, photo_suffix, book, _settings_from_dict(m["settings"]))
