@@ -22,7 +22,7 @@ def render_library() -> None:
         if c_load.button("Load", type="primary"):
             lp = projects.load_project(slug)
             st.session_state[keys.ANGLES] = list(lp.angles)
-            st.session_state[keys.ACTIVE_ANGLE] = lp.active_angle
+            state.set_active_angle(lp.active_angle)
             st.session_state[keys.OWNED] = list(lp.paints_pool)
             st.session_state[keys.LOADED_NAME] = labels[slug]
             state.seed_editor_from_angle(lp.angles[lp.active_angle])

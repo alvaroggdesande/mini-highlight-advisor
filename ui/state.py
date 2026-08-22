@@ -9,7 +9,6 @@ import streamlit as st
 
 from mini_highlight_advisor.catalog import find_by_code
 from mini_highlight_advisor import projects
-from mini_highlight_advisor.region_state import RegionBook
 from ui import context, keys
 
 
@@ -45,6 +44,13 @@ def flush_editor_into_angle(a):
                               settings=_current_settings())
 
 
+def set_active_angle(idx: int) -> None:
+    """Set the active-angle index and reset the angle-bar radio so it re-seeds
+    from index= on the next render (avoids the stale-selected-value bounce)."""
+    st.session_state[keys.ACTIVE_ANGLE] = idx
+    st.session_state.pop(keys.ANGLE_SELECT, None)
+
+
 def load_angle_into_editor(idx: int) -> None:
     angles = st.session_state[keys.ANGLES]
     active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
@@ -52,7 +58,7 @@ def load_angle_into_editor(idx: int) -> None:
         return
     angles[active] = flush_editor_into_angle(angles[active])
     seed_editor_from_angle(angles[idx])
-    st.session_state[keys.ACTIVE_ANGLE] = idx
+    set_active_angle(idx)
     st.rerun()
 
 

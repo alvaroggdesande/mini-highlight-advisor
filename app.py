@@ -46,7 +46,7 @@ with tab_mini:
                                photo_suffix=os.path.splitext(uploaded.name)[1],
                                book=new_book(5), settings=state._current_settings())
         st.session_state[keys.ANGLES] = [a]
-        st.session_state[keys.ACTIVE_ANGLE] = 0
+        state.set_active_angle(0)
         state.seed_editor_from_angle(a)
         st.rerun()
 

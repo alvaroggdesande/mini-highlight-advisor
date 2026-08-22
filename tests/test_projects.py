@@ -146,6 +146,20 @@ def test_list_skips_corrupt_manifest_but_load_raises(tmp_path):
         projects.load_project("bad", root=tmp_path)
 
 
+def test_load_project_clamps_out_of_range_active_angle(tmp_path):
+    """active_angle >= len(angles) in a corrupt/hand-edited manifest must clamp, not IndexError."""
+    import json
+    angles = [_angle("front", b"F"), _angle("back", b"B")]
+    slug = projects.save_project("Clamp Test", [], 1, angles, root=tmp_path)
+    # Rewrite manifest.json with an out-of-range active_angle
+    mpath = tmp_path / slug / "manifest.json"
+    m = json.loads(mpath.read_text(encoding="utf-8"))
+    m["active_angle"] = 99
+    mpath.write_text(json.dumps(m), encoding="utf-8")
+    lp = projects.load_project(slug, root=tmp_path)
+    assert lp.active_angle == 1   # clamped to len(angles)-1 = 1
+
+
 def test_angle_write_read_roundtrip_bit_identical(tmp_path):
     from mini_highlight_advisor.region_state import RegionBook
     from mini_highlight_advisor.regions import Region

@@ -221,8 +221,13 @@ def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:
     if m.get("schema_version", 1) < 2:
         return _adapt_v1(m, project_dir)
     angles = [_read_angle(project_dir, i, e) for i, e in enumerate(m["angles"])]
+    active = m.get("active_angle", 0)
+    if angles:
+        active = min(max(0, active), len(angles) - 1)
+    else:
+        active = 0
     return LoadedProject(paints_pool=list(m.get("paints_pool", [])),
-                         active_angle=m.get("active_angle", 0), angles=angles)
+                         active_angle=active, angles=angles)
 
 
 def next_active_index(active: int, removed: int, count_before: int) -> int:

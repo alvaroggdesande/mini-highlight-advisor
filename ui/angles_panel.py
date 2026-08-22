@@ -45,7 +45,7 @@ def render() -> int:
     if c_remove.button("🗑️ Remove", disabled=len(angles) == 1):
         new_active = projects.next_active_index(active, active, len(angles))
         angles.pop(active)
-        st.session_state[keys.ACTIVE_ANGLE] = new_active
+        state.set_active_angle(new_active)
         _clear_angle_label_keys()
         state.seed_editor_from_angle(angles[new_active])
         st.rerun()
@@ -54,16 +54,21 @@ def render() -> int:
         up = st.file_uploader("New angle photo", type=["png", "jpg", "jpeg"],
                               key="add_angle_uploader")
         if up is not None:
-            # persist edits to the current angle before switching to the new one
-            angles[active] = state.flush_editor_into_angle(angles[active])
-            a = projects.AngleData(label=f"angle {len(angles) + 1}",
-                                   photo_bytes=up.getvalue(),
-                                   photo_suffix=os.path.splitext(up.name)[1],
-                                   book=new_book(5), settings=angles[active].settings)
-            angles.append(a)
-            st.session_state[keys.ACTIVE_ANGLE] = len(angles) - 1
-            _clear_angle_label_keys()
-            state.seed_editor_from_angle(a)
-            st.rerun()
+            sig = (up.name, up.size)
+            if st.session_state.get("_add_angle_sig") != sig:
+                st.session_state["_add_angle_sig"] = sig
+                # persist edits to the current angle before switching to the new one
+                angles[active] = state.flush_editor_into_angle(angles[active])
+                a = projects.AngleData(label=f"angle {len(angles) + 1}",
+                                       photo_bytes=up.getvalue(),
+                                       photo_suffix=os.path.splitext(up.name)[1],
+                                       book=new_book(5), settings=angles[active].settings)
+                angles.append(a)
+                state.set_active_angle(len(angles) - 1)
+                _clear_angle_label_keys()
+                state.seed_editor_from_angle(a)
+                st.rerun()
+        else:
+            st.session_state.pop("_add_angle_sig", None)
 
     return st.session_state[keys.ACTIVE_ANGLE]
