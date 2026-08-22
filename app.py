@@ -76,7 +76,7 @@ with tab_mini:
 
         results.render(rgb, alpha, book, palette, picked, owned_paints, shading)
 
-        projects_panel.render_save(photo_bytes, photo_suffix, book)
+        projects_panel.render_save()
     except Exception as e:
         st.error("Error processing image — see traceback below.")
         st.exception(e)
