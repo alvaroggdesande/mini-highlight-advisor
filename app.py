@@ -5,7 +5,7 @@ import streamlit as st
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
-    coverage_editor, helpers, keys, paints_tab, palette_editor,
+    angles_panel, coverage_editor, helpers, keys, paints_tab, palette_editor,
     projects_panel, regions_panel, results, state,
 )
 
@@ -50,8 +50,7 @@ with tab_mini:
         state.seed_editor_from_angle(a)
         st.rerun()
 
-    # TEMP until Task 5: no angle bar yet, use the active index as-is.
-    active_idx = st.session_state[keys.ACTIVE_ANGLE]
+    active_idx = angles_panel.render()
     active = st.session_state[keys.ANGLES][active_idx]
     book = st.session_state[keys.BOOK]
     photo_bytes, photo_suffix = active.photo_bytes, active.photo_suffix
