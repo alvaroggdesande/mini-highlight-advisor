@@ -29,6 +29,11 @@ LOADED_NAME = "loaded_project_name"    # display name of the loaded project (sav
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
 
+# --- angles (multi-angle view) ---
+ANGLES = "angles"                # list[AngleData] in session: the angle records
+ACTIVE_ANGLE = "active_angle"    # int index into ANGLES of the active angle
+ANGLE_SELECT = "angle_select"    # active-angle selector widget key
+
 
 # --- per-index builders ---
 def slot_code(i: int) -> str: return f"slot_code_{i}"
@@ -38,3 +43,4 @@ def cov_pct(i: int) -> str: return f"cov_pct_{i}"
 def blend(i: int) -> str: return f"blend_{i}"
 def rename(i: int) -> str: return f"rename_{i}"
 def canvas(n: int) -> str: return f"canvas_{n}"
+def angle_label(i: int) -> str: return f"angle_label_{i}"
