@@ -18,7 +18,7 @@ from .regions import Region
 
 PROJECTS_DIR = Path(__file__).resolve().parents[2] / "user_data" / "projects"
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -73,10 +73,9 @@ def _read_mask(path: Path) -> np.ndarray:
 
 @dataclass(frozen=True)
 class LoadedProject:
-    photo_bytes: bytes
-    photo_suffix: str
-    book: RegionBook
-    settings: ProjectSettings
+    paints_pool: list[str]
+    active_angle: int
+    angles: list[AngleData]
 
 
 def _now_iso() -> str:
@@ -147,7 +146,7 @@ def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
                      settings=_settings_from_dict(entry["settings"]))
 
 
-def save_project(name, photo_bytes, photo_suffix, book, settings,
+def save_project(name, paints_pool, active_angle, angles,
                  root: Path = PROJECTS_DIR, _now: str | None = None) -> str:
     slug = slugify(name)
     root = Path(root)
@@ -157,27 +156,15 @@ def save_project(name, photo_bytes, photo_suffix, book, settings,
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
 
-    photo_file = f"photo{photo_suffix}"
-    (tmp / photo_file).write_bytes(photo_bytes)
-
-    drawn_entries = []
-    for i, r in enumerate(book.drawn):
-        mask_file = f"region_{i:02d}.png"
-        _write_mask(tmp / mask_file, r.mask)
-        drawn_entries.append({"name": r.name, "palette": _palette_to_dicts(r.palette),
-                              "coverage": list(r.coverage), "mask_file": mask_file})
-
+    angle_entries = [_write_angle(tmp, i, a) for i, a in enumerate(angles)]
     now = _now or _now_iso()
     manifest = {
         "schema_version": SCHEMA_VERSION, "name": name, "slug": slug,
-        "created_at": now, "updated_at": now, "photo_file": photo_file,
-        "settings": _settings_to_dict(settings),
-        "book": {"whole": {"palette": _palette_to_dicts(book.whole_palette),
-                           "coverage": list(book.whole_coverage)},
-                 "drawn": drawn_entries, "selected": book.selected},
+        "created_at": now, "updated_at": now,
+        "paints_pool": list(paints_pool), "active_angle": active_angle,
+        "angles": angle_entries,
     }
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-
     shutil.rmtree(dest, ignore_errors=True)
     os.replace(tmp, dest)
     return slug
@@ -207,26 +194,43 @@ def delete_project(slug: str, root: Path = PROJECTS_DIR) -> None:
     shutil.rmtree(Path(root) / slug, ignore_errors=True)
 
 
+def _adapt_v1(m: dict, project_dir: Path) -> LoadedProject:
+    photo_bytes = (project_dir / m["photo_file"]).read_bytes()
+    photo_suffix = Path(m["photo_file"]).suffix
+    b = m["book"]
+    drawn = [
+        Region(name=d["name"], mask=_read_mask(project_dir / d["mask_file"]),
+               palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]))
+        for d in b["drawn"]
+    ]
+    book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
+                      whole_coverage=list(b["whole"]["coverage"]),
+                      drawn=drawn, selected=b["selected"])
+    angle = AngleData(label=m.get("name", "angle 1"), photo_bytes=photo_bytes,
+                      photo_suffix=photo_suffix, book=book,
+                      settings=_settings_from_dict(m["settings"]))
+    return LoadedProject(paints_pool=[], active_angle=0, angles=[angle])
+
+
 def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:
     mpath = _manifest_path(Path(root), slug)
     if not mpath.exists():
         raise FileNotFoundError(f"no project manifest at {mpath}")
     m = json.loads(mpath.read_text(encoding="utf-8"))
-    photo_file = m["photo_file"]
-    photo_bytes = (mpath.parent / photo_file).read_bytes()
-    photo_suffix = Path(photo_file).suffix
-    b = m["book"]
-    drawn = [
-        Region(name=d["name"],
-               mask=_read_mask(mpath.parent / d["mask_file"]),
-               palette=_palette_from_dicts(d["palette"]),
-               coverage=list(d["coverage"]))
-        for d in b["drawn"]
-    ]
-    book = RegionBook(
-        whole_palette=_palette_from_dicts(b["whole"]["palette"]),
-        whole_coverage=list(b["whole"]["coverage"]),
-        drawn=drawn,
-        selected=b["selected"],
-    )
-    return LoadedProject(photo_bytes, photo_suffix, book, _settings_from_dict(m["settings"]))
+    project_dir = mpath.parent
+    if m.get("schema_version", 1) < 2:
+        return _adapt_v1(m, project_dir)
+    angles = [_read_angle(project_dir, i, e) for i, e in enumerate(m["angles"])]
+    return LoadedProject(paints_pool=list(m.get("paints_pool", [])),
+                         active_angle=m.get("active_angle", 0), angles=angles)
+
+
+def next_active_index(active: int, removed: int, count_before: int) -> int:
+    """New active index after removing `removed` from a list of size `count_before`."""
+    if count_before <= 1:
+        return 0
+    if active > removed:
+        return active - 1
+    if active == removed:
+        return max(0, removed - 1)
+    return active

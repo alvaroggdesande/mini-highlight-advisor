@@ -39,82 +39,106 @@ def _whole_book():
     return RegionBook(default_ramp(5), default_coverage(5))
 
 
-def test_save_then_load_whole_mini_roundtrip(tmp_path):
-    book = _whole_book()
-    slug = projects.save_project("Skaven Hero", b"PHOTOBYTES", ".png",
-                                 book, _settings(), root=tmp_path)
-    assert slug == "skaven-hero"
-
-    loaded = projects.load_project(slug, root=tmp_path)
-    assert loaded.photo_bytes == b"PHOTOBYTES"
-    assert loaded.photo_suffix == ".png"
-    assert loaded.settings == _settings()
-    assert loaded.book.whole_palette == book.whole_palette
-    assert loaded.book.whole_coverage == book.whole_coverage
-    assert loaded.book.drawn == []
-    assert loaded.book.selected == 0
+def _angle(label="front", photo=b"PB", suffix=".png", book=None):
+    book = book if book is not None else _whole_book()
+    return projects.AngleData(label, photo, suffix, book, _settings())
 
 
-def test_drawn_regions_roundtrip_masks_bit_identical(tmp_path):
+def test_v2_multi_angle_roundtrip(tmp_path):
     from mini_highlight_advisor.region_state import RegionBook
     from mini_highlight_advisor.regions import Region
     from mini_highlight_advisor.palette import default_ramp, default_coverage
+    m = np.zeros((5, 5), dtype=bool); m[1:3, 1:3] = True
+    back_book = RegionBook(default_ramp(5), default_coverage(5),
+                           drawn=[Region("Cape", m, default_ramp(4), default_coverage(4))],
+                           selected=1)
+    angles = [_angle("front", b"FRONT"), _angle("back", b"BACK", book=back_book)]
+    slug = projects.save_project("Skaven Hero", ["70.950", "72.001"], 1, angles,
+                                 root=tmp_path)
+    assert slug == "skaven-hero"
+    lp = projects.load_project(slug, root=tmp_path)
+    assert lp.paints_pool == ["70.950", "72.001"]
+    assert lp.active_angle == 1
+    assert [a.label for a in lp.angles] == ["front", "back"]
+    assert lp.angles[0].photo_bytes == b"FRONT"
+    assert lp.angles[1].book.drawn[0].name == "Cape"
+    assert np.array_equal(lp.angles[1].book.drawn[0].mask, m)
 
-    m0 = np.zeros((6, 8), dtype=bool); m0[1:3, 2:5] = True
-    m1 = np.zeros((6, 8), dtype=bool); m1[4:6, 0:2] = True
-    book = RegionBook(default_ramp(5), default_coverage(5), drawn=[
-        Region("Cloak", m0, default_ramp(4), default_coverage(4)),
-        Region("Blade", m1, default_ramp(3), default_coverage(3)),
-    ], selected=1)
 
-    slug = projects.save_project("Multi", b"PB", ".png", book, _settings(), root=tmp_path)
-    loaded = projects.load_project(slug, root=tmp_path)
+def test_v2_overwrite_is_atomic(tmp_path):
+    projects.save_project("Mini", [], 0, [_angle("a", b"ONE")], root=tmp_path)
+    projects.save_project("Mini", [], 0, [_angle("a", b"TWO")], root=tmp_path)
+    lp = projects.load_project("mini", root=tmp_path)
+    assert len(lp.angles) == 1
+    assert lp.angles[0].photo_bytes == b"TWO"
+    assert not (tmp_path / ".tmp-mini").exists()
 
-    assert [r.name for r in loaded.book.drawn] == ["Cloak", "Blade"]
-    assert np.array_equal(loaded.book.drawn[0].mask, m0)
-    assert np.array_equal(loaded.book.drawn[1].mask, m1)
-    assert loaded.book.drawn[0].palette == book.drawn[0].palette
-    assert loaded.book.drawn[0].coverage == book.drawn[0].coverage
-    assert loaded.book.selected == 1
+
+def test_v1_manifest_loads_as_single_angle(tmp_path):
+    # Hand-write a legacy v1 project on disk.
+    import json
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    d = tmp_path / "legacy"; d.mkdir()
+    (d / "photo.png").write_bytes(b"LEGACY")
+    manifest = {
+        "schema_version": 1, "name": "Legacy Mini", "slug": "legacy",
+        "created_at": "t", "updated_at": "t", "photo_file": "photo.png",
+        "settings": projects._settings_to_dict(_settings()),
+        "book": {"whole": {"palette": projects._palette_to_dicts(default_ramp(5)),
+                           "coverage": list(default_coverage(5))},
+                 "drawn": [], "selected": 0},
+    }
+    (d / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    lp = projects.load_project("legacy", root=tmp_path)
+    assert lp.paints_pool == []
+    assert lp.active_angle == 0
+    assert len(lp.angles) == 1
+    assert lp.angles[0].label == "Legacy Mini"
+    assert lp.angles[0].photo_bytes == b"LEGACY"
+    assert lp.angles[0].settings == _settings()
+
+
+@pytest.mark.parametrize("active,removed,count,expected", [
+    (0, 0, 1, 0),   # removing the only angle
+    (2, 0, 3, 1),   # active after removed shifts down
+    (1, 2, 3, 1),   # active before removed unchanged
+    (2, 2, 3, 1),   # removing the active picks the previous
+    (0, 1, 3, 0),   # active before removed unchanged (at 0)
+])
+def test_next_active_index(active, removed, count, expected):
+    assert projects.next_active_index(active, removed, count) == expected
 
 
 def test_list_projects_sorted_by_updated_desc(tmp_path):
-    book = _whole_book()
-    projects.save_project("Alpha", b"A", ".png", book, _settings(), root=tmp_path,
+    projects.save_project("Alpha", [], 0, [_angle()], root=tmp_path,
                           _now="2026-08-20T10:00:00+00:00")
-    projects.save_project("Beta", b"B", ".png", book, _settings(), root=tmp_path,
+    projects.save_project("Beta", [], 0, [_angle()], root=tmp_path,
                           _now="2026-08-21T10:00:00+00:00")
     metas = projects.list_projects(root=tmp_path)
     assert [m.name for m in metas] == ["Beta", "Alpha"]
     assert metas[0].slug == "beta"
 
 
-def test_overwrite_by_name_drops_stale_region_masks(tmp_path):
-    from mini_highlight_advisor.region_state import RegionBook
-    from mini_highlight_advisor.regions import Region
-    from mini_highlight_advisor.palette import default_ramp, default_coverage
-    m = np.zeros((4, 4), dtype=bool); m[0, 0] = True
-    two = RegionBook(default_ramp(5), default_coverage(5),
-                     drawn=[Region("R0", m, default_ramp(3), default_coverage(3)),
-                            Region("R1", m, default_ramp(3), default_coverage(3))])
-    projects.save_project("Same", b"P", ".png", two, _settings(), root=tmp_path)
-    # re-save under the same name with only ONE drawn region
-    one = RegionBook(default_ramp(5), default_coverage(5),
-                     drawn=[Region("R0", m, default_ramp(3), default_coverage(3))])
-    projects.save_project("Same", b"P", ".png", one, _settings(), root=tmp_path)
-    assert not (tmp_path / "same" / "region_01.png").exists()
-    assert len(projects.load_project("same", root=tmp_path).book.drawn) == 1
+def test_overwrite_by_name_drops_stale_angle_dirs(tmp_path):
+    # Save with two angles, then re-save with one; stale angle_01 must be gone.
+    angles_two = [_angle("a", b"A"), _angle("b", b"B")]
+    projects.save_project("Same", [], 0, angles_two, root=tmp_path)
+    angles_one = [_angle("a", b"A")]
+    projects.save_project("Same", [], 0, angles_one, root=tmp_path)
+    assert not (tmp_path / "same" / "angle_01").exists()
+    lp = projects.load_project("same", root=tmp_path)
+    assert len(lp.angles) == 1
 
 
 def test_delete_project_removes_folder_and_is_idempotent(tmp_path):
-    projects.save_project("Gone", b"P", ".png", _whole_book(), _settings(), root=tmp_path)
+    projects.save_project("Gone", [], 0, [_angle()], root=tmp_path)
     projects.delete_project("gone", root=tmp_path)
     assert not (tmp_path / "gone").exists()
     projects.delete_project("gone", root=tmp_path)  # no error second time
 
 
 def test_list_skips_corrupt_manifest_but_load_raises(tmp_path):
-    projects.save_project("Good", b"P", ".png", _whole_book(), _settings(), root=tmp_path)
+    projects.save_project("Good", [], 0, [_angle()], root=tmp_path)
     bad = tmp_path / "bad"; bad.mkdir()
     (bad / "manifest.json").write_text("{ not json", encoding="utf-8")
     assert [m.slug for m in projects.list_projects(root=tmp_path)] == ["good"]
