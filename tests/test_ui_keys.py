@@ -25,5 +25,6 @@ def test_angle_keys_are_frozen():
     assert keys.ANGLES == "angles"
     assert keys.ACTIVE_ANGLE == "active_angle"
     assert keys.ANGLE_SELECT == "angle_select"
+    assert keys.ANGLE_LABEL_PREFIX == "angle_label_"
     assert keys.angle_label(0) == "angle_label_0"
     assert keys.angle_label(3) == "angle_label_3"

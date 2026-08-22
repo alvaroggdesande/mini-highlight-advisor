@@ -12,6 +12,14 @@ from mini_highlight_advisor.region_state import new_book
 from ui import keys, state
 
 
+def _clear_angle_label_keys() -> None:
+    """Pop all angle_label_* widget-state keys to prevent stale text leaking
+    across index reuse (the same positional-key bug the repo already fixed for
+    region renames via RENAME_PREFIX)."""
+    for k in [k for k in list(st.session_state) if k.startswith(keys.ANGLE_LABEL_PREFIX)]:
+        st.session_state.pop(k, None)
+
+
 def render() -> int:
     angles = st.session_state[keys.ANGLES]
     active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
@@ -38,6 +46,7 @@ def render() -> int:
         new_active = projects.next_active_index(active, active, len(angles))
         angles.pop(active)
         st.session_state[keys.ACTIVE_ANGLE] = new_active
+        _clear_angle_label_keys()
         state.seed_editor_from_angle(angles[new_active])
         st.rerun()
 
@@ -53,6 +62,7 @@ def render() -> int:
                                    book=new_book(5), settings=angles[active].settings)
             angles.append(a)
             st.session_state[keys.ACTIVE_ANGLE] = len(angles) - 1
+            _clear_angle_label_keys()
             state.seed_editor_from_angle(a)
             st.rerun()
 
