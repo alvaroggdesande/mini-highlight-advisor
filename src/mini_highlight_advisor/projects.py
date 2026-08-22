@@ -99,6 +99,54 @@ def _settings_from_dict(d: dict) -> ProjectSettings:
                            per_region_norm=d["per_region_norm"])
 
 
+@dataclass(frozen=True)
+class AngleData:
+    label: str
+    photo_bytes: bytes
+    photo_suffix: str
+    book: RegionBook
+    settings: ProjectSettings
+
+
+def _write_angle(project_dir: Path, idx: int, a: AngleData) -> dict:
+    angle_dir = Path(project_dir) / f"angle_{idx:02d}"
+    angle_dir.mkdir(parents=True, exist_ok=True)
+    photo_file = f"photo{a.photo_suffix}"
+    (angle_dir / photo_file).write_bytes(a.photo_bytes)
+    drawn = []
+    for i, r in enumerate(a.book.drawn):
+        mask_file = f"region_{i:02d}.png"
+        _write_mask(angle_dir / mask_file, r.mask)
+        drawn.append({"name": r.name, "palette": _palette_to_dicts(r.palette),
+                      "coverage": list(r.coverage), "mask_file": mask_file})
+    return {
+        "label": a.label,
+        "photo_file": photo_file,
+        "settings": _settings_to_dict(a.settings),
+        "book": {"whole": {"palette": _palette_to_dicts(a.book.whole_palette),
+                           "coverage": list(a.book.whole_coverage)},
+                 "drawn": drawn, "selected": a.book.selected},
+    }
+
+
+def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
+    angle_dir = Path(project_dir) / f"angle_{idx:02d}"
+    photo_bytes = (angle_dir / entry["photo_file"]).read_bytes()
+    photo_suffix = Path(entry["photo_file"]).suffix
+    b = entry["book"]
+    drawn = [
+        Region(name=d["name"], mask=_read_mask(angle_dir / d["mask_file"]),
+               palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]))
+        for d in b["drawn"]
+    ]
+    book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
+                      whole_coverage=list(b["whole"]["coverage"]),
+                      drawn=drawn, selected=b["selected"])
+    return AngleData(label=entry["label"], photo_bytes=photo_bytes,
+                     photo_suffix=photo_suffix, book=book,
+                     settings=_settings_from_dict(entry["settings"]))
+
+
 def save_project(name, photo_bytes, photo_suffix, book, settings,
                  root: Path = PROJECTS_DIR, _now: str | None = None) -> str:
     slug = slugify(name)

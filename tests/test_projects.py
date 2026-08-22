@@ -120,3 +120,26 @@ def test_list_skips_corrupt_manifest_but_load_raises(tmp_path):
     assert [m.slug for m in projects.list_projects(root=tmp_path)] == ["good"]
     with pytest.raises(Exception):
         projects.load_project("bad", root=tmp_path)
+
+
+def test_angle_write_read_roundtrip_bit_identical(tmp_path):
+    from mini_highlight_advisor.region_state import RegionBook
+    from mini_highlight_advisor.regions import Region
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    m0 = np.zeros((6, 8), dtype=bool); m0[1:3, 2:5] = True
+    book = RegionBook(default_ramp(5), default_coverage(5),
+                      drawn=[Region("Cloak", m0, default_ramp(4), default_coverage(4))],
+                      selected=1)
+    a = projects.AngleData(label="front", photo_bytes=b"PB", photo_suffix=".png",
+                           book=book, settings=_settings())
+    entry = projects._write_angle(tmp_path, 0, a)
+    assert entry["label"] == "front"
+    assert (tmp_path / "angle_00" / "photo.png").read_bytes() == b"PB"
+    out = projects._read_angle(tmp_path, 0, entry)
+    assert out.label == "front"
+    assert out.photo_bytes == b"PB"
+    assert out.photo_suffix == ".png"
+    assert out.settings == _settings()
+    assert out.book.drawn[0].name == "Cloak"
+    assert np.array_equal(out.book.drawn[0].mask, m0)
+    assert out.book.selected == 1
