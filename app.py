@@ -5,8 +5,8 @@ import streamlit as st
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
-    angles_panel, coverage_editor, helpers, keys, paints_tab, palette_editor,
-    projects_panel, regions_panel, results, state,
+    angles_panel, coverage_editor, gallery_panel, helpers, keys, paints_tab,
+    palette_editor, projects_panel, regions_panel, results, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -17,7 +17,7 @@ st.caption(
     "side light (not on-axis flash) — that gives the sculpt the shadows the tool reads."
 )
 
-tab_mini, tab_paints = st.tabs(["🖌️ Miniature", "🎨 Paints"])
+tab_mini, tab_paints, tab_gallery = st.tabs(["🖌️ Miniature", "🎨 Paints", "🖼️ All angles"])
 
 # NOTE: st.tabs runs BOTH bodies every rerun, in code order. Fill the Paints
 # tab FIRST so owned_codes / owned_paints are finalised before the Miniature
@@ -80,3 +80,14 @@ with tab_mini:
     except Exception as e:
         st.error("Error processing image — see traceback below.")
         st.exception(e)
+
+# --- 🖼️ All angles tab: read-only combined gallery ---
+# Runs AFTER the Miniature editor so it sees the active angle's live edits. When
+# there are no angles the editor above st.stop()s the run, so this stays empty.
+with tab_gallery:
+    _angles = st.session_state.get(keys.ANGLES, [])
+    _active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
+    if _angles:
+        # reflect the active angle's unsaved edits (settings + live book) in its cell
+        _angles[_active] = state.flush_editor_into_angle(_angles[_active])
+    gallery_panel.render(_angles, _active)
