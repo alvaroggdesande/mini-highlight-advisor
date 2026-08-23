@@ -27,6 +27,7 @@ def test_iou_gate_drops_cut_off_base_frame():
     # inject real lighting variation so only the IoU gate fires
     for i, f in enumerate(frames):
         frames[i] = (f.astype(np.float32) * (0.5 + 0.2 * i)).astype(np.uint8)
+    # 4 frames − 1 dropped by IoU = 3 kept; min_frames=3 isolates the IoU gate from the min-frames abort
     kept, report = ps.select_frames(frames, masks, min_frames=3)
     assert 3 not in kept
     assert 3 in report["dropped"]
