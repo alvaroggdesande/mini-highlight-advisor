@@ -6,7 +6,7 @@ from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
     angles_panel, editor, gallery_panel, helpers, keys, paints_tab,
-    projects_panel, state,
+    projects_panel, ps_mode, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -34,6 +34,15 @@ with tab_mini:
     st.session_state.setdefault(keys.ACTIVE_ANGLE, 0)
 
     projects_panel.render_library()
+
+    input_mode = st.radio(
+        "Input", ["Photo", "Import normal map (photometric stereo)"],
+        horizontal=True, key="input_mode",
+        help="Photo = primed mini under a raking light (luminance). PS = import a "
+             "recovered normal map for dark/primed minis; drag a virtual light.")
+    if input_mode.startswith("Import"):
+        ps_mode.render(picked, owned_paints)
+        st.stop()
 
     angles = st.session_state[keys.ANGLES]
 
