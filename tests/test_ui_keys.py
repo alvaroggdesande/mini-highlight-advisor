@@ -18,3 +18,13 @@ def test_key_constants_match_legacy_strings():
     assert keys.DRAW_MODE == "draw_mode"
     assert keys.PER_REGION_NORM == "per_region_norm"
     assert keys.RENAME_PREFIX == "rename_"
+
+
+def test_angle_keys_are_frozen():
+    from ui import keys
+    assert keys.ANGLES == "angles"
+    assert keys.ACTIVE_ANGLE == "active_angle"
+    assert keys.ANGLE_SELECT == "angle_select"
+    assert keys.ANGLE_LABEL_PREFIX == "angle_label_"
+    assert keys.angle_label(0) == "angle_label_0"
+    assert keys.angle_label(3) == "angle_label_3"

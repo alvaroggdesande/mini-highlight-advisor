@@ -22,12 +22,18 @@ PER_REGION_NORM = "per_region_norm"  # colored/painted mini toggle
 SAVE_NAME = "save_name"          # recipe save name text input
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
+ANGLE_LABEL_PREFIX = "angle_label_"  # prefix of per-angle rename text-input keys
 
 # --- projects (mini library) ---
 LOADED_PHOTO = "loaded_photo"          # {"bytes":..., "suffix":...} for a loaded project
 LOADED_NAME = "loaded_project_name"    # display name of the loaded project (save default)
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
+
+# --- angles (multi-angle view) ---
+ANGLES = "angles"                # list[AngleData] in session: the angle records
+ACTIVE_ANGLE = "active_angle"    # int index into ANGLES of the active angle
+ANGLE_SELECT = "angle_select"    # active-angle selector widget key
 
 
 # --- per-index builders ---
@@ -38,3 +44,4 @@ def cov_pct(i: int) -> str: return f"cov_pct_{i}"
 def blend(i: int) -> str: return f"blend_{i}"
 def rename(i: int) -> str: return f"rename_{i}"
 def canvas(n: int) -> str: return f"canvas_{n}"
+def angle_label(i: int) -> str: return f"{ANGLE_LABEL_PREFIX}{i}"
