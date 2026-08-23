@@ -51,24 +51,29 @@ def render() -> int:
         st.rerun()
 
     with st.expander("➕ Add another angle", expanded=False):
+        # Consume the upload exactly ONCE by resetting the widget after each add:
+        # bump a nonce into its key so the next render mounts a fresh, empty
+        # uploader. A signature guard is NOT enough here — st_canvas is a
+        # bidirectional component whose lasso strokes trigger reruns on which the
+        # file_uploader transiently reports None; any None-based re-arm would then
+        # re-add the still-present file on the following rerun, spawning a phantom
+        # angle per stroke (and wiping the in-progress lasso). A fresh key has no
+        # persisted file to re-read, so transient None reads are harmless.
+        nonce = st.session_state.get("_add_angle_nonce", 0)
         up = st.file_uploader("New angle photo", type=["png", "jpg", "jpeg"],
-                              key="add_angle_uploader")
+                              key=f"add_angle_uploader_{nonce}")
         if up is not None:
-            sig = (up.name, up.size)
-            if st.session_state.get("_add_angle_sig") != sig:
-                st.session_state["_add_angle_sig"] = sig
-                # persist edits to the current angle before switching to the new one
-                angles[active] = state.flush_editor_into_angle(angles[active])
-                a = projects.AngleData(label=f"angle {len(angles) + 1}",
-                                       photo_bytes=up.getvalue(),
-                                       photo_suffix=os.path.splitext(up.name)[1],
-                                       book=new_book(5), settings=angles[active].settings)
-                angles.append(a)
-                state.set_active_angle(len(angles) - 1)
-                _clear_angle_label_keys()
-                state.seed_editor_from_angle(a)
-                st.rerun()
-        else:
-            st.session_state.pop("_add_angle_sig", None)
+            # persist edits to the current angle before switching to the new one
+            angles[active] = state.flush_editor_into_angle(angles[active])
+            a = projects.AngleData(label=f"angle {len(angles) + 1}",
+                                   photo_bytes=up.getvalue(),
+                                   photo_suffix=os.path.splitext(up.name)[1],
+                                   book=new_book(5), settings=angles[active].settings)
+            angles.append(a)
+            state.set_active_angle(len(angles) - 1)
+            st.session_state["_add_angle_nonce"] = nonce + 1
+            _clear_angle_label_keys()
+            state.seed_editor_from_angle(a)
+            st.rerun()
 
     return st.session_state[keys.ACTIVE_ANGLE]
