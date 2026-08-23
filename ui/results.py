@@ -10,7 +10,8 @@ from mini_highlight_advisor.overlay import swatch_board
 from ui import context, helpers, keys
 
 
-def render(rgb, alpha, book, palette, picked, owned_paints, shading) -> None:
+def render(rgb, alpha, book, palette, picked, owned_paints, shading, light_field=None) -> None:
+    ps_mode = light_field is not None
     # --- Match to my paints (scoped to this region's palette) ---
     st.markdown("#### Match to my paints")
     match_targets = [target_from_paint(p) for p in palette]
@@ -43,26 +44,30 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading) -> None:
         help="A flat region can't show every highlight band — cap it to what the "
              "relief supports. Untick to force your full band count everywhere.")
 
-    per_region_norm = st.checkbox(
-        "Colored / painted mini (experimental)", value=False, key=keys.PER_REGION_NORM,
-        help="Normalize brightness per region so each painted colour reads its own "
-             "relief. Off = primed-mini mode (default). Needs one lassoed region per "
-             "material; very dark regions may be flagged as too low-contrast to read.")
+    if ps_mode:
+        per_region_norm = False
+    else:
+        per_region_norm = st.checkbox(
+            "Colored / painted mini (experimental)", value=False, key=keys.PER_REGION_NORM,
+            help="Normalize brightness per region so each painted colour reads its own "
+                 "relief. Off = primed-mini mode (default). Needs one lassoed region per "
+                 "material; very dark regions may be flagged as too low-contrast to read.")
 
-    # --- Photo quality panel (non-blocking) ---
+    # --- Photo quality panel (non-blocking, photo mode only) ---
     # `shading.mask` is the mask computed (and cached) by `helpers.shading()` above —
     # it is the same mask by value that `analyze_regions` will use; reusing it here
     # adds no extra depth-model run.
-    try:
-        st.subheader("\U0001F4F7 Photo quality")
-        for r in check_input(rgb, shading.mask):
-            line = f"**{r.label}** — {r.detail}"
-            (st.success if r.ok else st.warning)(line)
-        st.caption(PAINTED_CAPTURE_NOTE)
-        with st.expander("How to photograph your mini"):
-            st.markdown(SHOOTING_GUIDE)
-    except Exception:
-        st.caption("Photo-quality check unavailable for this image.")
+    if not ps_mode:
+        try:
+            st.subheader("\U0001F4F7 Photo quality")
+            for r in check_input(rgb, shading.mask):
+                line = f"**{r.label}** — {r.detail}"
+                (st.success if r.ok else st.warning)(line)
+            st.caption(PAINTED_CAPTURE_NOTE)
+            with st.expander("How to photograph your mini"):
+                st.markdown(SHOOTING_GUIDE)
+        except Exception:
+            st.caption("Photo-quality check unavailable for this image.")
 
     st.divider()
     wp, wcov, drawn = book.analyze_args()
@@ -70,7 +75,8 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading) -> None:
                             edges=edges, extreme_edge=extreme_edge,
                             edge_sensitivity=edge_sensitivity,
                             relief_cap=relief_cap,
-                            per_region_norm=per_region_norm)
+                            per_region_norm=per_region_norm,
+                            light_field=light_field)
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)
     st.subheader("Colour schemes — all regions")
