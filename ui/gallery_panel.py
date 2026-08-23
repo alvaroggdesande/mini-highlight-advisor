@@ -1,5 +1,5 @@
 """🖼️ All-angles gallery — a read-only grid of every angle's combined painted
-preview, with a per-cell button to make that angle active for editing.
+preview, so you can see the same paints across every face at once.
 
 Streamlit glue on top of the same analyze path the editor uses. Per-angle
 previews are memoized (keyed by `angle_signature`) so the gallery stays cheap
@@ -13,7 +13,6 @@ import streamlit as st
 
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.pipeline import analyze_regions
-from ui import keys, state
 
 _PER_ROW = 3
 
@@ -71,15 +70,15 @@ def _cached_preview(angle) -> np.ndarray:
 
 
 def render(angles, active_idx: int) -> None:
-    """Read-only grid of every angle's combined painted preview. Each cell has a
-    button that makes that angle active (edited back in the Miniature tab)."""
+    """Read-only grid of every angle's combined painted preview. The active
+    angle is marked; editing happens back in the 🖌️ Miniature tab."""
     if not angles:
         st.info("Add angles in the 🖌️ Miniature tab to see them together here.")
         return
 
     st.subheader("All angles")
-    st.caption("Same paints, every face. Click **Edit this angle** to work on one "
-               "in the 🖌️ Miniature tab.")
+    st.caption("Same paints, every face. Switch to the 🖌️ Miniature tab to edit "
+               "the active angle.")
 
     for start in range(0, len(angles), _PER_ROW):
         cols = st.columns(_PER_ROW)
@@ -91,9 +90,5 @@ def render(angles, active_idx: int) -> None:
                              use_container_width=True)
                 except Exception:  # one bad angle must not blank the whole grid
                     st.warning(f"“{angle.label}” — couldn't render this photo.")
-                if st.button("✏️ Edit this angle", key=f"gallery_edit_{i}"):
-                    state.set_active_angle(i)
-                    state.seed_editor_from_angle(angles[i])
-                    st.rerun()
                 if i == active_idx:
                     st.caption("Active — open the 🖌️ Miniature tab to edit.")
