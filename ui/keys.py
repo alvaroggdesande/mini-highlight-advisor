@@ -19,6 +19,14 @@ EDGE_EXTREME = "edge_extreme"    # extreme edge highlight checkbox
 EDGE_SENS = "edge_sens"          # edge sensitivity slider
 RELIEF_CAP = "relief_cap"        # auto-reduce bands on flat regions checkbox
 PER_REGION_NORM = "per_region_norm"  # colored/painted mini toggle
+
+# --- photometric-stereo (PS) mode ---
+NORMALS = "ps_normals"           # decoded (H,W,3) unit normals in session
+PS_MASK = "ps_mask"              # (H,W) bool foreground mask from the imported bundle
+LIGHT_AZ = "light_az"            # virtual-light azimuth slider (deg)
+LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
+LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
+
 SAVE_NAME = "save_name"          # recipe save name text input
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
