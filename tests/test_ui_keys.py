@@ -28,3 +28,11 @@ def test_angle_keys_are_frozen():
     assert keys.ANGLE_LABEL_PREFIX == "angle_label_"
     assert keys.angle_label(0) == "angle_label_0"
     assert keys.angle_label(3) == "angle_label_3"
+
+
+def test_ps_keys_present_and_frozen():
+    from ui import keys
+    assert keys.LIGHT_AZ == "light_az"
+    assert keys.LIGHT_EL == "light_el"
+    assert keys.NORMALS == "ps_normals"
+    assert keys.PS_MASK == "ps_mask"

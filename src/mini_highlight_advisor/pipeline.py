@@ -158,12 +158,20 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     edges: bool = True, extreme_edge: bool = False,
                     edge_sensitivity: float = 0.5,
                     relief_cap: bool = False,
-                    per_region_norm: bool = False) -> MultiRegionResult:
+                    per_region_norm: bool = False,
+                    light_field: np.ndarray | None = None) -> MultiRegionResult:
     regions = regions or []
     if coverage is None:
         coverage = default_coverage(len(default_palette))
-    shading = prepare_shading(rgb, alpha)
-    mask, light = shading.mask, shading.light
+    if light_field is not None:
+        # PS mode: mask from the provided (authoritative) alpha; light = injected
+        # field. The field is global, so per-region luminance norm is bypassed.
+        mask = compute_mask(rgb, alpha)
+        light = light_field
+        per_region_norm = False
+    else:
+        shading = prepare_shading(rgb, alpha)
+        mask, light = shading.mask, shading.light
     owner = assign_owners(mask, [r.mask for r in regions])
     plans: list[RegionPlan] = []
     default_sub = owner == -1
