@@ -22,7 +22,7 @@ def test_geometric_edge_lands_on_crest():
     g = geometric_edge_mask(n, mask, 0.5)
     cols = np.where(g.any(axis=0))[0]
     assert cols.size > 0
-    assert cols.min() >= c0 - 10 and cols.max() <= c0 + 10
+    assert cols.min() >= c0 - 3 and cols.max() <= c0 + 3
 
 
 def test_geometric_edge_is_light_independent():
