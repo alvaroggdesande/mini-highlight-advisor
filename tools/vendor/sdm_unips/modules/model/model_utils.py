@@ -10,7 +10,7 @@ import numpy as np
 
 def loadmodel(model, filename, strict=True):
     if os.path.exists(filename):
-        params = torch.load('%s' % filename, map_location=torch.device('cpu'))  # THROWAWAY spike: CPU-only machine
+        params = torch.load('%s' % filename, map_location=torch.device('cpu'))  # CPU-only: load a CUDA-saved checkpoint on CPU (see tools/README-ps.md)
         model.load_state_dict(params,strict=strict)
         print('Loading pretrained model... %s ' % filename)
     else:

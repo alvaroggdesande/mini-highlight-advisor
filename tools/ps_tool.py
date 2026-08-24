@@ -322,8 +322,16 @@ def main() -> int:
         normals = _to_pinned_convention(normals_sdm)               # still (H,W,3)
 
         # 9. Encode and write outputs
+        # SDM-UniPS forces a square crop (canonical_resolution x canonical_resolution),
+        # so normals may be (H, W) != prepared-frame dims.  Resize the consensus mask to
+        # match so that normal.png and mask.png are guaranteed identical WxH (required by
+        # the app's import validation).
+        sdm_h, sdm_w = normals.shape[:2]
+        mask_u8 = (mask * 255).astype(np.uint8)
+        mask_u8 = cv2.resize(mask_u8, (sdm_w, sdm_h), interpolation=cv2.INTER_NEAREST)
+
         Image.fromarray(encode_normals(normals)).save(args.out / "normal.png")
-        Image.fromarray((mask * 255).astype(np.uint8)).save(args.out / "mask.png")
+        Image.fromarray(mask_u8).save(args.out / "mask.png")
 
         report_path.write_text(
             f"frames used: {[paths[i].name for i in kept]}\n"
