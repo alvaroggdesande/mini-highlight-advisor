@@ -8,7 +8,9 @@ from PIL import Image
 from .banding import band_light, relief_recommended_bands
 from .lighting import luminance_light, _clahe_gray, local_luminance_light
 from .masking import compute_mask
-from .edges import edge_mask, extreme_edge_mask
+from .edges import (
+    edge_mask, extreme_edge_mask, geometric_edge_mask, geometric_extreme_edge_mask,
+)
 from .overlay import (
     BandStep, compose_panel, edge_steps, paint_preview, paint_regions, per_band_images, render_legend,
 )
@@ -116,7 +118,8 @@ class MultiRegionResult:
 def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 edges: bool = True, extreme_edge: bool = False,
                 edge_sensitivity: float = 0.5,
-                relief_cap: bool = False, flat_albedo: bool = False) -> RegionPlan:
+                relief_cap: bool = False, flat_albedo: bool = False,
+                normals: np.ndarray | None = None) -> RegionPlan:
     requested_bands = len(palette)
     capped = False
     if flat_albedo:
@@ -145,10 +148,17 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                                    sensitivity=edge_sensitivity,
                                    extreme=extreme_edge, start_index=len(palette))
         two_tier = extreme_edge and len(colors) >= 5  # match edge_steps guard
-        overlays = [(edge_mask(light, sub_mask, edge_sensitivity),
-                     colors[-2] if two_tier else colors[-1])]
+        if normals is not None:
+            main = geometric_edge_mask(normals, sub_mask, edge_sensitivity)
+        else:
+            main = edge_mask(light, sub_mask, edge_sensitivity)
+        overlays = [(main, colors[-2] if two_tier else colors[-1])]
         if two_tier:
-            overlays.append((extreme_edge_mask(light, sub_mask, edge_sensitivity), colors[-1]))
+            if normals is not None:
+                ext = geometric_extreme_edge_mask(normals, sub_mask, edge_sensitivity)
+            else:
+                ext = extreme_edge_mask(light, sub_mask, edge_sensitivity)
+            overlays.append((ext, colors[-1]))
     return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps, overlays,
                       capped=capped, requested_bands=requested_bands,
                       flat_albedo=flat_albedo)
@@ -159,8 +169,15 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     edge_sensitivity: float = 0.5,
                     relief_cap: bool = False,
                     per_region_norm: bool = False,
-                    light_field: np.ndarray | None = None) -> MultiRegionResult:
+                    light_field: np.ndarray | None = None,
+                    normal_field: np.ndarray | None = None) -> MultiRegionResult:
     regions = regions or []
+    if normal_field is not None:
+        if (normal_field.ndim != 3 or normal_field.shape[2] != 3
+                or normal_field.shape[:2] != rgb.shape[:2]):
+            raise ValueError(
+                f"normal_field {getattr(normal_field, 'shape', None)} must be "
+                f"(H,W,3) matching rgb {rgb.shape[:2]}")
     if coverage is None:
         coverage = default_coverage(len(default_palette))
     if light_field is not None:
@@ -176,7 +193,7 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     plans: list[RegionPlan] = []
     default_sub = owner == -1
     ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
-               relief_cap=relief_cap)
+               relief_cap=relief_cap, normals=normal_field)
 
     gray = _clahe_gray(rgb) if per_region_norm else None
 
