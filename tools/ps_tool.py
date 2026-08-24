@@ -205,6 +205,29 @@ def _to_pinned_convention(normals: np.ndarray) -> np.ndarray:
 # SDM-UniPS inference via subprocess
 # ---------------------------------------------------------------------------
 
+def _build_sdm_cmd(prepared_dir, checkpoint, session_name, vendor_main) -> list:
+    """Build the SDM-UniPS argv.
+
+    The subprocess runs with cwd=vendor/sdm_unips (for SDM's relative imports), so
+    any relative --checkpoint / --test_dir would resolve against the vendor dir,
+    not the user's cwd -> 'Pretrained model not Found' / 'Found 0 objects!'.
+    Absolutize both. SDM scans test_dir for *<test_ext> dirs; prepared_dir IS the
+    .data dir, so its PARENT is test_dir.
+    """
+    test_dir = str(Path(prepared_dir).parent.resolve())
+    return [
+        sys.executable, str(vendor_main),
+        "--session_name", str(session_name),
+        "--target", "normal",
+        "--checkpoint", str(Path(checkpoint).resolve()),
+        "--test_dir", test_dir,
+        "--test_ext", ".data",
+        "--test_prefix", "L*",
+        "--max_image_res", str(MAX_SIDE),
+        "--canonical_resolution", "256",
+    ]
+
+
 def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
     """Invoke vendored SDM-UniPS inference; return (H, W, 3) float normals.
 
@@ -229,25 +252,13 @@ def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
         checkpoint:   path to the checkpoint DIRECTORY (contains normal/ subdir
                       with the .pytmodel file).
     """
-    # SDM-UniPS scans test_dir for *<test_ext> dirs; prepared_dir IS the .data dir
-    test_dir = str(prepared_dir.parent)
     objname = prepared_dir.name  # e.g. "prepared.data"
 
     with tempfile.TemporaryDirectory() as session_tmp:
         session_name = str(Path(session_tmp) / "sdm_session")
         vendor_main = str(_TOOLS_DIR / "vendor" / "sdm_unips" / "main.py")
 
-        cmd = [
-            sys.executable, vendor_main,
-            "--session_name", session_name,
-            "--target", "normal",
-            "--checkpoint", str(checkpoint),
-            "--test_dir", test_dir,
-            "--test_ext", ".data",
-            "--test_prefix", "L*",
-            "--max_image_res", str(MAX_SIDE),
-            "--canonical_resolution", "256",
-        ]
+        cmd = _build_sdm_cmd(prepared_dir, checkpoint, session_name, vendor_main)
 
         print(f"[ps_tool] Running SDM-UniPS inference …")
         result = subprocess.run(
