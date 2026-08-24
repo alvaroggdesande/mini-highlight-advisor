@@ -1,0 +1,12 @@
+# Separate torch env for ps_tool.py.  NEVER install into the app's .venv.
+# Create with:
+#   python -m venv tools/.ps-venv
+#   tools/.ps-venv/Scripts/pip install -r tools/requirements-ps.txt
+#
+# Pinned to the torch 2.13 CPU wheel family that passed the staircase spike.
+torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
+opencv-python
+einops
+imageio
+numpy
+pillow

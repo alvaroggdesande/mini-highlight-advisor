@@ -21,6 +21,11 @@ spikes/input/
 # Local user data (owned paints + saved recipes)
 user_data/
 
+# ps_tool: heavy artifacts never committed
+tools/.ps-venv/
+tools/**/checkpoint*
+*.pytmodel
+
 # OS
 Thumbs.db
 .DS_Store
