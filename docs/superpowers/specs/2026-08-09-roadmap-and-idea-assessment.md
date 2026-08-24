@@ -328,3 +328,91 @@ depth spike hit — confirms single-image is closed and only multi-shot PS (Step
 
 Next in the sequence: **Step 1 (per-region luminance normalization)**, then gate on whether
 to fund the **Step 3 phone-PS spike**.
+
+## Addendum (2026-08-24): PS shipped — re-triage, dual-path constraint, and the "cash the normal field" fork
+
+Photometric stereo is no longer a spike. **Phone-PS is BUILT + REVIEWED + MERGED to
+main (merge `5c5eea9`)**: external torch-free-*app* sidecar `tools/ps_tool.py` (own venv,
+vendored SDM-UniPS, 445MB gitignored checkpoint) emits `normal.png` + `mask.png`; the app
+imports them, relights via `relight.py` (global az/el sliders + presets), and feeds the
+result into the existing engine through `analyze_regions(light_field=…)`. Every prior
+"needs a spike / Step 3" framing above is superseded. The staircase passed on black primer
+(the true worst case) and the payoff was validated (PS relocates the plan vs luminance on a
+dark mini).
+
+### Hard constraint going forward — TWO input paths, always both live
+
+This is now a **load-bearing design rule, not a nice-to-have**:
+
+- **Path L (single photo → luminance).** The original engine. Cheap, zero capture
+  ceremony, no torch. Stays the default and the fast path.
+- **Path P (multi-shot → photometric stereo → normal field).** High capture ceremony,
+  external torch sidecar, but recovers true 3D relief + (potentially) albedo. The only
+  path that defeats dark albedo.
+
+Neither replaces the other; **both must work at the same time, forever.** L is what most
+minis/most sessions will use; P is the depth option for hard cases and the foundation for
+everything derivable below. Torch is huge and quarantined to the sidecar today; a future
+goal is a lighter way to run PS (smaller/quantized model, or a hosted/optional compute
+step) — but until then P must never contaminate L's env or degrade L's behaviour. Any B/A
+feature below is designed **capability-gated**: present a normal field → richer geometry;
+absent → Path L behaves byte-identically to today. The existing `light_field=` seam is the
+proof this is not horrible to design — geometry hangs off an analogous optional
+`normal_field=` seam (see the B design spec).
+
+### What the normal field newly makes derivable (was "invented knowledge" before)
+
+For the first time the app has a **true 3D surface signal**, not a 2D luminance proxy:
+
+1. **Geometric edge highlights** — curvature/ridge lines straight from normals, instead of
+   luminance-quantile guessing (unsticks the parked "edge-highlight-as-separation" problem).
+2. **Cavity / ambient-occlusion shade placement** — recess shades from AO computed on the
+   normal field (the STL path's trick, now from a photo).
+3. **Normal-discontinuity auto-regions** — part seams ARE normal discontinuities; this
+   *re-opens the SAM-killed auto-region idea* (SAM failed as a colourless object segmenter;
+   curvature discontinuity is the right cue).
+4. **Real NMM / OSL placement** — reflection vectors are computable from normals + a virtual
+   light, so NMM's fake horizon / reflected-ground and OSL glow become *derivable* rather
+   than invented. (User-flagged as the most exciting unlock.)
+5. **Specular preview** — genuine metallic/gloss highlight from normals (deferred in PS v1).
+6. **Colored / already-painted minis via recovered albedo** — PS separates albedo, which
+   *is* the paint-colour map. The real funnel-widener. **Not yet cashed** (see challenge #3).
+
+### The honest challenge (kept, not buried)
+
+PS is technically excellent and cleanly built, but its **v1 painter value is potential, not
+yet delivered**, for three reasons:
+
+1. **Friction is maximal** — 6–8 tripod shots, a moved light, an external torch tool, a
+   445MB checkpoint, re-import two PNGs. This is a lab protocol, not a desk-side flow; it is
+   the exact friction this roadmap named as *the* obstacle to widening the funnel.
+2. **The relight slider may be redundant with reality** — the painter is holding the real 3D
+   mini and can tilt it under a lamp at higher fidelity than any recovered normal map. This
+   is idea #8 ("they already hold the 3D model") returning through the side door. The
+   decision-usefulness of virtual relight over the real object is *unresolved*.
+3. **v1 discards the one thing PS uniquely recovers** — `ps_tool` exports only `normal.png`
+   + `mask.png` (no albedo), and `relight.py` renders on a flat `ALBEDO` *constant*. So PS
+   on a black mini yields a plan on a grey render — close to what Path L already did on a
+   *grey*-primed mini from one photo. The big payoff (albedo → colored minis) is an explicit
+   v1 non-goal.
+
+**Verdict: PS's value is as a FOUNDATION (items 1–6), not as the v1 relight demo. Do not
+invest further in relight polish (mouse-drag, per-region light) — that is the low-value
+branch.** Cash the normal field instead.
+
+### Re-triaged fork (chosen: B, with A as the strategic bet)
+
+- **A — cash the albedo** → export + consume the albedo map → colored / already-painted /
+  touch-up minis. The true funnel-widener; strategic, higher effort. *Deferred bet.*
+- **B — cash the geometry** (**CHOSEN, building now**) → curvature edge highlights + cavity/AO
+  shades + normal-discontinuity auto-regions, plus the NMM/OSL reflection placement the user
+  flagged. All **offline, no new capture burden** (consumes the normal field Path P already
+  produces), highest capability-per-effort. Designed capability-gated so Path L is untouched.
+- **C — park PS, invest in the albedo-independent asset** (palette matcher + mix advisor as
+  the everyday tool). *Not chosen now, but the honest fallback if B/A value disappoints.*
+
+Explicitly **not** chosen: further relight-slider polish.
+
+Next: a B design spec (`docs/superpowers/specs/2026-08-24-geometry-from-normals-design.md`)
+whose first job is the dual-path seam (`normal_field=` capability gate), then the first
+geometry consumer.
