@@ -41,3 +41,33 @@ def curvature(normals: np.ndarray, mask: np.ndarray) -> np.ndarray:
     curv = dnx_dcol - dny_drow            # convex/outward > 0
     curv[~m] = 0.0
     return curv.astype(np.float32)
+
+
+def ambient_occlusion(normals: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Cavity-style AO from concavity: 1 = exposed (convex/flat), ->0 = deep recess.
+
+    Concavity is the negative part of curvature, self-scaled by its 95th percentile
+    inside the mask so the map is comparable across minis. Off-mask 0. (Foundation
+    primitive — built and tested here, consumed by the later cavity/AO slice.)
+    """
+    m = mask.astype(bool)
+    conc = np.clip(-curvature(normals, m), 0.0, None)
+    vals = conc[m]
+    scale = float(np.percentile(vals, 95)) if vals.size and vals.max() > 0 else 1.0
+    ao = 1.0 - np.clip(conc / (scale + 1e-6), 0.0, 1.0)
+    ao[~m] = 0.0
+    return ao.astype(np.float32)
+
+
+def reflect(view: np.ndarray, normals: np.ndarray) -> np.ndarray:
+    """Reflection vectors R = 2(N.V)N - V, per pixel.
+
+    `view` is a (3,) direction (broadcast) or a full (H,W,3) field; output is
+    unit-length where inputs are. (Foundation primitive for the later specular/NMM
+    slice.)
+    """
+    n = _validate(normals)
+    v = np.asarray(view, np.float32)
+    v = v / (np.linalg.norm(v, axis=-1, keepdims=True) + 1e-12)
+    ndotv = np.sum(n * v, axis=-1, keepdims=True)
+    return (2.0 * ndotv * n - v).astype(np.float32)
