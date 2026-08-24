@@ -56,8 +56,11 @@ def render(picked, owned_paints) -> None:
     mask_u8 = (mask * 255).astype(np.uint8)
     shading = ShadingResult(mask=compute_mask(relit_grey, mask_u8), light=light_field)
 
-    st.session_state.setdefault(keys.BOOK, new_book(5))
-    book = st.session_state[keys.BOOK]
+    # PS keeps its own book (keys.PS_BOOK): photo mode's keys.BOOK may hold regions
+    # lassoed against a different-sized photo, which would break assign_owners when
+    # applied to the PS mask. Keeping them separate isolates the two input modes.
+    st.session_state.setdefault(keys.PS_BOOK, new_book(5))
+    book = st.session_state[keys.PS_BOOK]
 
     editor.render_editor(relit_grey, mask_u8, shading, book, picked, owned_paints,
                          light_field=light_field)

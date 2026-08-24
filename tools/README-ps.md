@@ -16,6 +16,14 @@ Vendored inference: **SDM-UniPS** (Scalable, Detailed and Mask-free Universal
 Photometric Stereo Network), Satoshi Ikehata, CVPR 2023.
 License: see `tools/vendor/sdm_unips/LICENSE`.
 
+> ⚠️ **Non-commercial restriction.** The SDM-UniPS license is MIT *with a
+> non-commercial clause*: the vendored code (and thus this `tools/` pipeline)
+> "may not be used to provide a service or product intended for commercial use."
+> Personal / research use is fine. If this tool is ever productized or deployed
+> commercially, the PS pipeline must be replaced with a commercially-licensed
+> normal-recovery method. The torch-free app side (`src/`, `ui/`) carries no
+> such restriction.
+
 > Ikehata, S. (2023). SDM-UniPS: Scalable, Detailed and Mask-free Universal
 > Photometric Stereo. *Proceedings of the IEEE/CVF Conference on Computer Vision
 > and Pattern Recognition (CVPR)*.

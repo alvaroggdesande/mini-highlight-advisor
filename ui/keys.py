@@ -23,6 +23,9 @@ PER_REGION_NORM = "per_region_norm"  # colored/painted mini toggle
 # --- photometric-stereo (PS) mode ---
 NORMALS = "ps_normals"           # decoded (H,W,3) unit normals in session
 PS_MASK = "ps_mask"              # (H,W) bool foreground mask from the imported bundle
+PS_BOOK = "ps_book"              # RegionBook for PS mode, kept separate from the
+                                 # photo-mode BOOK so switching modes can't apply a
+                                 # photo-sized region to the PS mask (shape mismatch)
 LIGHT_AZ = "light_az"            # virtual-light azimuth slider (deg)
 LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click

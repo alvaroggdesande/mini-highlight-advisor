@@ -81,16 +81,36 @@ The tool will automatically remove the background using the contrast between the
 
 1. **Keep the frames.** Save all 6–8 shots in a folder named something like `black_mini_shots/` or `grey_mini_shots/`.
 2. **Name them consistently.** Rename them to `L_01.png`, `L_02.png`, `L_03.png`, etc., in the order you took them. (The tool reads them in sorted order.)
-3. **Import into the app.** In the highlight advisor:
-   - Choose **Import normal map (photometric stereo)**.
-   - Upload the frames folder or select the frames.
-   - The tool will:
-     - Automatically mask and align the frames.
-     - Run the recovery algorithm on the cloud or your local machine.
-     - Produce a normal map encoding the surface relief.
-   - Check the report: it should say you have **at least 4 frames** after filtering (the tool drops frames with masking issues or weak lighting variation).
+3. **Recover the normal map** (this happens *outside* the app, in the torch-owning
+   pipeline — not in the Streamlit uploader). Run the recovery tool on your frames
+   folder:
 
-4. **If frames are dropped:** The tool may discard 1–2 frames if the background masking was inconsistent or the lighting was too similar to a nearby frame. **Shoot 6–8 frames, not 4–5**, so that losing a couple still leaves you above the 4-frame minimum.
+   ```bash
+   tools/.ps-venv/Scripts/python tools/ps_tool.py \
+       --frames  path/to/your_frames_dir \
+       --checkpoint path/to/checkpoint \
+       --out     path/to/out_dir
+   ```
+
+   The tool masks and aligns the frames, runs the recovery algorithm, and writes
+   `normal.png` + `mask.png` + `report.txt` to `--out`. See
+   [`tools/README-ps.md`](../tools/README-ps.md) for one-time setup (the separate
+   torch venv + the checkpoint download).
+
+   Check `report.txt`: it should say you have **at least 4 frames** after filtering
+   (the tool drops frames with masking issues or weak lighting variation). A capture
+   quality abort exits with code `2` and explains the reason in the report.
+
+4. **Import the bundle into the app.** In the highlight advisor:
+   - Choose **Import normal map (photometric stereo)**.
+   - Upload the two files the tool produced: `normal.png` and `mask.png`.
+   - Drag the virtual light to place your highlights, then work the plan exactly
+     as in photo mode.
+
+   > The app itself does **not** run the recovery — it only imports the finished
+   > `normal.png` + `mask.png` bundle. Uploading raw frames here will not work.
+
+5. **If frames are dropped:** The tool may discard 1–2 frames if the background masking was inconsistent or the lighting was too similar to a nearby frame. **Shoot 6–8 frames, not 4–5**, so that losing a couple still leaves you above the 4-frame minimum.
 
 ---
 
