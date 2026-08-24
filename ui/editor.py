@@ -2,7 +2,9 @@
 
 Extracted verbatim from app.py so photo mode and PS mode drive the SAME editor.
 `light_field` is None for photo mode (luminance path) and a (H,W) float32 field
-for PS mode (relit path).
+for PS mode (relit path). `normal_field` is None for photo mode and carries the
+PS-mode surface normals (used for light-independent geometric edge overlays),
+threaded through to `analyze_regions`.
 """
 import streamlit as st
 

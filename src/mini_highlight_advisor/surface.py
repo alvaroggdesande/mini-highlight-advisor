@@ -29,6 +29,11 @@ def curvature(normals: np.ndarray, mask: np.ndarray) -> np.ndarray:
     d(nx)/dcol - d(ny)/drow. Gaussian pre-blur calms primer grain (same rationale
     as edges._grad_mag). Off-mask components are zeroed so the field contributes
     nothing there.
+
+    Note: off-mask in-plane components are zeroed before differentiation, so pixels
+    on the mask boundary (the silhouette) differentiate against artificial zeros and
+    can show inflated curvature there. Interior curvature is reliable; treat a
+    rim-following response near the silhouette as a boundary artefact, not a true ridge.
     """
     n = _validate(normals)
     m = mask.astype(bool)
