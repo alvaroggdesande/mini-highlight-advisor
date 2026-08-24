@@ -63,4 +63,4 @@ def render(picked, owned_paints) -> None:
     book = st.session_state[keys.PS_BOOK]
 
     editor.render_editor(relit_grey, mask_u8, shading, book, picked, owned_paints,
-                         light_field=light_field)
+                         light_field=light_field, normal_field=normals)

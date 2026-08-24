@@ -10,7 +10,8 @@ from mini_highlight_advisor.overlay import swatch_board
 from ui import context, helpers, keys
 
 
-def render(rgb, alpha, book, palette, picked, owned_paints, shading, light_field=None) -> None:
+def render(rgb, alpha, book, palette, picked, owned_paints, shading,
+           light_field=None, normal_field=None) -> None:
     ps_mode = light_field is not None
     # --- Match to my paints (scoped to this region's palette) ---
     st.markdown("#### Match to my paints")
@@ -76,7 +77,8 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading, light_field
                             edge_sensitivity=edge_sensitivity,
                             relief_cap=relief_cap,
                             per_region_norm=per_region_norm,
-                            light_field=light_field)
+                            light_field=light_field,
+                            normal_field=normal_field)
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)
     st.subheader("Colour schemes — all regions")

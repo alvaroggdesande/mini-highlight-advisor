@@ -41,3 +41,11 @@ def test_moving_the_light_reruns_without_error():
     at.slider(key="light_az").set_value(90).run()
     assert not at.exception
     assert at.session_state["light_az"] == 90
+
+
+def test_ps_mode_geometry_wiring_runs():
+    # PS mode now passes the session normals to analyze_regions as normal_field;
+    # the full editor must render end-to-end on the synthetic fixture without error.
+    at = AppTest.from_string(HARNESS); at.run()
+    assert not at.exception
+    assert at.session_state["ps_normals"] is not None

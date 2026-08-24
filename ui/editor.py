@@ -9,7 +9,8 @@ import streamlit as st
 from ui import coverage_editor, palette_editor, regions_panel, results, state
 
 
-def render_editor(rgb, alpha, shading, book, picked, owned_paints, light_field=None) -> None:
+def render_editor(rgb, alpha, shading, book, picked, owned_paints,
+                  light_field=None, normal_field=None) -> None:
     src_h, src_w = rgb.shape[:2]
     sel = regions_panel.render(book, rgb, shading, src_w, src_h)
     state.rehydrate_editor_widgets(book, sel)
@@ -22,4 +23,4 @@ def render_editor(rgb, alpha, shading, book, picked, owned_paints, light_field=N
     book.set_coverage_at(sel, coverage)
 
     results.render(rgb, alpha, book, palette, picked, owned_paints, shading,
-                   light_field=light_field)
+                   light_field=light_field, normal_field=normal_field)
