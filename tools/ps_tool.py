@@ -54,7 +54,13 @@ MAX_SIDE = 512
 # ---------------------------------------------------------------------------
 
 def _load_frames(frames_dir: Path):
-    """Return (paths, frames) for all image files in frames_dir (sorted)."""
+    """Return (paths, frames) for all image files in frames_dir (sorted).
+
+    All frames must share one HxW: the capture is a fixed camera with only the
+    light moving, so a differing size means a stray non-frame file (contact sheet,
+    thumbnail) landed in the folder. Fail loud naming it rather than crashing with
+    an opaque broadcast error deep in frame selection.
+    """
     paths = sorted(
         p for p in frames_dir.iterdir()
         if p.suffix.lower() in (".png", ".jpg", ".jpeg")
@@ -62,6 +68,17 @@ def _load_frames(frames_dir: Path):
     if not paths:
         raise CaptureError(f"No image files found in {frames_dir}")
     frames = [np.asarray(Image.open(p).convert("RGB")) for p in paths]
+    ref_hw = frames[0].shape[:2]
+    odd = [(p.name, f.shape[:2]) for p, f in zip(paths, frames)
+           if f.shape[:2] != ref_hw]
+    if odd:
+        listing = ", ".join(f"{name} {hw[1]}x{hw[0]}" for name, hw in odd)
+        raise CaptureError(
+            f"frames are not all the same size: {paths[0].name} is "
+            f"{ref_hw[1]}x{ref_hw[0]} but these differ: {listing}. The capture is "
+            "a fixed camera (only the light moves), so every frame must match. "
+            "Remove any non-capture files (contact sheets, thumbnails) from "
+            f"{frames_dir} and re-run.")
     return paths, frames
 
 
