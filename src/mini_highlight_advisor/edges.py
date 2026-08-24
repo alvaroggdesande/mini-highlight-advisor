@@ -6,6 +6,8 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
+from .surface import curvature
+
 _MIN_EDGE_AREA = 8  # drop connected components smaller than this (texture speckle)
 
 
@@ -54,3 +56,34 @@ def extreme_edge_mask(light: np.ndarray, mask: np.ndarray, sensitivity: float = 
     mag = _grad_mag(light, mask.astype(bool))
     thr = np.percentile(mag[base], 70.0)  # sharpest 30% of the main-edge pixels
     return base & (mag >= thr)
+
+
+def geometric_edge_mask(normals: np.ndarray, mask: np.ndarray,
+                        sensitivity: float = 0.5) -> np.ndarray:
+    """Edge highlights from convex curvature of the normal field — light-independent.
+
+    Same sensitivity->percentile mapping and despeckle as edge_mask; the only
+    difference is the source (convex curvature magnitude, not light gradient). The
+    convex-side filter (clip to >0) is the geometric analogue of _bright_side.
+    """
+    mask = mask.astype(bool)
+    conv = np.clip(curvature(normals, mask), 0.0, None)   # convex ridges only
+    conv[~mask] = 0.0
+    vals = conv[mask]
+    vals = vals[vals > 0]
+    if vals.size == 0:
+        return np.zeros(mask.shape, bool)
+    pct = float(np.clip(94.0 - 12.0 * sensitivity, 82.0, 97.0))
+    thr = np.percentile(vals, pct)
+    strong = (conv >= thr) & mask
+    return _despeckle(strong)
+
+
+def geometric_extreme_edge_mask(normals: np.ndarray, mask: np.ndarray,
+                                sensitivity: float = 0.5) -> np.ndarray:
+    base = geometric_edge_mask(normals, mask, sensitivity)
+    if not base.any():
+        return np.zeros(mask.astype(bool).shape, bool)
+    conv = np.clip(curvature(normals, mask.astype(bool)), 0.0, None)
+    thr = np.percentile(conv[base], 70.0)   # sharpest 30% of the main-edge pixels
+    return base & (conv >= thr)
