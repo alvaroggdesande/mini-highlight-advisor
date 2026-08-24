@@ -286,6 +286,56 @@ def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
+# Pre-flight checks (fail loud before any capture work)
+# ---------------------------------------------------------------------------
+
+class PreflightError(Exception):
+    """Raised for a setup mistake (wrong env / bad checkpoint) before work starts."""
+
+
+def _check_runtime_env() -> None:
+    """The SDM-UniPS subprocess runs under sys.executable, so torch + einops +
+    imageio must be importable from THIS interpreter. Running from the app's
+    torch-free .venv is the #1 mistake; catch it here with a fix, not an
+    einops ModuleNotFoundError deep in the vendored code."""
+    import importlib.util
+
+    missing = [m for m in ("torch", "einops", "imageio")
+               if importlib.util.find_spec(m) is None]
+    if missing:
+        raise PreflightError(
+            f"missing required module(s): {', '.join(missing)}. ps_tool must run "
+            "from its OWN torch env, not the app's torch-free .venv.\n"
+            f"  interpreter in use: {sys.executable}\n"
+            "  fix (one-time):\n"
+            "    python -m venv tools/.ps-venv\n"
+            "    tools/.ps-venv/Scripts/pip install -r tools/requirements-ps.txt\n"
+            "  then run with:  tools/.ps-venv/Scripts/python tools/ps_tool.py ...")
+
+
+def _check_checkpoint(checkpoint: Path) -> None:
+    """The --checkpoint arg must be the unzipped checkpoint DIRECTORY containing a
+    normal/ subdir. Guards against the README placeholder path and pointing at a
+    .pytmodel file or the wrong level."""
+    if not checkpoint.is_dir():
+        raise PreflightError(
+            f"--checkpoint is not a directory: {checkpoint}\n"
+            "  It must be the unzipped checkpoint/ directory (with a normal/ "
+            "subdir), not a placeholder path or a .pytmodel file. "
+            "See tools/README-ps.md for the download.")
+    if not (checkpoint / "normal").is_dir():
+        raise PreflightError(
+            f"--checkpoint has no 'normal/' subdir: {checkpoint}\n"
+            "  Point it at the unzipped checkpoint/ directory itself (which "
+            "contains normal/), not a parent or child of it.")
+
+
+def _preflight(checkpoint: Path) -> None:
+    _check_runtime_env()
+    _check_checkpoint(checkpoint)
+
+
+# ---------------------------------------------------------------------------
 # Main orchestration
 # ---------------------------------------------------------------------------
 
@@ -306,6 +356,9 @@ def main() -> int:
     report_path = args.out / "report.txt"
 
     try:
+        # 0. Pre-flight: env + checkpoint sanity, before touching any frames.
+        _preflight(args.checkpoint)
+
         # 1. Load raw frames
         paths, frames = _load_frames(args.frames)
         print(f"[ps_tool] Loaded {len(frames)} frames from {args.frames}")
@@ -358,6 +411,11 @@ def main() -> int:
         )
         print(f"[ps_tool] Bundle written to {args.out}")
         return 0
+
+    except PreflightError as e:
+        report_path.write_text(f"PREFLIGHT: {e}\n")
+        print(f"[ps_tool] PREFLIGHT FAILED: {e}", file=sys.stderr)
+        return 3
 
     except CaptureError as e:
         report_path.write_text(f"ABORT: {e}\n")

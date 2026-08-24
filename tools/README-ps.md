@@ -87,7 +87,14 @@ tools/.ps-venv/Scripts/python tools/ps_tool.py \
 ```
 
 Exit codes: `0` = success, `2` = capture quality abort (see `report.txt`),
-non-zero = inference error.
+`3` = pre-flight setup error (wrong Python env — see below — or a missing/malformed
+`--checkpoint` directory), other non-zero = inference error.
+
+> **Run from the ps-venv, not the app `.venv`.** The SDM-UniPS subprocess uses the
+> same interpreter that launched `ps_tool.py`, so it must be a Python with torch +
+> einops + imageio installed. Running `python tools/ps_tool.py` from the app's
+> torch-free `.venv` now fails fast with a pre-flight message telling you to use
+> `tools/.ps-venv/Scripts/python` instead.
 
 ---
 
