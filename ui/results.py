@@ -40,6 +40,14 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                                  key=keys.EDGE_SENS, disabled=not edges,
                                  help="Few sharpest edges (left) to more edges (right).")
 
+    shades = False
+    if normal_field is not None:
+        shades = st.checkbox(
+            "Recess shades", value=False, key=keys.SHADES,
+            help="Darken concave recesses (creases, cavities) from the surface "
+                 "normals — the inverse of edge highlights. PS mode only; reuses "
+                 "the edge-sensitivity slider.")
+
     relief_cap = st.checkbox(
         "Auto-reduce bands on flat regions", value=True, key=keys.RELIEF_CAP,
         help="A flat region can't show every highlight band — cap it to what the "
@@ -78,7 +86,8 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                             relief_cap=relief_cap,
                             per_region_norm=per_region_norm,
                             light_field=light_field,
-                            normal_field=normal_field)
+                            normal_field=normal_field,
+                            shades=shades)
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)
     st.subheader("Colour schemes — all regions")

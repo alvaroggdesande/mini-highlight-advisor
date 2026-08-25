@@ -95,6 +95,22 @@ def edge_steps(rgb, light, mask, colors, sensitivity: float = 0.5,
     return steps
 
 
+def shade_steps(rgb, recess_mask, shade_rgb, alpha: float = 0.78,
+                start_index: int = 0) -> list[BandStep]:
+    """Recess-shade paint-along step (mirror of edge_steps, one tier).
+
+    One BandStep darkening the concave-recess zone with the auto-derived shade
+    colour. Empty recess_mask still yields a step (empty active zone), never a crash.
+    """
+    return [BandStep(
+        index=start_index,
+        zone_rgb=_zone_render(rgb, recess_mask),
+        cumulative_rgb=_render_step(rgb, recess_mask, shade_rgb, alpha),
+        exact_rgb=_render_step(rgb, recess_mask, shade_rgb, alpha),
+        is_last=True, kind="shade", label="Recess Shade",
+    )]
+
+
 def paint_preview(rgb, bands, mask, colors, alpha: float = 0.78, edge_overlays=None) -> np.ndarray:
     base = rgb.astype(np.float32)
     out = base.copy()

@@ -49,3 +49,15 @@ def test_ps_mode_geometry_wiring_runs():
     at = AppTest.from_string(HARNESS); at.run()
     assert not at.exception
     assert at.session_state["ps_normals"] is not None
+
+
+def test_ps_mode_recess_shades_toggle_runs():
+    at = AppTest.from_string(HARNESS); at.run()
+    assert not at.exception
+    # the PS-only recess-shades checkbox is present...
+    box = at.checkbox(key="shades")
+    assert box is not None
+    # ...and toggling it on re-runs the full editor without error.
+    box.set_value(True).run()
+    assert not at.exception
+    assert at.session_state["shades"] is True
