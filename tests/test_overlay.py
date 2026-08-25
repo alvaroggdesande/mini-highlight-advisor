@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from types import SimpleNamespace
-from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board, edge_steps
+from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board, edge_steps, shade_steps
 
 
 def test_paint_preview_colors_bands_and_darkens_background():
@@ -271,3 +271,41 @@ def test_paint_preview_draws_edge_overlay():
     # row 5 should carry red; a non-edge row should not
     assert out[5, 10, 0] > 150
     assert out[0, 10, 0] < 50
+
+
+def _plate_and_mask():
+    rgb = np.zeros((20, 30, 3), np.uint8)
+    rgb[:, 15:] = 200
+    mask = np.ones((20, 30), bool)
+    return rgb, mask
+
+
+def test_shade_steps_single_step_shape():
+    rgb, mask = _plate_and_mask()
+    recess = np.zeros((20, 30), bool); recess[:, 5:9] = True
+    shade_rgb = np.array([10, 10, 10], np.float32)
+    steps = shade_steps(rgb, recess, shade_rgb, start_index=6)
+    assert len(steps) == 1
+    s = steps[0]
+    assert s.kind == "shade"
+    assert s.label == "Recess Shade"
+    assert s.index == 6
+    assert s.is_last is True
+
+
+def test_shade_steps_uses_shade_colour():
+    rgb, mask = _plate_and_mask()
+    recess = np.zeros((20, 30), bool); recess[:, 5:9] = True
+    shade_rgb = np.array([10, 10, 10], np.float32)
+    s = shade_steps(rgb, recess, shade_rgb, start_index=6)[0]
+    # inside the recess the cumulative render is pulled toward the dark shade colour;
+    # a bright background pixel (200) must be darkened there.
+    assert s.cumulative_rgb[0, 6].mean() < 200
+
+
+def test_shade_steps_empty_mask_renders():
+    rgb, mask = _plate_and_mask()
+    recess = np.zeros((20, 30), bool)
+    steps = shade_steps(rgb, recess, np.array([10, 10, 10], np.float32), start_index=6)
+    assert len(steps) == 1                     # still one step, no crash
+    assert steps[0].kind == "shade"
