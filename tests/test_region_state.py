@@ -69,3 +69,33 @@ def test_set_name_at_cannot_rename_whole_mini():
         assert False, "expected ValueError"
     except ValueError:
         pass
+
+
+def test_material_defaults_to_matte():
+    b = new_book(5)
+    assert b.material_at(0) == "matte"
+
+def test_set_material_routes_by_index():
+    b = new_book(3)
+    b.add(_mask(), "Blade", default_ramp(3), default_coverage(3))
+    b.set_material_at(1, "nmm")
+    assert b.material_at(1) == "nmm"
+    assert b.material_at(0) == "matte"        # whole mini untouched
+
+def test_set_material_whole_mini():
+    b = new_book(3)
+    b.set_material_at(0, "nmm")
+    assert b.material_at(0) == "nmm"
+
+def test_material_at_out_of_range_raises():
+    b = new_book(3)
+    try:
+        b.material_at(5)
+        assert False, "expected IndexError"
+    except IndexError:
+        pass
+
+def test_new_region_material_defaults_matte():
+    from mini_highlight_advisor.regions import Region
+    r = Region("X", _mask(), default_ramp(3), default_coverage(3))
+    assert r.material == "matte"

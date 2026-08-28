@@ -18,6 +18,7 @@ class RegionBook:
 
     whole_palette: list[PaintColor]
     whole_coverage: list[float]
+    whole_material: str = "matte"
     drawn: list[Region] = field(default_factory=list)
     selected: int = 0
 
@@ -49,6 +50,17 @@ class RegionBook:
             self.whole_coverage = coverage
         else:
             self.drawn[g - 1].coverage = coverage
+
+    def material_at(self, g: int) -> str:
+        self._check(g)
+        return self.whole_material if g == 0 else self.drawn[g - 1].material
+
+    def set_material_at(self, g: int, material: str) -> None:
+        self._check(g)
+        if g == 0:
+            self.whole_material = material
+        else:
+            self.drawn[g - 1].material = material
 
     def set_name_at(self, g: int, name: str) -> None:
         if g == 0:
