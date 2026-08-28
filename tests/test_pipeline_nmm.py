@@ -43,9 +43,15 @@ def test_nmm_region_rebands_from_geometry():
     # Same uniform light, but material="nmm" -> geometry drives banding -> many bands.
     n, mask = _dome()
     rgb = np.full((*mask.shape, 3), 120, np.uint8)
-    plan = plan_region(rgb, mask, _uniform_light(mask), "x", PAL, COV,
+    light = _uniform_light(mask)
+    plan = plan_region(rgb, mask, light, "x", PAL, COV,
                        edges=False, normals=n, material="nmm", nmm_horizon=0.5)
     assert len(np.unique(plan.bands[mask])) > 1
+    # Discriminating: NMM bands must differ from matte bands for the same geometry
+    # and same uniform light, proving the NMM light-swap is not a no-op.
+    plan_matte = plan_region(rgb, mask, light, "x", PAL, COV,
+                             edges=False, normals=n, material="matte")
+    assert not np.array_equal(plan.bands[mask], plan_matte.bands[mask])
 
 
 def test_nmm_is_light_independent():
@@ -73,7 +79,11 @@ def test_nmm_without_normals_falls_back_to_matte():
 
 
 def test_analyze_regions_per_region_material_isolation():
-    # Whole mini matte (flat bg, uniform light -> 1 band); drawn NMM region (dome -> many).
+    # The whole-mini leftover uses material="matte" while the drawn blade region uses
+    # material="nmm". With a dome normal field and uniform injected light, NMM
+    # derives banding from geometry. Rank-based banding always emits N bands for any
+    # light field, so the meaningful assertion is that NMM bands DIFFER from what the
+    # same dome geometry would produce under matte (i.e. the light-swap is not a no-op).
     n, dome = _dome()
     rgb = np.full((*dome.shape, 3), 120, np.uint8)
     alpha = np.full(dome.shape, 255, np.uint8)
@@ -83,3 +93,11 @@ def test_analyze_regions_per_region_material_isolation():
                           light_field=light, normal_field=n, whole_material="matte")
     blade_plan = next(p for p in res.plans if p.name == "Blade")
     assert len(np.unique(blade_plan.bands[blade_plan.sub_mask])) > 1
+    # Discriminating: NMM blade bands must differ from matte blade bands for the same
+    # dome geometry, proving per-region material isolation is not a no-op.
+    blade_matte = Region("BladeMatte", dome, PAL, COV, material="matte")
+    res_matte = analyze_regions(rgb, alpha, PAL, COV, [blade_matte], edges=False,
+                                light_field=light, normal_field=n, whole_material="matte")
+    blade_matte_plan = next(p for p in res_matte.plans if p.name == "BladeMatte")
+    assert not np.array_equal(blade_plan.bands[blade_plan.sub_mask],
+                              blade_matte_plan.bands[blade_matte_plan.sub_mask])
