@@ -54,7 +54,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
         cur = book.material_at(sel)
         choice = st.selectbox(
             f"Material — {book.names()[sel]}", ["Matte", "NMM"],
-            index=0 if cur == "matte" else 1, key=keys.MATERIAL,
+            index=0 if cur == "matte" else 1, key=keys.material(sel),
             help="NMM re-bands this region as non-metallic metal: it reads the "
                  "reflection of a virtual sky/ground off the surface normals. "
                  "PS mode only.")
