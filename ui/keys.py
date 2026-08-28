@@ -20,6 +20,8 @@ EDGE_SENS = "edge_sens"          # edge sensitivity slider
 RELIEF_CAP = "relief_cap"        # auto-reduce bands on flat regions checkbox
 PER_REGION_NORM = "per_region_norm"  # colored/painted mini toggle
 SHADES = "shades"                # recess shades checkbox (PS mode only)
+MATERIAL = "material_select"     # per-region material selector (PS mode only)
+NMM_HORIZON = "nmm_horizon"      # global NMM horizon slider (PS mode only)
 
 # --- photometric-stereo (PS) mode ---
 NORMALS = "ps_normals"           # decoded (H,W,3) unit normals in session

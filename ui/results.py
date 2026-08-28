@@ -48,6 +48,22 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                  "normals — the inverse of edge highlights. PS mode only; reuses "
                  "the edge-sensitivity slider.")
 
+    nmm_horizon = 0.5
+    if normal_field is not None:
+        sel = book.selected
+        cur = book.material_at(sel)
+        choice = st.selectbox(
+            f"Material — {book.names()[sel]}", ["Matte", "NMM"],
+            index=0 if cur == "matte" else 1, key=keys.MATERIAL,
+            help="NMM re-bands this region as non-metallic metal: it reads the "
+                 "reflection of a virtual sky/ground off the surface normals. "
+                 "PS mode only.")
+        book.set_material_at(sel, "nmm" if choice == "NMM" else "matte")
+        nmm_horizon = st.slider(
+            "Horizon height", 0.0, 1.0, 0.5, 0.05, key=keys.NMM_HORIZON,
+            help="Slide the virtual NMM horizon up (darker, more reflected ground) "
+                 "or down (brighter, more sky). Affects NMM regions only.")
+
     relief_cap = st.checkbox(
         "Auto-reduce bands on flat regions", value=True, key=keys.RELIEF_CAP,
         help="A flat region can't show every highlight band — cap it to what the "
@@ -87,7 +103,9 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                             per_region_norm=per_region_norm,
                             light_field=light_field,
                             normal_field=normal_field,
-                            shades=shades)
+                            shades=shades,
+                            nmm_horizon=nmm_horizon,
+                            whole_material=book.material_at(0))
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)
     st.subheader("Colour schemes — all regions")
