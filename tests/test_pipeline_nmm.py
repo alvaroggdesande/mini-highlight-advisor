@@ -26,6 +26,50 @@ def _uniform_light(mask, val=0.5):
     return np.full(mask.shape, val, np.float32)
 
 
+def _blob_with_detail(h=120, w=120):
+    """Smooth blob + fine surface detail — a stand-in for a real mini."""
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    cy = cx = (h - 1) / 2.0
+    r = (h - 1) / 2.0
+    dx = (xx - cx) / r
+    dy = (yy - cy) / r
+    mask = (dx * dx + dy * dy) <= 1.0
+    # ny carries detail in BOTH axes so R_y genuinely varies within each row.
+    nx = dx * 0.6 + 0.15 * np.sin(xx * 0.9)
+    ny = -dy * 0.6 + 0.12 * np.cos(yy * 0.9) + 0.12 * np.sin(xx * 0.7)
+    nz = np.sqrt(np.clip(1.0 - nx * nx - ny * ny, 0.01, None))
+    n = np.stack([nx, ny, nz], -1).astype(np.float32)
+    n[~mask] = np.array([0.0, 0.0, 1.0], np.float32)
+    return n, mask
+
+
+def test_nmm_bands_follow_surface_detail_not_raster_rows():
+    # Regression for the "flat horizontal stripes" bug: a near-binary nmm_light
+    # made rank banding fall back to raster (row) order, so every row was a single
+    # band — flat horizontal image stripes. With genuine within-row surface detail,
+    # that detail must push neighbouring pixels in the same row into DIFFERENT
+    # bands. (The reflection-environment model is vertical-dominant by design, so we
+    # assert the achievable, discriminating property: most rows span >=2 bands. The
+    # degenerate near-binary field produced far fewer.)
+    n, mask = _blob_with_detail()
+    rgb = np.full((*mask.shape, 3), 120, np.uint8)
+    plan = plan_region(rgb, mask, _uniform_light(mask), "x", PAL, COV,
+                       edges=False, normals=n, material="nmm")
+    bands = plan.bands
+    multi_band_rows = 0
+    occupied_rows = 0
+    for row in range(bands.shape[0]):
+        vals = np.unique(bands[row][mask[row]])
+        if vals.size == 0:
+            continue
+        occupied_rows += 1
+        if vals.size >= 2:
+            multi_band_rows += 1
+    frac = multi_band_rows / max(occupied_rows, 1)
+    assert frac > 0.5, (
+        f"bands look like horizontal stripes: only {frac:.0%} of rows span >=2 bands")
+
+
 def test_matte_region_bands_from_passed_light():
     # material="matte" is a no-op: bands must equal those from the default call (no
     # material kwarg). NMM code path is NOT taken regardless of normals being present.

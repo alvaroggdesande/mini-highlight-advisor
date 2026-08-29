@@ -73,3 +73,46 @@ def test_degenerate_all_zero_normals_is_flat_not_crash():
     out = materials.nmm_light(n, m)
     assert out.shape == (10, 10)
     assert np.all(np.isfinite(out))
+
+
+def _blob_with_detail(h=120, w=120):
+    """A smooth convex blob PLUS fine surface detail (bumps) — a stand-in for a
+    real mini, whose NMM banding must follow the surface, not raster rows."""
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    cy = cx = (h - 1) / 2.0
+    r = (h - 1) / 2.0
+    dx = (xx - cx) / r
+    dy = (yy - cy) / r
+    mask = (dx * dx + dy * dy) <= 1.0
+    # ny carries detail in BOTH axes (cos in row, sin in column) so R_y — and
+    # therefore the NMM brightness — genuinely varies within each row, not only
+    # top-to-bottom.
+    nx = dx * 0.6 + 0.15 * np.sin(xx * 0.9)
+    ny = -dy * 0.6 + 0.12 * np.cos(yy * 0.9) + 0.12 * np.sin(xx * 0.7)
+    nz = np.sqrt(np.clip(1.0 - nx * nx - ny * ny, 0.01, None))
+    n = np.stack([nx, ny, nz], -1).astype(np.float32)
+    n[~mask] = np.array([0.0, 0.0, 1.0], np.float32)
+    return n, mask
+
+
+def test_nmm_light_is_not_near_binary():
+    # Regression: a hard smoothstep horizon saturated R_y into two big tied
+    # clusters (~0 and ~1), discarding geometry. The field must instead carry a
+    # smooth gradient — most pixels strictly between the extremes.
+    n, m = _blob_with_detail()
+    out = materials.nmm_light(n, m)                       # defaults
+    vals = out[m]
+    intermediate = np.mean((vals > 0.02) & (vals < 0.98))
+    assert intermediate > 0.5, f"near-binary field: only {intermediate:.0%} intermediate"
+
+
+def test_nmm_light_is_strictly_monotonic_in_reflection():
+    # The banding degeneracy (raster-order horizontal stripes) came from large
+    # tied clusters. Guard it at the source: distinct R_y values must map to
+    # distinct brightness (no saturation plateaus), so banding rank == geometry
+    # rank. We assert a high fraction of unique output values inside the mask.
+    n, m = _blob_with_detail()
+    out = materials.nmm_light(n, m)
+    vals = out[m]
+    unique_frac = len(np.unique(vals)) / vals.size
+    assert unique_frac > 0.5, f"too many tied values: unique fraction {unique_frac:.0%}"
