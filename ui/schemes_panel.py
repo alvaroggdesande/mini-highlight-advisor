@@ -32,7 +32,7 @@ def render() -> None:
     stored = st.session_state.setdefault(keys.SCHEMES, [])
     with st.expander("🎨 Schemes — save & swap colour setups", expanded=False):
         name = st.text_input("Scheme name", key="scheme_save_name")
-        if st.button("＋ Save current as scheme", type="primary"):
+        if st.button("＋ Save current as scheme", type="primary", key="scheme_save_btn"):
             clean = name.strip()
             if not clean:
                 st.warning("Give the scheme a name.")
@@ -56,7 +56,7 @@ def render() -> None:
         chosen = stored[names.index(pick)]
 
         c_apply, c_del = st.columns(2)
-        if c_apply.button("Apply", type="primary"):
+        if c_apply.button("Apply", type="primary", key="scheme_apply_btn"):
             report = sch.apply(chosen, book)
             _reseed_editor_widgets()
             if report.skipped_regions:
@@ -64,13 +64,13 @@ def render() -> None:
                     f"{len(report.updated)} region(s) updated — no saved colour "
                     f"for: {', '.join(report.skipped_regions)}")
             st.rerun()
-        if c_del.button("Delete"):
+        if c_del.button("Delete", key="scheme_delete_btn"):
             stored.remove(chosen)
             st.session_state.pop("scheme_pick", None)
             st.rerun()
 
         new_name = st.text_input("Rename selected", value=pick, key="scheme_rename")
-        if st.button("Rename"):
+        if st.button("Rename", key="scheme_rename_btn"):
             clean = new_name.strip()
             if not clean or clean == pick:
                 pass
