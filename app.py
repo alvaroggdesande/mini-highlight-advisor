@@ -6,7 +6,7 @@ from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
     angles_panel, editor, gallery_panel, helpers, keys, paints_tab,
-    projects_panel, ps_mode, state,
+    projects_panel, ps_mode, schemes_panel, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -70,6 +70,7 @@ with tab_mini:
 
         editor.render_editor(rgb, alpha, shading, book, picked, owned_paints)
 
+        schemes_panel.render()
         projects_panel.render_save()
     except Exception as e:
         st.error("Error processing image — see traceback below.")

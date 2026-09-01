@@ -43,6 +43,7 @@ LOADED_PHOTO = "loaded_photo"          # {"bytes":..., "suffix":...} for a loade
 LOADED_NAME = "loaded_project_name"    # display name of the loaded project (save default)
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
+SCHEMES = "schemes"                    # list[Scheme] in session
 
 # --- angles (multi-angle view) ---
 ANGLES = "angles"                # list[AngleData] in session: the angle records
