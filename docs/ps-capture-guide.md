@@ -1,6 +1,8 @@
 # Photometric Stereo Capture Guide
 
-This guide tells you how to photograph a primed miniature so that the highlight advisor can recover its fine surface detail (helmet ridges, pauldron tops, recesses) and plan your highlights accordingly.
+This guide tells you how to photograph a miniature so that the highlight advisor can recover its fine surface detail (helmet ridges, pauldron tops, recesses) and plan your highlights accordingly.
+
+The protocol is the same whether the mini is primed or already painted. For painted minis, see the extra notes below each section — the main difference is that colour variation across the surface can interfere with masking, so shooting extra frames and noting your paint colours before you start saves time later.
 
 **What you need:**
 - One primed mini (grey or black primer)
@@ -22,6 +24,12 @@ This guide tells you how to photograph a primed miniature so that the highlight 
 - [ ] **Light source ready.** A bright LED, phone torch (held by hand or on a clip), or desk lamp will do. Dim the room lights if possible so one clear light direction dominates each shot.
 - [ ] **Exposure locked.** If your phone has an exposure lock feature, use it. All shots should be similarly bright — no HDR, no automatic adjustment between frames.
 - [ ] **Flash off.** Turn off the camera flash.
+
+**For painted minis — write down your paints first.** Before you shoot, note the dominant mid-tone paint you used per main area (robe, armour, skin, base, etc.). You don't need every layer — just one paint name per region. Example:
+
+> Robe: Kantor Blue · Armour: Ironbreaker · Skin: Kislev Flesh · Base rim: Mournfang Brown
+
+This takes two minutes and gives you a ground truth to compare against the recovered albedo map later. Without it you can't tell whether the colours the tool extracted are accurate.
 
 ---
 
@@ -69,6 +77,16 @@ Black primer has less light to work with — use a brighter light source and a s
 
 **Pro tip:** If you can, shoot two separate sets — one of a grey-primed test mini and one of your actual black-primed mini. The grey set is easier to diagnose; the black set is the real goal.
 
+## For Painted Minis
+
+A painted mini adds two complications that don't exist on a plain primer:
+
+**Dark areas.** Dark-painted areas (black undercoat still showing, dark armour plates, deep shading) behave like black primer — the light has less to work with. Check that those areas are catching light in at least half your shots before moving on. If a recess is dark in every shot, move the light to rake across it at least once.
+
+**Colour variation interferes with masking.** The masking step uses the edge contrast between the mini and the background. Strong colour variation across the painted surface can confuse it, causing more frames to be dropped. Shoot **8 frames rather than 6** so that losing 1–2 still leaves you above the 4-frame minimum.
+
+Everything else — fixed camera, moved light, locked exposure, plain background — is identical to a primed mini.
+
 ---
 
 ## Background and Masking
@@ -103,12 +121,12 @@ The tool will automatically remove the background using the contrast between the
 
 4. **Import the bundle into the app.** In the highlight advisor:
    - Choose **Import normal map (photometric stereo)**.
-   - Upload the two files the tool produced: `normal.png` and `mask.png`.
-   - Drag the virtual light to place your highlights, then work the plan exactly
-     as in photo mode.
+   - Upload the files the tool produced: `normal.png`, `mask.png`, and (if present) `albedo.png`.
+   - If `albedo.png` is included, the app renders the coloured base of your actual paint job instead of a flat grey. Drag the virtual light to place your highlights, then work the plan exactly as in photo mode.
 
-   > The app itself does **not** run the recovery — it only imports the finished
-   > `normal.png` + `mask.png` bundle. Uploading raw frames here will not work.
+   > The app itself does **not** run the recovery — it only imports the finished bundle. Uploading raw frames here will not work.
+
+   **For painted minis — check the albedo.** Before continuing, open `albedo.png` in any image viewer. Each painted area should show roughly its flat mid-tone colour with no shading gradient across it. If the robe area looks blue (not lighter-blue on top, darker-blue below), the albedo extraction worked. If you see a strong light-to-dark gradient, the shading wasn't fully separated — note it and compare against the paint list you wrote before shooting.
 
 5. **If frames are dropped:** The tool may discard 1–2 frames if the background masking was inconsistent or the lighting was too similar to a nearby frame. **Shoot 6–8 frames, not 4–5**, so that losing a couple still leaves you above the 4-frame minimum.
 
