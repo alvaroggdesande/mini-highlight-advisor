@@ -251,7 +251,7 @@ def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:
     for d in m.get("schemes", []):
         try:
             schemes.append(_scheme_from_dict(d))
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, ValueError):
             continue
     return LoadedProject(paints_pool=list(m.get("paints_pool", [])),
                          active_angle=active, angles=angles, schemes=schemes)

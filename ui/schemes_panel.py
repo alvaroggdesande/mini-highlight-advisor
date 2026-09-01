@@ -10,7 +10,7 @@ from ui import keys
 
 def _active_book():
     # PS mode keeps its own book; prefer it when present, else the photo book.
-    # VERIFY against app.py's mode gate before trusting in PS mode (Step 4).
+    # Panel only renders in photo mode (app.py's PS branch calls st.stop() first).
     return st.session_state.get(keys.PS_BOOK) or st.session_state.get(keys.BOOK)
 
 
@@ -21,7 +21,7 @@ def _reseed_editor_widgets() -> None:
     st.session_state.pop(keys.COV_N, None)
     for k in [k for k in list(st.session_state)
               if k.startswith("slot_code_") or k.startswith("slot_hex_")
-              or k.startswith("cov_pct_")]:
+              or k.startswith("slot_hexinput_") or k.startswith("cov_pct_")]:
         st.session_state.pop(k, None)
 
 
@@ -70,10 +70,16 @@ def render() -> None:
             st.rerun()
 
         new_name = st.text_input("Rename selected", value=pick, key="scheme_rename")
-        if st.button("Rename") and new_name.strip() and new_name.strip() != pick:
-            chosen.name = new_name.strip()
-            st.session_state.pop("scheme_pick", None)
-            st.rerun()
+        if st.button("Rename"):
+            clean = new_name.strip()
+            if not clean or clean == pick:
+                pass
+            elif any(s.name == clean for s in stored if s is not chosen):
+                st.warning(f'A scheme named "{clean}" already exists.')
+            else:
+                chosen.name = clean
+                st.session_state.pop("scheme_pick", None)
+                st.rerun()
 
         note = st.session_state.pop("_scheme_note", None)
         if note:
