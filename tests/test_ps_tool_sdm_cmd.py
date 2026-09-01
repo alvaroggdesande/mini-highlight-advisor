@@ -33,3 +33,9 @@ def test_scan_extension_and_prefix_match_prepared_layout():
         Path("out/prepared.data"), Path("ckpt"), "/abs/session", "/abs/main.py")
     assert _arg(cmd, "--test_ext") == ".data"     # prepared dir is *.data
     assert _arg(cmd, "--test_prefix") == "L*"     # frames are L_*.png
+
+
+def test_sdm_cmd_target_is_normal_and_brdf():
+    cmd = ps_tool._build_sdm_cmd(
+        Path("out/prepared.data"), Path("ckpt"), "/abs/session", "/abs/main.py")
+    assert _arg(cmd, "--target") == "normal_and_brdf"

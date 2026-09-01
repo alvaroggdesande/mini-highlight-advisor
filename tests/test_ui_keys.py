@@ -36,3 +36,7 @@ def test_ps_keys_present_and_frozen():
     assert keys.LIGHT_EL == "light_el"
     assert keys.NORMALS == "ps_normals"
     assert keys.PS_MASK == "ps_mask"
+
+
+def test_ps_albedo_key_is_frozen():
+    assert keys.PS_ALBEDO == "ps_albedo"

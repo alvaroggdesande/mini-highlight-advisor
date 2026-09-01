@@ -25,6 +25,7 @@ NMM_HORIZON = "nmm_horizon"      # global NMM horizon slider (PS mode only)
 # --- photometric-stereo (PS) mode ---
 NORMALS = "ps_normals"           # decoded (H,W,3) unit normals in session
 PS_MASK = "ps_mask"              # (H,W) bool foreground mask from the imported bundle
+PS_ALBEDO = "ps_albedo"          # (H,W,3) float32 albedo from imported bundle, or None
 PS_BOOK = "ps_book"              # RegionBook for PS mode, kept separate from the
                                  # photo-mode BOOK so switching modes can't apply a
                                  # photo-sized region to the PS mask (shape mismatch)

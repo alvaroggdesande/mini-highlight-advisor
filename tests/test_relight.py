@@ -66,3 +66,73 @@ def test_plausible_unit_normals_accepts_fixture_rejects_blank():
     blank = np.zeros_like(good)                   # decodes to all [-1,-1,-1], degenerate
     assert relight.plausible_unit_normals(good, m) is True
     assert relight.plausible_unit_normals(blank, m) is False
+
+
+def test_relight_no_albedo_is_grey_byte_identical():
+    # Regression lock: albedo=None must match the current ALBEDO-constant path.
+    m = np.ones((8, 8), bool)
+    normals = np.zeros((8, 8, 3), np.float32); normals[..., 2] = 1.0
+    light = relight.light_dir(0, 90)
+    lf1, base1 = relight.relight(normals, m, light)
+    lf2, base2 = relight.relight(normals, m, light, albedo=None)
+    np.testing.assert_array_equal(base1, base2)
+
+
+def test_relight_with_albedo_colours_the_base():
+    # A red albedo must produce a red-tinted base, not grey.
+    m = np.ones((8, 8), bool)
+    normals = np.zeros((8, 8, 3), np.float32); normals[..., 2] = 1.0
+    albedo = np.zeros((8, 8, 3), np.float32); albedo[..., 0] = 1.0   # pure red
+    lf, base = relight.relight(normals, m, relight.light_dir(0, 90), albedo=albedo)
+    # Red channel should be non-zero; green and blue must be zero on-mask
+    assert base[m, 0].mean() > 0
+    assert np.all(base[m, 1] == 0)
+    assert np.all(base[m, 2] == 0)
+
+
+def test_relight_with_albedo_off_mask_is_zero():
+    m = np.zeros((8, 8), bool); m[2:6, 2:6] = True
+    normals = np.zeros((8, 8, 3), np.float32); normals[..., 2] = 1.0
+    albedo = np.ones((8, 8, 3), np.float32) * 0.5
+    lf, base = relight.relight(normals, m, relight.light_dir(0, 90), albedo=albedo)
+    assert np.all(base[~m] == 0)
+
+
+def test_relight_albedo_shape_mismatch_raises():
+    normals = np.zeros((8, 8, 3), np.float32); normals[..., 2] = 1.0
+    m = np.ones((8, 8), bool)
+    wrong_albedo = np.ones((4, 4, 3), np.float32)
+    try:
+        relight.relight(normals, m, relight.light_dir(0, 90), albedo=wrong_albedo)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_albedo_returns_float32_in_0_1(tmp_path):
+    # Write a synthetic RGB PNG, load it back, check dtype and range.
+    arr = np.array([[[200, 100, 50]]], dtype=np.uint8)
+    PILImage = Image
+    PILImage.fromarray(arr).save(tmp_path / "albedo.png")
+    out = relight.load_albedo(str(tmp_path / "albedo.png"))
+    assert out.dtype == np.float32
+    assert out.shape == (1, 1, 3)
+    assert np.allclose(out[0, 0], [200/255, 100/255, 50/255], atol=1/255)
+
+
+def test_plausible_albedo_accepts_reasonable():
+    m = np.ones((8, 8), bool)
+    albedo = np.ones((8, 8, 3), np.float32) * 0.5
+    assert relight.plausible_albedo(albedo, m) is True
+
+
+def test_plausible_albedo_rejects_all_zero_foreground():
+    m = np.ones((8, 8), bool)
+    albedo = np.zeros((8, 8, 3), np.float32)   # all black
+    assert relight.plausible_albedo(albedo, m) is False
+
+
+def test_plausible_albedo_rejects_wrong_shape():
+    m = np.ones((8, 8), bool)
+    albedo = np.ones((8, 8), np.float32)        # missing channel dim
+    assert relight.plausible_albedo(albedo, m) is False

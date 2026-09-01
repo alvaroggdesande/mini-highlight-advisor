@@ -15,6 +15,8 @@ Output layout (out_dir/):
   normal.png   -- RGB-encoded unit normals in the PINNED convention:
                   R=x-right, G=y-up, B=z-toward-viewer; n = rgb/255*2-1
   mask.png     -- foreground mask (bool, same WxH as normal.png)
+  albedo.png   -- RGB-encoded diffuse colour from BRDF head (same WxH as normal.png);
+                  always written (BRDF is always-on)
   report.txt   -- frames used/dropped, per-frame IoUs, lighting std; always
                   written even on abort so the gate can inspect failures.
 """
@@ -218,7 +220,7 @@ def _build_sdm_cmd(prepared_dir, checkpoint, session_name, vendor_main) -> list:
     return [
         sys.executable, str(vendor_main),
         "--session_name", str(session_name),
-        "--target", "normal",
+        "--target", "normal_and_brdf",
         "--checkpoint", str(Path(checkpoint).resolve()),
         "--test_dir", test_dir,
         "--test_ext", ".data",
@@ -228,11 +230,12 @@ def _build_sdm_cmd(prepared_dir, checkpoint, session_name, vendor_main) -> list:
     ]
 
 
-def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
-    """Invoke vendored SDM-UniPS inference; return (H, W, 3) float normals.
+def _run_sdm_unips(prepared_dir: Path, checkpoint: Path):
+    """Invoke vendored SDM-UniPS inference; return (normals, albedo).
 
-    Returns: unit-normal array in SDM-UniPS native convention (pre-flip).
-             Values in [-1, +1]; off-mask pixels are zero.
+    normals: (H,W,3) float32 unit normals in SDM-UniPS native convention (pre-flip).
+    albedo:  (H,W,3) float32 diffuse colour in [0,1] RGB, or None if baseColor.png
+             was not produced (defensive — should not happen with normal_and_brdf).
 
     Implementation choice — subprocess over direct import:
         SDM-UniPS's main.py uses `sys.path.append('..')` relative to its own
@@ -249,8 +252,8 @@ def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
         prepared_dir: path to the <object>.data dir (contains L_*.png + mask.png).
                       Its PARENT is used as `--test_dir` (SDM-UniPS scans for
                       *.data dirs inside test_dir).
-        checkpoint:   path to the checkpoint DIRECTORY (contains normal/ subdir
-                      with the .pytmodel file).
+        checkpoint:   path to the checkpoint DIRECTORY (contains normal/ and brdf/
+                      subdirs with their .pytmodel files).
     """
     objname = prepared_dir.name  # e.g. "prepared.data"
 
@@ -274,7 +277,8 @@ def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
             )
 
         # SDM-UniPS writes: <session_name>/results/<objname>/normal.png
-        normal_path = Path(session_name) / "results" / objname / "normal.png"
+        results_dir = Path(session_name) / "results" / objname
+        normal_path = results_dir / "normal.png"
         if not normal_path.exists():
             raise RuntimeError(
                 f"SDM-UniPS finished but normal.png not found at {normal_path}. "
@@ -293,7 +297,19 @@ def _run_sdm_unips(prepared_dir: Path, checkpoint: Path) -> np.ndarray:
         # Decode: n = rgb/255*2 - 1  (same formula as relight._decode)
         img = np.asarray(Image.open(normal_path).convert("RGB"), dtype=np.float32)
         normals = img / 255.0 * 2.0 - 1.0  # (H, W, 3) in [-1, 1]
-        return normals
+
+        # Decode albedo: baseColor.png is written by SDM via cv2.imwrite (BGR);
+        # Pillow reads it as RGB — no channel flip needed, just / 255 decode.
+        albedo = None
+        bc_path = results_dir / "baseColor.png"
+        if bc_path.exists():
+            albedo = np.asarray(Image.open(bc_path).convert("RGB"),
+                                dtype=np.float32) / 255.0
+            print(f"[ps_tool] albedo recovered — mean RGB {albedo.mean(axis=(0,1)).round(3)}")
+        else:
+            print("[ps_tool] WARNING: baseColor.png not produced — albedo will be absent")
+
+        return normals, albedo
 
 
 # ---------------------------------------------------------------------------
@@ -325,20 +341,25 @@ def _check_runtime_env() -> None:
 
 
 def _check_checkpoint(checkpoint: Path) -> None:
-    """The --checkpoint arg must be the unzipped checkpoint DIRECTORY containing a
-    normal/ subdir. Guards against the README placeholder path and pointing at a
-    .pytmodel file or the wrong level."""
-    if not checkpoint.is_dir():
+    """The --checkpoint arg must be the unzipped checkpoint DIRECTORY containing
+    normal/ and brdf/ subdirs. Guards against the README placeholder path and
+    pointing at a .pytmodel file or the wrong level."""
+    if not checkpoint.exists() or not checkpoint.is_dir():
         raise PreflightError(
-            f"--checkpoint is not a directory: {checkpoint}\n"
-            "  It must be the unzipped checkpoint/ directory (with a normal/ "
-            "subdir), not a placeholder path or a .pytmodel file. "
-            "See tools/README-ps.md for the download.")
+            f"--checkpoint does not exist or is not a directory: {checkpoint}\n"
+            "  Point it at the unzipped checkpoint/ directory itself (which "
+            "contains normal/ and brdf/), not a parent or child of it.")
     if not (checkpoint / "normal").is_dir():
         raise PreflightError(
             f"--checkpoint has no 'normal/' subdir: {checkpoint}\n"
-            "  Point it at the unzipped checkpoint/ directory itself (which "
+            "  It must be the unzipped checkpoint/ directory (which "
             "contains normal/), not a parent or child of it.")
+    if not (checkpoint / "brdf").is_dir():
+        raise PreflightError(
+            f"--checkpoint has no 'brdf/' subdir: {checkpoint}\n"
+            "  The BRDF checkpoint is required (ps_tool always runs normal_and_brdf). "
+            "  It must be the unzipped checkpoint/ directory (which contains both "
+            "  normal/ and brdf/).")
 
 
 def _preflight(checkpoint: Path) -> None:
@@ -352,12 +373,12 @@ def _preflight(checkpoint: Path) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Phone photometric stereo: frames dir -> normal.png/mask.png/report.txt"
+        description="Phone photometric stereo: frames dir -> normal.png/mask.png/albedo.png/report.txt"
     )
     ap.add_argument("--frames", required=True, type=Path,
                     help="Directory of capture frames (L_01.png … or any *.png/*.jpg).")
     ap.add_argument("--checkpoint", required=True, type=Path,
-                    help="SDM-UniPS checkpoint DIRECTORY (contains normal/ subdir).")
+                    help="SDM-UniPS checkpoint DIRECTORY (contains normal/ and brdf/ subdirs).")
     ap.add_argument("--out", required=True, type=Path,
                     help="Output directory; will be created if needed.")
     args = ap.parse_args()
@@ -397,7 +418,7 @@ def main() -> int:
         _write_prepared_dir(prepared, a_frames, mask)
 
         # 7. Run SDM-UniPS inference (subprocess into vendor/sdm_unips/)
-        normals_sdm = _run_sdm_unips(prepared, args.checkpoint)   # (H,W,3), SDM convention
+        normals_sdm, albedo = _run_sdm_unips(prepared, args.checkpoint)
 
         # 8. Convention flip: SDM y-DOWN -> pinned y-UP
         normals = _to_pinned_convention(normals_sdm)               # still (H,W,3)
@@ -413,6 +434,9 @@ def main() -> int:
 
         Image.fromarray(encode_normals(normals)).save(args.out / "normal.png")
         Image.fromarray(mask_u8).save(args.out / "mask.png")
+        if albedo is not None:
+            albedo_u8 = np.clip(albedo * 255, 0, 255).astype(np.uint8)
+            Image.fromarray(albedo_u8).save(args.out / "albedo.png")
 
         report_path.write_text(
             f"frames used: {[paths[i].name for i in kept]}\n"
