@@ -160,6 +160,50 @@ def test_load_project_clamps_out_of_range_active_angle(tmp_path):
     assert lp.active_angle == 1   # clamped to len(angles)-1 = 1
 
 
+def test_material_round_trips(tmp_path):
+    """Material (matte/nmm) survives save/load; old manifests without 'material' default to matte."""
+    import numpy as np
+    from mini_highlight_advisor.region_state import RegionBook
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+
+    book = _whole_book()
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Blade", default_ramp(5), default_coverage(5))
+    book.set_material_at(1, "nmm")   # drawn region -> nmm
+    book.set_material_at(0, "matte") # whole mini -> matte (explicit)
+
+    angles = [_angle("front", b"PHOTO", book=book)]
+    slug = projects.save_project("Material Test", [], 0, angles, root=tmp_path)
+    lp = projects.load_project(slug, root=tmp_path)
+    reloaded = lp.angles[0].book
+    assert reloaded.material_at(1) == "nmm",  "drawn region material must survive round-trip"
+    assert reloaded.material_at(0) == "matte", "whole-mini material must survive round-trip"
+
+
+def test_drawn_region_material_defaults_to_matte_when_key_absent(tmp_path):
+    """_read_angle's d.get("material", "matte") for drawn regions must default when key missing."""
+    import json
+    import numpy as np
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+
+    book = _whole_book()
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Blade", default_ramp(5), default_coverage(5))
+    book.set_material_at(1, "nmm")   # set explicitly so the key is written
+
+    angles = [_angle("front", b"PHOTO", book=book)]
+    slug = projects.save_project("Material Default", [], 0, angles, root=tmp_path)
+
+    # Surgically remove the "material" key from the drawn region's dict in manifest.json
+    mpath = tmp_path / slug / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    del manifest["angles"][0]["book"]["drawn"][0]["material"]
+    mpath.write_text(json.dumps(manifest), encoding="utf-8")
+
+    lp = projects.load_project(slug, root=tmp_path)
+    assert lp.angles[0].book.material_at(1) == "matte"
+
+
 def test_angle_write_read_roundtrip_bit_identical(tmp_path):
     from mini_highlight_advisor.region_state import RegionBook
     from mini_highlight_advisor.regions import Region

@@ -14,6 +14,7 @@ class Region:
     mask: np.ndarray                 # source-resolution bool
     palette: list[PaintColor]
     coverage: list[float]            # len == len(palette), sums to ~1.0
+    material: str = "matte"          # "matte" (default) | "nmm"
 
 
 def assign_owners(base_mask: np.ndarray, region_masks: list[np.ndarray]) -> np.ndarray:

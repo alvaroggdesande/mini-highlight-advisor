@@ -117,13 +117,15 @@ def _write_angle(project_dir: Path, idx: int, a: AngleData) -> dict:
         mask_file = f"region_{i:02d}.png"
         _write_mask(angle_dir / mask_file, r.mask)
         drawn.append({"name": r.name, "palette": _palette_to_dicts(r.palette),
-                      "coverage": list(r.coverage), "mask_file": mask_file})
+                      "coverage": list(r.coverage), "mask_file": mask_file,
+                      "material": r.material})
     return {
         "label": a.label,
         "photo_file": photo_file,
         "settings": _settings_to_dict(a.settings),
         "book": {"whole": {"palette": _palette_to_dicts(a.book.whole_palette),
-                           "coverage": list(a.book.whole_coverage)},
+                           "coverage": list(a.book.whole_coverage),
+                           "material": a.book.whole_material},
                  "drawn": drawn, "selected": a.book.selected},
     }
 
@@ -135,11 +137,13 @@ def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
     b = entry["book"]
     drawn = [
         Region(name=d["name"], mask=_read_mask(angle_dir / d["mask_file"]),
-               palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]))
+               palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]),
+               material=d.get("material", "matte"))
         for d in b["drawn"]
     ]
     book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
                       whole_coverage=list(b["whole"]["coverage"]),
+                      whole_material=b["whole"].get("material", "matte"),
                       drawn=drawn, selected=b["selected"])
     return AngleData(label=entry["label"], photo_bytes=photo_bytes,
                      photo_suffix=photo_suffix, book=book,
@@ -200,11 +204,13 @@ def _adapt_v1(m: dict, project_dir: Path) -> LoadedProject:
     b = m["book"]
     drawn = [
         Region(name=d["name"], mask=_read_mask(project_dir / d["mask_file"]),
-               palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]))
+               palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]),
+               material=d.get("material", "matte"))
         for d in b["drawn"]
     ]
     book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
                       whole_coverage=list(b["whole"]["coverage"]),
+                      whole_material=b["whole"].get("material", "matte"),
                       drawn=drawn, selected=b["selected"])
     angle = AngleData(label=m.get("name", "angle 1"), photo_bytes=photo_bytes,
                       photo_suffix=photo_suffix, book=book,

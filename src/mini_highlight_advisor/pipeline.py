@@ -18,6 +18,7 @@ from .overlay import (
 )
 from .palette import PaintColor, coverage_pct, default_coverage, role_names
 from .regions import Region, assign_owners
+from . import materials
 
 WHOLE_MINI = "Whole mini"
 _SHADE_DARKEN = 0.55   # recess shade = darkest palette paint glazed this much darker
@@ -123,7 +124,13 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 edge_sensitivity: float = 0.5,
                 relief_cap: bool = False, flat_albedo: bool = False,
                 normals: np.ndarray | None = None,
-                shades: bool = False) -> RegionPlan:
+                shades: bool = False,
+                material: str = "matte", nmm_horizon: float = 0.5) -> RegionPlan:
+    if material == "nmm" and normals is not None:
+        # Metal is a mirror: re-band from the reflection environment, not the
+        # caught/relit light. Geometry (not the virtual light) places the NMM
+        # horizon. normals absent -> silently stay matte (defense in depth).
+        light = materials.nmm_light(normals, sub_mask, horizon=nmm_horizon)
     requested_bands = len(palette)
     capped = False
     if flat_albedo:
@@ -180,7 +187,9 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     per_region_norm: bool = False,
                     light_field: np.ndarray | None = None,
                     normal_field: np.ndarray | None = None,
-                    shades: bool = False) -> MultiRegionResult:
+                    shades: bool = False,
+                    nmm_horizon: float = 0.5,
+                    whole_material: str = "matte") -> MultiRegionResult:
     regions = regions or []
     if normal_field is not None:
         if (normal_field.ndim != 3 or normal_field.shape[2] != 3
@@ -203,7 +212,8 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     plans: list[RegionPlan] = []
     default_sub = owner == -1
     ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
-               relief_cap=relief_cap, normals=normal_field, shades=shades)
+               relief_cap=relief_cap, normals=normal_field, shades=shades,
+               nmm_horizon=nmm_horizon)
 
     gray = _clahe_gray(rgb) if per_region_norm else None
 
@@ -216,13 +226,14 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     if default_sub.any():
         lgt, flat = _region_light(default_sub)
         plans.append(plan_region(rgb, default_sub, lgt, WHOLE_MINI, default_palette,
-                                 coverage, flat_albedo=flat, **ekw))
+                                 coverage, flat_albedo=flat,
+                                 material=whole_material, **ekw))
     for i, r in enumerate(regions):
         sub = owner == i
         if not sub.any():
             continue
         lgt, flat = _region_light(sub)
         plans.append(plan_region(rgb, sub, lgt, r.name, r.palette, r.coverage,
-                                 flat_albedo=flat, **ekw))
+                                 flat_albedo=flat, material=r.material, **ekw))
     combined = paint_regions(rgb, plans)
     return MultiRegionResult(mask, light, plans, combined)
