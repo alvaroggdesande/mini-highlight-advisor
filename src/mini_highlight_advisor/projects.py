@@ -15,10 +15,11 @@ from PIL import Image
 from .palette import PaintColor
 from .region_state import RegionBook
 from .regions import Region
+from .schemes import Scheme
 
 PROJECTS_DIR = Path(__file__).resolve().parents[2] / "user_data" / "projects"
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,18 @@ def _palette_from_dicts(items: list[dict]) -> list[PaintColor]:
     ]
 
 
+def _scheme_to_dict(s: Scheme) -> dict:
+    return {"name": s.name, "anchor": s.anchor,
+            "palettes": {region: _palette_to_dicts(pal)
+                         for region, pal in s.palettes.items()}}
+
+
+def _scheme_from_dict(d: dict) -> Scheme:
+    return Scheme(name=d["name"], anchor=d.get("anchor"),
+                  palettes={region: _palette_from_dicts(items)
+                            for region, items in d["palettes"].items()})
+
+
 def _write_mask(path: Path, mask: np.ndarray) -> None:
     Image.fromarray(np.asarray(mask, dtype=bool)).save(path)
 
@@ -76,6 +89,7 @@ class LoadedProject:
     paints_pool: list[str]
     active_angle: int
     angles: list[AngleData]
+    schemes: list[Scheme]
 
 
 def _now_iso() -> str:
@@ -150,7 +164,7 @@ def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
                      settings=_settings_from_dict(entry["settings"]))
 
 
-def save_project(name, paints_pool, active_angle, angles,
+def save_project(name, paints_pool, active_angle, angles, schemes=None,
                  root: Path = PROJECTS_DIR, _now: str | None = None) -> str:
     slug = slugify(name)
     root = Path(root)
@@ -167,6 +181,7 @@ def save_project(name, paints_pool, active_angle, angles,
         "created_at": now, "updated_at": now,
         "paints_pool": list(paints_pool), "active_angle": active_angle,
         "angles": angle_entries,
+        "schemes": [_scheme_to_dict(s) for s in (schemes or [])],
     }
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     shutil.rmtree(dest, ignore_errors=True)
@@ -215,7 +230,7 @@ def _adapt_v1(m: dict, project_dir: Path) -> LoadedProject:
     angle = AngleData(label=m.get("name", "angle 1"), photo_bytes=photo_bytes,
                       photo_suffix=photo_suffix, book=book,
                       settings=_settings_from_dict(m["settings"]))
-    return LoadedProject(paints_pool=[], active_angle=0, angles=[angle])
+    return LoadedProject(paints_pool=[], active_angle=0, angles=[angle], schemes=[])
 
 
 def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:
@@ -232,8 +247,14 @@ def load_project(slug: str, root: Path = PROJECTS_DIR) -> LoadedProject:
         active = min(max(0, active), len(angles) - 1)
     else:
         active = 0
+    schemes = []
+    for d in m.get("schemes", []):
+        try:
+            schemes.append(_scheme_from_dict(d))
+        except (KeyError, TypeError):
+            continue
     return LoadedProject(paints_pool=list(m.get("paints_pool", [])),
-                         active_angle=active, angles=angles)
+                         active_angle=active, angles=angles, schemes=schemes)
 
 
 def next_active_index(active: int, removed: int, count_before: int) -> int:
