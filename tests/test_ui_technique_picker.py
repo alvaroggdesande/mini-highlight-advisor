@@ -12,57 +12,25 @@ FIX = Path("tests/fixtures/ps")
 # --- Simple-image mode harness (no normal_field) ---
 HARNESS_PHOTO = """
 import streamlit as st
-import numpy as np
 from mini_highlight_advisor.region_state import new_book
 from ui import results, keys
-
-# Minimal shading stub
-class _Shading:
-    mask = np.ones((8, 8), dtype=bool)
-    light = np.full((8, 8), 0.5, dtype=np.float32)
-
-rgb   = np.zeros((8, 8, 3), dtype=np.uint8)
-alpha = np.full((8, 8), 255, dtype=np.uint8)
 
 if keys.BOOK not in st.session_state:
     st.session_state[keys.BOOK] = new_book(3)
 book = st.session_state[keys.BOOK]
 
-results.render(rgb, alpha, book, book.palette_at(0), [], [], _Shading())
+results.render_technique_controls(book, 0, has_normals=False)
 """
 
 # --- PS mode harness (normal_field seeded) ---
 HARNESS_PS = """
 import streamlit as st
-import numpy as np
-from pathlib import Path
-from PIL import Image
-from mini_highlight_advisor import relight
 from mini_highlight_advisor.region_state import new_book
 from ui import results, keys
 
-FIX = Path("tests/fixtures/ps")
 book = new_book(3)
-
-if keys.NORMALS not in st.session_state:
-    normals = relight.load_normals(str(FIX / "synth_normal.png"))
-    mask    = np.asarray(Image.open(FIX / "synth_mask.png").convert("L")) > 127
-    st.session_state[keys.NORMALS] = normals
-    st.session_state[keys.PS_MASK] = mask
-    st.session_state[keys.PS_ALBEDO] = None
-
-H, W = st.session_state[keys.NORMALS].shape[:2]
-
-class _Shading:
-    mask = np.ones((H, W), dtype=bool)
-    light = np.full((H, W), 0.5, dtype=np.float32)
-
-rgb   = np.zeros((H, W, 3), dtype=np.uint8)
-alpha = np.full((H, W), 255, dtype=np.uint8)
-normals = st.session_state[keys.NORMALS]
-
-results.render(rgb, alpha, book, book.palette_at(0), [], [], _Shading(),
-               normal_field=normals)
+st.session_state[keys.BOOK] = book
+results.render_technique_controls(book, 0, has_normals=True)
 """
 
 

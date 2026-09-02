@@ -1,51 +1,27 @@
 # tests/test_ui_nmm.py
 from streamlit.testing.v1 import AppTest
 
-# Mounts the real results.render() on the synthetic PS fixture, WITH the normal field
-# (so NMM controls are capability-enabled).
+# PS mode: has_normals=True so NMM option is available in the technique picker.
 HARNESS_PS = """
-import numpy as np
-from pathlib import Path
-from PIL import Image
 import streamlit as st
-from mini_highlight_advisor import relight
 from mini_highlight_advisor.region_state import new_book
 from ui import results, keys
 
-FIX = Path("tests/fixtures/ps")
-normals = relight.load_normals(str(FIX / "synth_normal.png"))
-mask = np.asarray(Image.open(FIX / "synth_mask.png").convert("L")) > 127
-lf, relit = relight.relight(normals, mask, relight.light_dir(225, 45))
-mask_u8 = (mask * 255).astype(np.uint8)
 book = new_book(5)
 st.session_state[keys.BOOK] = book
-picked, owned = [], []
-wp, wcov, drawn = book.analyze_args()
-results.render(relit, mask_u8, book, wp, picked, owned, None,
-               light_field=lf, normal_field=normals)
+results.render_technique_controls(book, 0, has_normals=True)
 st.write("ok")
 """
 
-# Photo mode: no light field, no normal field -> NMM controls must be absent.
+# Photo mode: has_normals=False -> NMM controls must be absent.
 HARNESS_PHOTO = """
-import numpy as np
-from pathlib import Path
-from PIL import Image
 import streamlit as st
-from mini_highlight_advisor import relight
 from mini_highlight_advisor.region_state import new_book
 from ui import results, keys
 
-FIX = Path("tests/fixtures/ps")
-normals = relight.load_normals(str(FIX / "synth_normal.png"))
-mask = np.asarray(Image.open(FIX / "synth_mask.png").convert("L")) > 127
-_, relit = relight.relight(normals, mask, relight.light_dir(225, 45))
-mask_u8 = (mask * 255).astype(np.uint8)
 book = new_book(5)
 st.session_state[keys.BOOK] = book
-wp, wcov, drawn = book.analyze_args()
-sh = type('S', (), {'mask': mask})()
-results.render(relit, mask_u8, book, wp, [], [], sh)
+results.render_technique_controls(book, 0, has_normals=False)
 st.write("ok")
 """
 

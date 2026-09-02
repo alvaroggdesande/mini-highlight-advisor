@@ -1,7 +1,7 @@
 """AppTest coverage for scheme-preview-on-mini feature.
 
 Tests:
-  1. results.render() caches LAST_MULTI + LAST_RGB after each run.
+  1. helpers.run_analysis() result is stored in LAST_MULTI + LAST_RGB.
   2. colour_panel renders without error when the cache is warm.
   3. colour_panel renders without error when the cache is cold (no crash).
 """
@@ -39,15 +39,19 @@ multi = SimpleNamespace(mask=mask, light=np.zeros((h, w)), plans=plans,
 """
 
 # -- results caching harness --------------------------------------------------
+# Uses helpers.run_analysis() (the real analysis path) + stores keys the same
+# way app.py does; verifies LAST_MULTI / LAST_RGB land in session_state.
 
-HARNESS_RESULTS = _PLAN_SETUP + """
+HARNESS_RESULTS = """
+import numpy as np
 import streamlit as st
 from pathlib import Path
 from PIL import Image
 from mini_highlight_advisor import relight
+from mini_highlight_advisor.pipeline import ShadingResult
 from mini_highlight_advisor.masking import compute_mask
 from mini_highlight_advisor.region_state import new_book
-from ui import results, keys
+from ui import helpers, keys
 
 FIX = Path("tests/fixtures/ps")
 normals = relight.load_normals(str(FIX / "synth_normal.png"))
@@ -56,8 +60,10 @@ lf, relit = relight.relight(normals, mask_arr, relight.light_dir(225, 45))
 mask_u8 = (mask_arr * 255).astype(np.uint8)
 book = new_book(2)
 st.session_state[keys.BOOK] = book
-wp, wcov, drawn = book.analyze_args()
-results.render(relit, mask_u8, book, wp, [], [], None, light_field=lf)
+shading = ShadingResult(mask=compute_mask(relit, mask_u8), light=lf)
+multi = helpers.run_analysis(relit, mask_u8, book, shading, light_field=lf)
+st.session_state[keys.LAST_MULTI] = multi
+st.session_state[keys.LAST_RGB] = relit
 st.write("done")
 """
 

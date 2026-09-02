@@ -97,7 +97,6 @@ with tab_studio:
                     pass
 
         with col_controls:
-            sel = st.session_state.get(keys.REGION_RADIO, 0)
             subtab_r, subtab_c, subtab_t = st.tabs(["🗺 Regions", "🎨 Colour", "🖌 Technique"])
 
             with subtab_r:
