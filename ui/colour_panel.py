@@ -170,7 +170,7 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
                           key="cp_recipe_choice")
     if st.button("Load recipe", key="cp_recipe_load") and choice != "(none)":
         pal = to_palette(recipe_by_name[choice])
-        st.session_state[keys.N] = max(3, min(5, len(pal)))
+        st.session_state[keys.N] = max(3, min(7, len(pal)))
         for i, p in enumerate(pal[:st.session_state[keys.N]]):
             match = find_by_name(context.CATALOG, p.name)
             unique = name_counts.get(p.name) == 1
