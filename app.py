@@ -6,7 +6,7 @@ import streamlit as st
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
-    angles_panel, colour_panel, coverage_editor, gallery_panel, helpers, keys,
+    angles_panel, colour_panel, gallery_panel, geometry, helpers, keys,
     paints_tab, projects_panel, ps_mode, regions_panel, results, state,
 )
 
@@ -87,31 +87,44 @@ with tab_studio:
             st.image(multi.combined_rgb,
                      caption="Painted preview (all regions)",
                      use_container_width=True)
-            # Compact photo-quality check
             if normal_field is None:
                 try:
                     from mini_highlight_advisor.input_check import check_input
-                    for r in check_input(rgb, shading.mask):
-                        (st.success if r.ok else st.warning)(f"**{r.label}** — {r.detail}")
+                    checks = check_input(rgb, shading.mask)
+                    all_ok = all(r.ok for r in checks)
+                    label = "📷 Photo quality" if all_ok else "📷 Photo quality ⚠️"
+                    with st.expander(label, expanded=not all_ok):
+                        for r in checks:
+                            (st.success if r.ok else st.warning)(f"**{r.label}** — {r.detail}")
                 except Exception:
                     pass
 
         with col_controls:
-            subtab_r, subtab_c, subtab_t = st.tabs(["🗺 Regions", "🎨 Colour", "🖌 Technique"])
+            # Persistent region selector — visible across all tabs.
+            src_h, src_w = rgb.shape[:2]
+            labels = book.names()
+            sel = st.radio(
+                "Region to edit",
+                list(range(len(labels))),
+                index=min(book.selected, len(labels) - 1),
+                format_func=lambda g: geometry.region_label(g, labels[g]),
+                key=keys.REGION_RADIO,
+                horizontal=True,
+            )
+            state.load_region_into_widgets(book, sel)
+            state.rehydrate_editor_widgets(book, sel)
+            book.selected = sel
 
-            with subtab_r:
-                src_h, src_w = rgb.shape[:2]
-                sel = regions_panel.render(book, rgb, shading, src_w, src_h)
-                state.rehydrate_editor_widgets(book, sel)
-                n = st.session_state.get(keys.N, 5)
-                coverage = coverage_editor.render(n)
-                book.set_coverage_at(sel, coverage)
+            has_normals = normal_field is not None
+            subtab_m, subtab_c, subtab_t = st.tabs(["🗺 Manage", "🎨 Colour", "🖌 Technique"])
+
+            with subtab_m:
+                regions_panel.render_management(book, rgb, shading, src_w, src_h, sel)
 
             with subtab_c:
                 colour_panel.render(book, sel, picked, owned_paints)
 
             with subtab_t:
-                has_normals = normal_field is not None
                 results.render_technique_controls(book, sel, has_normals=has_normals)
 
         projects_panel.render_save()

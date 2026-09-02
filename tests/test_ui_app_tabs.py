@@ -66,7 +66,7 @@ def test_studio_has_sub_tabs():
     at = _make_at_with_photo()
     # All tabs (top-level + sub-tabs) are returned by at.tabs; labels may include emoji.
     all_labels = [t.label for t in at.tabs]
-    assert any("Regions" in lbl for lbl in all_labels)
+    assert any("Manage" in lbl for lbl in all_labels)
     assert any("Colour" in lbl for lbl in all_labels)
     assert any("Technique" in lbl for lbl in all_labels)
 

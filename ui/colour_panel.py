@@ -13,7 +13,7 @@ from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor import collection
-from ui import context, helpers, keys
+from ui import context, coverage_editor, helpers, keys
 
 
 def _reseed_editor_widgets() -> None:
@@ -97,6 +97,7 @@ def _apply_ramp(hexes: list[str], n: int) -> None:
     for i, h in enumerate(hexes[:n]):
         st.session_state[keys.slot_hex(i)] = h
         st.session_state[keys.slot_code(i)] = context.CUSTOM
+    st.session_state["_ramp_applied"] = True
 
 
 def _render_level2(book, sel: int, n: int, owned_paints) -> None:
@@ -108,7 +109,7 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     st.divider()
     st.markdown(f"**Ramp for: {book.names()[sel]}**")
 
-    mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.MIDTONE_HEX)
+    mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
 
     ramps = {
         "Ramp": ramp_from_midtone(mid_hex, n),
@@ -132,7 +133,6 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
         apply_col, save_col = st.columns(2)
         if apply_col.button(f"Apply {label}", key=f"apply_ramp_{label}"):
             _apply_ramp(hexes, n)
-            st.rerun()
         if save_col.button(f"💾 Save", key=f"save_ramp_{label}"):
             steps = [
                 RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))
@@ -268,6 +268,8 @@ def _render_scheme_save(book) -> None:
 
 def render(book, sel: int, picked, owned_paints) -> None:
     """Render the three-level colour panel for the selected region."""
+    st.markdown(f"**Editing:** {book.names()[sel]}")
+
     _render_level1(book, owned_paints)
 
     # Level 2 needs n (band count); read from session_state (set by Level 3 slider).
@@ -278,3 +280,13 @@ def render(book, sel: int, picked, owned_paints) -> None:
     book.set_palette_at(sel, palette)
 
     _render_scheme_save(book)
+
+    # Coverage sliders live here so colour + coverage are always visible together.
+    st.divider()
+    cov = coverage_editor.render(n)
+    book.set_coverage_at(sel, cov)
+
+    # Deferred rerun after Apply Ramp so Level 3 has already updated the book
+    # palette before the analysis re-runs — one click = one visible update.
+    if st.session_state.pop("_ramp_applied", False):
+        st.rerun()

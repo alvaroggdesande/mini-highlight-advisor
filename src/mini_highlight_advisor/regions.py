@@ -17,6 +17,7 @@ class Region:
     material: str = "matte"          # "matte" (default) | "nmm" | technique key
     surface: str = "other"           # surface vocabulary key (skin/metal/cloth/…)
     tone: str | None = None          # chosen tone key for realistic surfaces
+    blank: bool = False              # skip paint overlay in preview (treated as whole-mini)
 
 
 def assign_owners(base_mask: np.ndarray, region_masks: list[np.ndarray]) -> np.ndarray:

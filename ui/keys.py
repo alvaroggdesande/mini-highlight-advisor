@@ -33,7 +33,8 @@ LIGHT_AZ = "light_az"            # virtual-light azimuth slider (deg)
 LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
 
-MIDTONE_HEX = "midtone_hex"      # Generate-from-midtone colour picker
+def midtone_hex(g: int) -> str: return f"midtone_hex_{g}"
+
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
 ANGLE_LABEL_PREFIX = "angle_label_"  # prefix of per-angle rename text-input keys

@@ -23,6 +23,7 @@ class RegionBook:
     whole_tone: str | None = None
     drawn: list[Region] = field(default_factory=list)
     selected: int = 0
+    whole_blank: bool = False
 
     def names(self) -> list[str]:
         return [WHOLE_MINI] + [r.name for r in self.drawn]
@@ -86,6 +87,17 @@ class RegionBook:
         else:
             self.drawn[g - 1].tone = tone
 
+    def blank_at(self, g: int) -> bool:
+        self._check(g)
+        return self.whole_blank if g == 0 else self.drawn[g - 1].blank
+
+    def set_blank_at(self, g: int, value: bool) -> None:
+        self._check(g)
+        if g == 0:
+            self.whole_blank = value
+        else:
+            self.drawn[g - 1].blank = value
+
     def set_name_at(self, g: int, name: str) -> None:
         if g == 0:
             raise ValueError("cannot rename the 'Whole mini' region")
@@ -111,7 +123,8 @@ class RegionBook:
             self.selected -= 1
 
     def analyze_args(self) -> tuple[list[PaintColor], list[float], list[Region]]:
-        return self.whole_palette, self.whole_coverage, list(self.drawn)
+        drawn = [r for r in self.drawn if not r.blank]
+        return self.whole_palette, self.whole_coverage, drawn
 
 
 def new_book(n: int = 5) -> RegionBook:
