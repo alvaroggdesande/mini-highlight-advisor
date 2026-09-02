@@ -1,6 +1,5 @@
 # tests/test_pipeline_technique.py
 import numpy as np
-import pytest
 
 from mini_highlight_advisor.pipeline import plan_region, analyze_regions, WHOLE_MINI
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, default_coverage, role_names as palette_role_names

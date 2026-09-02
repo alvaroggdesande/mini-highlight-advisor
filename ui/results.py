@@ -76,6 +76,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
         ),
     )
     chosen_key = technique_keys[technique_labels.index(choice_label)]
+    # Passively normalises legacy "matte" → "smooth" on first render; inert (same banding).
     book.set_material_at(sel, chosen_key)
 
     if normal_field is not None and chosen_key == "nmm":

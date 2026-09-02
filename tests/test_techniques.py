@@ -1,5 +1,4 @@
 # tests/test_techniques.py
-import pytest
 from mini_highlight_advisor.palette import role_names as palette_role_names
 
 
