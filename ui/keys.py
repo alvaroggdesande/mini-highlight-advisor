@@ -34,6 +34,8 @@ LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
 
 SAVE_NAME = "save_name"          # recipe save name text input
+MIDTONE_HEX = "midtone_hex"      # Generate-from-midtone colour picker
+GENERATE_RAMP = "generate_ramp"  # Generate-from-midtone button
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
 ANGLE_LABEL_PREFIX = "angle_label_"  # prefix of per-angle rename text-input keys
@@ -43,6 +45,7 @@ LOADED_PHOTO = "loaded_photo"          # {"bytes":..., "suffix":...} for a loade
 LOADED_NAME = "loaded_project_name"    # display name of the loaded project (save default)
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
+SCHEMES = "schemes"                    # list[Scheme] in session
 
 # --- angles (multi-angle view) ---
 ANGLES = "angles"                # list[AngleData] in session: the angle records

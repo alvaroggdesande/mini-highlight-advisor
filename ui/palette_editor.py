@@ -11,7 +11,7 @@ import streamlit as st
 from collections import Counter
 
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_names, ramp_hex, valid_hex
-from mini_highlight_advisor.color import blend_hex_lab
+from mini_highlight_advisor.color import blend_hex_lab, ramp_from_midtone
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor import collection
@@ -53,6 +53,18 @@ def render(book, sel, picked) -> tuple[list[PaintColor], int]:
     # without a conflicting value= argument causing a session_state warning.
     st.session_state.setdefault(keys.N, 5)
     n = st.slider("Number of layers", 3, 7, key=keys.N)
+
+    # --- Generate from midtone ---
+    with st.expander("Generate from midtone colour"):
+        mid_col, btn_col = st.columns([2, 1])
+        mid_hex = mid_col.color_picker("Midtone (base colour)", value="#808080", key=keys.MIDTONE_HEX)
+        if btn_col.button("Generate ramp", key=keys.GENERATE_RAMP):
+            hexes = ramp_from_midtone(mid_hex, n)
+            for i, h in enumerate(hexes):
+                st.session_state[keys.slot_hex(i)] = h
+                st.session_state[keys.slot_code(i)] = context.CUSTOM
+            st.rerun()
+
     st.markdown("**Palette** (dark to light)")
     palette = []
     options = context.CATALOG_CODES + [context.CUSTOM]
