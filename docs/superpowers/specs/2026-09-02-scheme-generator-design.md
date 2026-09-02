@@ -232,10 +232,13 @@ A panel (expander/section) with:
 - **Also set techniques from surface** checkbox (default on): on Apply, `set_material_at` per
   region from `SurfaceSpec.default_technique` (skipping `""`), NMM only offered when
   `normal_field is not None`.
-- **Generate** → `build_scheme` → per-region swatch preview (reuse existing swatch rendering;
-  on-mini preview via the already-shipped scheme-preview path) → **Apply** (`schemes.apply` +
-  optional technique set). Post-generate, individual colours remain editable through the normal
-  per-region palette editor; changing anchor/variant/mood and regenerating re-derives.
+- **Generate & apply** (single button, as built) → `build_scheme` → `schemes.apply` + optional
+  technique set, then `st.rerun()` re-renders the analysis (swatches + on-mini preview) with the
+  new colours. Post-apply, individual colours remain editable through the normal per-region
+  palette editor; changing anchor/variant/mood and regenerating re-derives. *(The original spec
+  described a distinct Generate→preview→Apply sequence; implementation collapsed it to one click
+  because the edit-after-apply loop already gives the user the override/compare affordance without
+  a separate preview gate. Amended 2026-09-02 after the final review.)*
 
 Mount point: alongside the scheme experimenter in `ui/results.py` (or `app.py`), guarded to
 appear once regions exist.
