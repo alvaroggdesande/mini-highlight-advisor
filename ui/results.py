@@ -49,16 +49,37 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                  "the edge-sensitivity slider.")
 
     nmm_horizon = 0.5
+    sel = book.selected
+    cur_material = book.material_at(sel)
+    # Normalise "matte" (legacy) to "smooth" for the picker index lookup.
+    cur_key = "smooth" if cur_material == "matte" else cur_material
+
+    technique_labels = ["Smooth layering", "Drybrush"]
+    technique_keys   = ["smooth",          "drybrush"]
     if normal_field is not None:
-        sel = book.selected
-        cur = book.material_at(sel)
-        choice = st.selectbox(
-            f"Material — {book.names()[sel]}", ["Matte", "NMM"],
-            index=0 if cur == "matte" else 1, key=keys.material(sel),
-            help="NMM re-bands this region as non-metallic metal: it reads the "
-                 "reflection of a virtual sky/ground off the surface normals. "
-                 "PS mode only.")
-        book.set_material_at(sel, "nmm" if choice == "NMM" else "matte")
+        technique_labels.append("NMM")
+        technique_keys.append("nmm")
+
+    cur_idx = technique_keys.index(cur_key) if cur_key in technique_keys else 0
+    choice_label = st.selectbox(
+        f"Technique — {book.names()[sel]}",
+        technique_labels,
+        index=cur_idx,
+        key=keys.material(sel),
+        help=(
+            "How paint is applied in this region.\n"
+            "Smooth layering: thin glazes, dark to light.\n"
+            "Drybrush: drag a nearly-dry brush across raised surfaces "
+            "(fur, chainmail, cloth, textured bases).\n"
+            "NMM (PS mode only): non-metallic metal — re-bands from the "
+            "reflection of a virtual sky/ground off the surface normals."
+        ),
+    )
+    chosen_key = technique_keys[technique_labels.index(choice_label)]
+    # Passively normalises legacy "matte" → "smooth" on first render; inert (same banding).
+    book.set_material_at(sel, chosen_key)
+
+    if normal_field is not None and chosen_key == "nmm":
         nmm_horizon = st.slider(
             "Horizon height", 0.0, 1.0, 0.5, 0.05, key=keys.NMM_HORIZON,
             help="Slide the virtual NMM horizon up (darker, more reflected ground) "
@@ -127,4 +148,5 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                 f"band(s) instead of {plan.requested_bands}. Untick "
                 f"“Auto-reduce bands on flat regions” to force all "
                 f"{plan.requested_bands}.")
-        helpers.render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage)
+        helpers.render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage,
+                                    technique=plan.technique)

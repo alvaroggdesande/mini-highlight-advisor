@@ -1,5 +1,7 @@
 # Cash the Albedo Implementation Plan
 
+> **STATUS: SHIPPED** — merged to main PR #28 (feat/cash-the-albedo). Commits: `4b9a813` (relight), `bbda416` (ps_tool), `39708af` (ui).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Export `albedo.png` from `ps_tool` always, and consume it in `relight.py` so the PS display base shows actual paint colours instead of flat grey.

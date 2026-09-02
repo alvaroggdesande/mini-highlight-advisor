@@ -1,7 +1,7 @@
 # Scheme Experimenter — Design Spec
 
 **Date:** 2026-09-01
-**Status:** Approved shape, ready for implementation plan
+**Status:** SHIPPED — merged to main via feat/scheme-experimenter + PR #34 (scheme-preview-on-mini). All three tasks complete.
 **Classification:** Architectural (new subsystem: scheme model + persistence + UI panel)
 
 ## Context
