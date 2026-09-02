@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import streamlit as st
 
@@ -6,7 +7,7 @@ from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
     angles_panel, editor, gallery_panel, helpers, keys, paints_tab,
-    projects_panel, ps_mode, scheme_gen_panel, schemes_panel, state,
+    projects_panel, ps_mode, results, scheme_gen_panel, schemes_panel, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -17,19 +18,19 @@ st.caption(
     "side light (not on-axis flash) — that gives the sculpt the shadows the tool reads."
 )
 
-tab_mini, tab_paints, tab_gallery = st.tabs(["🖌️ Miniature", "🎨 Paints", "🖼️ All angles"])
+# NOTE: st.tabs runs ALL bodies every rerun in code order.
+# Paints must execute before Studio so owned_codes is finalised before Studio
+# renders ownership badges. Display order is fixed by the label list.
+tab_studio, tab_paint, tab_paints, tab_angles, tab_capture = st.tabs([
+    "🖌️ Studio", "🪜 Paint", "🎨 Paints", "🖼️ All angles", "📷 Capture & help",
+])
 
-# NOTE: st.tabs runs BOTH bodies every rerun, in code order. Fill the Paints
-# tab FIRST so owned_codes / owned_paints are finalised before the Miniature
-# tab renders its ownership badges. Display order (Miniature first) is fixed by
-# the label list above, not by code order — do not reorder the labels.
-
-# --- 🎨 Paints tab: inventory ---
+# --- 🎨 Paints: inventory (must run first — see note above) ---
 with tab_paints:
     picked, owned_paints = paints_tab.render()
 
-# --- 🖌️ Miniature tab: region-centric editor ---
-with tab_mini:
+# --- 🖌️ Studio: visualise and decide ---
+with tab_studio:
     st.session_state.setdefault(keys.ANGLES, [])
     st.session_state.setdefault(keys.ACTIVE_ANGLE, 0)
 
@@ -65,25 +66,57 @@ with tab_mini:
     photo_bytes, photo_suffix = active.photo_bytes, active.photo_suffix
 
     try:
-        with st.spinner("Preparing shading (first run downloads the depth model if no alpha channel)..."):
+        with st.spinner("Preparing shading…"):
             rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
 
-        editor.render_editor(rgb, alpha, shading, book, picked, owned_paints)
+        col_render, col_controls = st.columns([1, 1])
 
-        scheme_gen_panel.render(owned_paints)
-        schemes_panel.render()
-        projects_panel.render_save()
+        with col_render:
+            cached_multi = st.session_state.get(keys.LAST_MULTI)
+            if cached_multi is not None:
+                st.image(cached_multi.combined_rgb,
+                         caption="Painted preview (all regions)",
+                         use_container_width=True)
+            else:
+                st.info("Preview will appear here after the first analysis run.")
+
+        with col_controls:
+            editor.render_editor(rgb, alpha, shading, book, picked, owned_paints)
+            scheme_gen_panel.render(owned_paints)
+            schemes_panel.render()
+            projects_panel.render_save()
+
+        # After first analysis run, left column needs a rerun to show the image.
+        if cached_multi is None and st.session_state.get(keys.LAST_MULTI) is not None:
+            st.rerun()
+
     except Exception as e:
         st.error("Error processing image — see traceback below.")
         st.exception(e)
 
-# --- 🖼️ All angles tab: read-only combined gallery ---
-# Runs AFTER the Miniature editor so it sees the active angle's live edits. When
-# there are no angles the editor above st.stop()s the run, so this stays empty.
-with tab_gallery:
+# --- 🪜 Paint: paint-along steps ---
+with tab_paint:
+    multi = st.session_state.get(keys.LAST_MULTI)
+    results.render_steps(multi)
+
+# --- 🖼️ All angles: read-only gallery ---
+with tab_angles:
     _angles = st.session_state.get(keys.ANGLES, [])
     _active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
     if _angles:
-        # reflect the active angle's unsaved edits (settings + live book) in its cell
         _angles[_active] = state.flush_editor_into_angle(_angles[_active])
     gallery_panel.render(_angles, _active)
+
+# --- 📷 Capture & help ---
+with tab_capture:
+    from mini_highlight_advisor.input_check import SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
+    st.header("How to photograph your mini")
+    st.markdown(SHOOTING_GUIDE)
+    st.divider()
+    st.markdown(PAINTED_CAPTURE_NOTE)
+    st.header("Photometric stereo (PS) capture")
+    ps_guide = Path("docs/ps-capture-guide.md")
+    if ps_guide.exists():
+        st.markdown(ps_guide.read_text(encoding="utf-8"))
+    else:
+        st.caption("PS capture guide not found.")
