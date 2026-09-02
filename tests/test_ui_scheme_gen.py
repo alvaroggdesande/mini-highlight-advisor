@@ -1,11 +1,3 @@
-from streamlit.testing.v1 import AppTest
-
-
-def _run():
-    at = AppTest.from_file("app.py")
-    return at.run()
-
-
 def test_panel_absent_without_regions_present_with_them():
     # Smoke: the app imports and the panel module loads without error.
     import ui.scheme_gen_panel as p
