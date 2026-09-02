@@ -60,15 +60,6 @@ def render_technique_controls(book, sel: int, has_normals: bool) -> None:
                     help="Normalize brightness per region so each painted colour reads its "
                          "own relief. Off = primed-mini mode (default).")
 
-    # Photo quality (photo mode only)
-    if not has_normals:
-        try:
-            st.subheader("\U0001F4F7 Photo quality")
-            # shading.mask is not available here; full check happens inside render().
-            st.caption("Photo quality check runs during analysis.")
-        except Exception:
-            pass
-
 
 def render(rgb, alpha, book, palette, picked, owned_paints, shading,
            light_field=None, normal_field=None) -> None:
