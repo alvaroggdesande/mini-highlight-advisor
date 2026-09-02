@@ -56,14 +56,31 @@ def render(book, sel, picked) -> tuple[list[PaintColor], int]:
 
     # --- Generate from midtone ---
     with st.expander("Generate from midtone colour"):
-        mid_col, btn_col = st.columns([2, 1])
-        mid_hex = mid_col.color_picker("Midtone (base colour)", value="#808080", key=keys.MIDTONE_HEX)
-        if btn_col.button("Generate ramp", key=keys.GENERATE_RAMP):
-            hexes = ramp_from_midtone(mid_hex, n)
-            for i, h in enumerate(hexes):
+        mid_hex = st.color_picker("Midtone (base colour)", value="#808080", key=keys.MIDTONE_HEX)
+        mid_hexes = ramp_from_midtone(mid_hex, n)
+        mid_paints = [
+            collection.nearest_paint(PaintColor(f"m{i}", h).rgb, context.CATALOG)
+            for i, h in enumerate(mid_hexes)
+        ]
+        band_cols = st.columns(n)
+        for i, (h, p, col) in enumerate(zip(mid_hexes, mid_paints, band_cols)):
+            col.markdown(helpers.swatch(h, size="2.2em"), unsafe_allow_html=True)
+            if p:
+                col.caption(p.name)
+        apply_col, save_col = st.columns(2)
+        if apply_col.button("Apply", key=keys.GENERATE_RAMP):
+            for i, h in enumerate(mid_hexes):
                 st.session_state[keys.slot_hex(i)] = h
                 st.session_state[keys.slot_code(i)] = context.CUSTOM
             st.rerun()
+        if save_col.button("💾 Save", key="save_midtone_ramp"):
+            steps = [
+                RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))
+                for r, h, p in zip(role_names(n), mid_hexes, mid_paints)
+            ]
+            recipe_name = f"Midtone ({mid_hex})"
+            save_user(Recipe(recipe_name, steps))
+            st.toast(f"Saved '{recipe_name}'")
 
     # --- Colour variants ---
     with st.expander("🎨 Colour variants"):
