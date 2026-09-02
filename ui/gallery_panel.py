@@ -13,6 +13,7 @@ import streamlit as st
 
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.pipeline import analyze_regions
+from ui import keys
 
 _PER_ROW = 3
 
@@ -90,5 +91,7 @@ def render(angles, active_idx: int) -> None:
                              use_container_width=True)
                 except Exception:  # one bad angle must not blank the whole grid
                     st.warning(f"“{angle.label}” — couldn't render this photo.")
+                if st.button("Edit", key=f"gallery_edit_{i}"):
+                    st.session_state[keys.ACTIVE_ANGLE] = i
                 if i == active_idx:
                     st.caption("Active — open the 🖌️ Miniature tab to edit.")
