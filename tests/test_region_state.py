@@ -99,3 +99,31 @@ def test_new_region_material_defaults_matte():
     from mini_highlight_advisor.regions import Region
     r = Region("X", _mask(), default_ramp(3), default_coverage(3))
     assert r.material == "matte"
+
+def test_surface_and_tone_default_and_route():
+    import numpy as np
+    from mini_highlight_advisor.region_state import new_book
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+
+    book = new_book(5)
+    m = np.zeros((6, 6), bool); m[1:4, 1:4] = True
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+
+    # defaults
+    assert book.surface_at(0) == "other"
+    assert book.surface_at(1) == "other"
+    assert book.tone_at(1) is None
+
+    # routing to whole vs drawn
+    book.set_surface_at(0, "skin")
+    book.set_tone_at(0, "tan")
+    book.set_surface_at(1, "cloak")
+    assert book.surface_at(0) == "skin"
+    assert book.tone_at(0) == "tan"
+    assert book.surface_at(1) == "cloak"
+    assert book.tone_at(0) == "tan"      # unaffected by the drawn write
+
+    # surface is independent of the technique/material field
+    book.set_material_at(1, "drybrush")
+    assert book.surface_at(1) == "cloak"
+    assert book.material_at(1) == "drybrush"

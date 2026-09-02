@@ -19,6 +19,8 @@ class RegionBook:
     whole_palette: list[PaintColor]
     whole_coverage: list[float]
     whole_material: str = "matte"
+    whole_surface: str = "other"
+    whole_tone: str | None = None
     drawn: list[Region] = field(default_factory=list)
     selected: int = 0
 
@@ -61,6 +63,28 @@ class RegionBook:
             self.whole_material = material
         else:
             self.drawn[g - 1].material = material
+
+    def surface_at(self, g: int) -> str:
+        self._check(g)
+        return self.whole_surface if g == 0 else self.drawn[g - 1].surface
+
+    def set_surface_at(self, g: int, surface: str) -> None:
+        self._check(g)
+        if g == 0:
+            self.whole_surface = surface
+        else:
+            self.drawn[g - 1].surface = surface
+
+    def tone_at(self, g: int) -> str | None:
+        self._check(g)
+        return self.whole_tone if g == 0 else self.drawn[g - 1].tone
+
+    def set_tone_at(self, g: int, tone: str | None) -> None:
+        self._check(g)
+        if g == 0:
+            self.whole_tone = tone
+        else:
+            self.drawn[g - 1].tone = tone
 
     def set_name_at(self, g: int, name: str) -> None:
         if g == 0:

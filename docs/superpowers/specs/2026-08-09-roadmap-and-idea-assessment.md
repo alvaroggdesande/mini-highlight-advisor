@@ -482,3 +482,58 @@ Combining them means: **show the proposed colour scheme rendered on the actual m
 5. **OSL as a colour tint** *(sibling to NMM on `surface.reflect()`)* — lower priority than the colour-stream synthesis above.
 
 **Deferred / unchanged:** normal-discontinuity auto-regions; `spikes/phone_ps/` ~1GB cleanup; exclude-brush; PDF export (#11).
+
+## Addendum (2026-09-02): technique axis is saturating — pivot to the colour-decision axis
+
+Technique system shipped (smooth + drybrush; NMM pending, PS-only). Honest assessment: the
+**technique axis is nearly dry.** smooth + drybrush + NMM cover the physical ways paint reaches
+the mini that matter. The remaining "techniques" (glaze, wet-blend, stipple, edge highlight)
+mostly produce the *same banding* with different guide text — drybrush proved this: zero new
+math, labels only. Adding more is *completeness*, not *capability*. Of the 5 previously-listed
+pending ideas, 3 are PS-only (gated behind heavy capture) and the non-PS remainder (material
+presets, OSL tint) is thin. That is why the roadmap felt underwhelming.
+
+**Reframe.** The tool answers three painter questions: (1) *where do highlights go?* → solved
+(banding/geometry); (2) *how do I apply paint?* → now solved (techniques); (3) *what colours do
+I use?* → **fragmented and abstract.** The machinery exists but scattered and none of it is
+aware of the mini in front of the user: `collection.py` (owned paints + `nearest_paint`),
+`matching.py` (hex→real paint + mixing), `schemes.py` (save/apply per-region palettes),
+`color.py` (`ramp_from_midtone`, `hue_rotate` — harmony primitives already present!),
+`recipes.py`. Question (3) — the colour *decision* — is the real under-served axis.
+
+### Idea A — "Scheme my whole mini" (colour-decision engine) — CHOSEN, building next
+
+Not "here's a fur preset" (a thin wrapper: the technique is one click, the palette is colours
+you'd have picked anyway). Instead: the user lasso-tags each region with a **material
+vocabulary** (fur / skin / metal / cloth / leather / bone / …), picks an overall **mood**
+(grimdark / bright-heroic / earthy / …), and the tool generates a **complete, coherent scheme
+for the whole mini — one buildable ramp per region.** Two layers, kept separate:
+
+1. **Colour-decision layer (theory-driven, paint-agnostic):** choose per-region base hues using
+   colour harmony (complementary / analogous / triadic via existing `hue_rotate`), mood, and
+   material realism, then expand each into a ramp (existing `ramp_from_midtone`). This layer
+   knows nothing about what paints exist.
+2. **Paint-mapping layer:** map each ramp colour to a real paint — **owned-first, not
+   owned-only.** Prefer the user's collection, fall back to nearest catalogue paint, then to a
+   buildable mix (`matching.py`). Owned-paints is a *filter/preference*, never a hard wall.
+
+**Design principles (from user, 2026-09-02):** the user must stay able to (a) override any
+individual colour and re-derive the rest, (b) ask for complementary / harmony variants, (c) NOT
+be locked to only owned paints. Material presets fold in here as the **seed vocabulary**, not
+the product. This is the first feature to use collection + matching + schemes + colour-harmony
+together, and it targets the actual paralysis: "I own 40 paints and a bare mini — what do I do?"
+
+**Dependency note:** region **auto-selection does not exist** — regions are manual lasso only
+(`regions.py`: polygon→mask + owner assignment; no material segmentation). A works fine on
+manually-lassoed regions; auto-region tagging is a *future* combo, not a prerequisite.
+
+### Idea B — Contrast / value coaching (feedback loop) — PARKED, next real frontier
+
+The #1 beginner mistake is insufficient contrast, and the tool **already knows the value
+structure of every region's plan.** So it could critique instead of only planning: "this 5-band
+plan spans only 30% value range — it'll read flat at arm's length, push the top highlight
+lighter"; "midtone and highlight are 12% apart — that gap won't be visible." Zero new capture,
+non-PS. Strategic significance: it is the cheapest slice of the one thing wholly missing today —
+a **feedback loop.** The tool is currently one-shot (plan and done); feedback is what would make
+a user *return*. Longer-horizon version: photograph the WIP mini and compare against the plan.
+Parked behind A; revisit when the tool should become sticky rather than one-shot.
