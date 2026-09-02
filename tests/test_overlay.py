@@ -373,6 +373,24 @@ def test_preview_scheme_multi_region_each_gets_proposed_colors():
     assert out[0, 7, 0] == 255   # right region also red
 
 
+def test_render_legend_accepts_custom_coverage_notes():
+    from mini_highlight_advisor.overlay import render_legend
+    import numpy as np
+    colors = [np.array([100, 50, 200], np.float32) for _ in range(3)]
+    names = ["Base coat", "First drybrush", "Highlight drybrush"]
+    roles = ["Base coat", "First drybrush", "Highlight drybrush"]
+    coverage = [50.0, 30.0, 20.0]
+    custom_notes = {
+        "Base coat": "wash into recesses",
+        "First drybrush": "heavy drybrush",
+        "Highlight drybrush": "light drybrush on peaks",
+    }
+    # Must not raise; returns an Image
+    img = render_legend(colors, names, roles, coverage, height=300,
+                        coverage_notes=custom_notes)
+    assert img is not None
+
+
 def test_preview_scheme_region_index_only_updates_selected_plan():
     # Two plans: left and right. Proposed = red. region_index=0 → only left turns red;
     # right keeps its original dark colour.
