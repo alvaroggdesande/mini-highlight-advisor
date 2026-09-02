@@ -73,17 +73,37 @@ def render(book, sel, picked) -> tuple[list[PaintColor], int]:
             ("Warm analogous", hue_rotate(mid, 30)),
             ("Cool analogous", hue_rotate(mid, -30)),
         ]
-        for label, base_hex in variants:
+        for idx, (label, base_hex) in enumerate(variants):
             hexes = ramp_from_midtone(base_hex, n)
-            col1, col2, col3 = st.columns([1, 3, 1])
-            col1.markdown(f"**{label}**")
-            swatch_html = " ".join(helpers.swatch(h, size="1.8em") for h in hexes)
-            col2.markdown(swatch_html, unsafe_allow_html=True)
-            if col3.button("Use", key=f"use_variant_{label}"):
+            paints = [
+                collection.nearest_paint(PaintColor(f"v{i}", h).rgb, context.CATALOG)
+                for i, h in enumerate(hexes)
+            ]
+
+            head_col, btn_col1, btn_col2 = st.columns([3, 1, 1])
+            head_col.markdown(f"**{label}**")
+            if btn_col1.button("Apply", key=f"apply_variant_{label}"):
                 for i, h in enumerate(hexes):
                     st.session_state[keys.slot_hex(i)] = h
                     st.session_state[keys.slot_code(i)] = context.CUSTOM
                 st.rerun()
+            if btn_col2.button("💾 Save", key=f"save_variant_{label}"):
+                steps = [
+                    RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))
+                    for r, h, p in zip(role_names(n), hexes, paints)
+                ]
+                recipe_name = f"{label} ({mid})"
+                save_user(Recipe(recipe_name, steps))
+                st.toast(f"Saved '{recipe_name}'")
+
+            band_cols = st.columns(n)
+            for i, (h, p, col) in enumerate(zip(hexes, paints, band_cols)):
+                col.markdown(helpers.swatch(h, size="2.2em"), unsafe_allow_html=True)
+                if p:
+                    col.caption(p.name)
+
+            if idx < len(variants) - 1:
+                st.divider()
 
     st.markdown("**Palette** (dark to light)")
     palette = []
