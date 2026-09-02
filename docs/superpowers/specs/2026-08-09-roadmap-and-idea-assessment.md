@@ -416,3 +416,69 @@ Explicitly **not** chosen: further relight-slider polish.
 Next: a B design spec (`docs/superpowers/specs/2026-08-24-geometry-from-normals-design.md`)
 whose first job is the dual-path seam (`normal_field=` capability gate), then the first
 geometry consumer.
+
+## Addendum (2026-09-01): Fork B complete — painted-mini validation run
+
+### Fork B status — all four slices merged to main
+
+- **Slice 1 — geometric edge highlights** (PR #12, `feat/edge-highlights`) ✅
+- **Slice 2 — cavity / AO recess shades** (PR #25, `feat/cavity-ao-recess-shades`) ✅
+- **Slice 3a — NMM metal-from-normals** (PR #27, `feat/nmm-metal-from-normals`) ✅ — stripe bug root-caused (near-binary R_y saturation → raster-order horizontal stripes) and fixed (monotonic blend, commit `b30416b`); deeper limitation documented: the reflection-environment model is intrinsically a vertical gradient, correct on a single lassoed metal region but not whole-mini; branch merged, NMM is for a lassoed region not the whole mini.
+- **Slice 4 — cash the albedo** (PR #28, `feat/cash-the-albedo`) ✅ — `ps_tool` now always runs `--target normal_and_brdf` and exports `albedo.png`; `relight.py` gains `load_albedo` + `plausible_albedo` + `relight(albedo=)` so Path P renders the actual paint colours instead of flat grey; Path L byte-identical; three-file bundles backward-compatible.
+
+### Painted-mini validation run (2026-09-01)
+
+**First PS run on a fully painted mini.** Same mini used for the black-primer staircase (Rungs 1–2), now almost fully painted. 9 frames (`L_01`–`L_09`), all kept (dropped: none), IoUs 0.967–1.0 (near-perfect mask consistency), lighting std 42.4. Data at `spikes/phone_ps/data/painted_mini.data`; outputs at `spikes/phone_ps/data/painted_mini_out/`.
+
+**Albedo result:** mean RGB `[0.107, 0.104, 0.105]` — very dark but near-perfect channel balance (no systematic shading tint), expected for a dark-armor mini. Visual inspection of `albedo.png` confirms real paint colours extracted per region: red armor/straps visible, green/teal cloak, grey stone base. Shading is not baked in — the base reads as flat grey, not a light-to-dark gradient. **Albedo extraction works on a painted mini.**
+
+**Normal map result:** detailed and plausible — rocky base texture clearly resolved, rider body geometrically coherent; some faceting on complex overlapping parts at 512px crop, expected at this scale. Quality consistent with the black-primer staircase.
+
+**Verdict: colored-mini fork is validated. The albedo carries real paint colours. The next feature layer — palette auto-suggestion from albedo (sampling `albedo.png` per region and matching to the paint catalogue) — is green-lit.**
+
+### Honest caveats (recorded, not buried)
+
+- Very dark armor areas (low albedo) will be harder to palette-match reliably — the signal is there but thin. Base, cloak, and bright details all have enough signal for confident matching.
+- `albedo.png` quality on a fully painted mini with complex multi-layer blends is still unknown — the spike used a mid-progress paint job. Richer blends may produce noisier per-region colour samples.
+- Normal map faceting on dense/overlapping geometry is a known PS resolution limit at 512px — not a regression, not blocking.
+
+### What's next
+
+**Immediate:** palette auto-suggestion from albedo — sample dominant colour per drawn region from `albedo.png`, run through existing palette-matcher to suggest the closest owned/catalogue paints. The user now has real paint colours in the albedo; this closes the loop for Path P.
+
+**Backlog (unchanged):** OSL (sibling slice to NMM on `surface.reflect()`); normal-discontinuity auto-regions; PS polish (top-light preset tonemapping); `spikes/phone_ps/` ~1GB cleanup (delete once Streamlit app stopped); exclude-brush.
+
+## Addendum (2026-09-02): colour-variant-preview merged — synthesis of PS and colour streams, new priority order
+
+### What's been built since PS merged
+
+After PS + Fork B shipped, all subsequent work has been in the **colour / palette stream** (single-photo, orthogonal to geometry):
+
+- Scheme experimenter — quick-swap named colour schemes, persisted in project manifest (schema v3)
+- Ramp-from-midtone — generate a full painterly highlight ramp from a picked midtone colour
+- Colour variant preview — show nearest catalogue paint swatch + save-as-recipe, per variant and per generated ramp
+
+These features are entirely **abstract**: they show colour swatches and recipes but have no spatial awareness of the mini.
+
+### The synthesis insight
+
+The two streams are currently orthogonal but have a natural seam:
+
+- **Colour stream proposes schemes** (ramp, variants, schemes).
+- **PS / analysis stream provides the mini as a spatial canvas** (banded regions, albedo, geometry).
+
+Combining them means: **show the proposed colour scheme rendered on the actual mini**, not as swatches. In Path P this can be photorealistic (albedo-based coloured render + banding overlaid). In Path L it still works — banding overlaid on the greyscale analysis render with the chosen scheme colours. Same mechanism, two quality levels.
+
+### Revised priority order (colour + geometry streams, 2026-09-02)
+
+1. **Scheme preview on the mini** *(chosen, building next)* — composite the ramp/scheme bands onto the existing analysis render (greyscale in Path L, coloured albedo in Path P) instead of swatches. Bounded: the band masks and the analysis render already exist; it is a compositing step in `overlay.py` or `results.py`. Works in both paths. This is the highest-value connection between the two streams and does not require PS.
+
+2. **Albedo → palette auto-suggest** *(PS fast-follow, green-lit by painted-mini validation above)* — sample dominant colour per drawn region from `albedo.png`, match via existing `matching.py` to the owned/catalogue database. The scheme experimenter pre-populates from real paint colours instead of defaults.
+
+3. **Roughness/metallic → auto-NMM** *(PS only)* — the BRDF checkpoint already emits `roughness.png` + `metallic.png` (currently discarded). Consume them to auto-propose NMM material for metallic regions instead of requiring the manual per-region selector. Makes Path P feel intelligent.
+
+4. **Top-light preset polish** *(PS polish, known "looks weird" backlog item)* — tonemapping fix for the top-light relight preset.
+
+5. **OSL as a colour tint** *(sibling to NMM on `surface.reflect()`)* — lower priority than the colour-stream synthesis above.
+
+**Deferred / unchanged:** normal-discontinuity auto-regions; `spikes/phone_ps/` ~1GB cleanup; exclude-brush; PDF export (#11).

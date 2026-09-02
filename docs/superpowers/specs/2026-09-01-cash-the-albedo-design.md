@@ -1,7 +1,7 @@
 # Cash the Albedo — Design Spec (Fork B, slice 4)
 
 **Date:** 2026-09-01
-**Status:** Design approved; awaiting implementation plan.
+**Status:** SHIPPED — merged to main via PR #28 (feat/cash-the-albedo). All three tasks complete.
 **Classification:** Architectural (new output from `ps_tool`, new consumption path in `relight.py`, UI threading).
 
 ## Background — why this exists

@@ -1,5 +1,7 @@
 # Scheme Experimenter Implementation Plan
 
+> **STATUS: SHIPPED** — merged to main. Core: `25231bf`, persistence: `4c2a47c`, panel+wiring: `605f3eb`, fixes: `2637aed` + `55d453d`, preview-on-mini: PR #34.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let the user save the current per-region colour setup as a named scheme, keep several, and swap the whole mini's colours in one click to compare highlight placement.
