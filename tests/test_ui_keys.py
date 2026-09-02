@@ -40,3 +40,9 @@ def test_ps_keys_present_and_frozen():
 
 def test_ps_albedo_key_is_frozen():
     assert keys.PS_ALBEDO == "ps_albedo"
+
+
+def test_scheme_generated_key_exists():
+    from ui import keys
+    assert hasattr(keys, "SCHEME_GENERATED")
+    assert keys.SCHEME_GENERATED == "scheme_generated"

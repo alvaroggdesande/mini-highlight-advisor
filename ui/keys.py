@@ -46,6 +46,7 @@ LOADED_NAME = "loaded_project_name"    # display name of the loaded project (sav
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
 SCHEMES = "schemes"                    # list[Scheme] in session
+SCHEME_GENERATED = "scheme_generated"  # True once Level 1 scheme has been applied
 
 # --- scheme preview cache (set by results.render after each analysis run) ---
 LAST_MULTI = "last_multi_result"  # MultiRegionResult from the most recent analyze_regions
