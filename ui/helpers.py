@@ -7,6 +7,7 @@ import streamlit as st
 from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.pipeline import prepare_shading
 from mini_highlight_advisor.palette import default_coverage
+from mini_highlight_advisor.techniques import get_technique
 
 
 @st.cache_data(show_spinner=False)
@@ -33,11 +34,12 @@ def current_cov_seed(n: int) -> list[float]:
     return [round(f * 100, 1) for f in default_coverage(n)]
 
 
-def render_region_steps(steps, roles, names, coverage) -> None:
+def render_region_steps(steps, roles, names, coverage, technique: str = "smooth") -> None:
     # Shared paint-along step renderer for both the single-palette and the
     # per-region plans. `coverage` is per-band realized percentages.
     # Edge steps (step.kind == "edge") are appended after tonal steps; their
     # index is >= len(roles), so we guard the roles/names lookup with step.label.
+    _spec = get_technique(technique)
     for step in steps:
         if step.label:
             # Edge step — label is set ("Edge Highlight" / "Extreme Edge Highlight")
@@ -55,9 +57,15 @@ def render_region_steps(steps, roles, names, coverage) -> None:
         if step.is_last:
             c1, c2 = st.columns(2)
             c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-            c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
+            c2.image(step.cumulative_rgb,
+                     caption=_spec.captions.across.format(pct=cum_cov),
+                     use_container_width=True)
         else:
             c1, c2, c3 = st.columns(3)
             c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
-            c2.image(step.cumulative_rgb, caption=f"Apply across — whole area (~{cum_cov:.0f}%)", use_container_width=True)
-            c3.image(step.exact_rgb, caption=f"Stays this colour — final (~{cov:.0f}%)", use_container_width=True)
+            c2.image(step.cumulative_rgb,
+                     caption=_spec.captions.across.format(pct=cum_cov),
+                     use_container_width=True)
+            c3.image(step.exact_rgb,
+                     caption=_spec.captions.stays.format(pct=cov),
+                     use_container_width=True)

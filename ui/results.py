@@ -127,4 +127,5 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                 f"band(s) instead of {plan.requested_bands}. Untick "
                 f"“Auto-reduce bands on flat regions” to force all "
                 f"{plan.requested_bands}.")
-        helpers.render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage)
+        helpers.render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage,
+                                    technique=plan.technique)
