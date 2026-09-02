@@ -34,6 +34,8 @@ LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
 
 SAVE_NAME = "save_name"          # recipe save name text input
+MIDTONE_HEX = "midtone_hex"      # Generate-from-midtone colour picker
+GENERATE_RAMP = "generate_ramp"  # Generate-from-midtone button
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
 ANGLE_LABEL_PREFIX = "angle_label_"  # prefix of per-angle rename text-input keys

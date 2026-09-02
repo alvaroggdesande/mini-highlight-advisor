@@ -125,3 +125,51 @@ def blend_hex_lab(h1: str, h2: str) -> str:
     l2 = lab_of_hex(h2)
     mid = tuple((a + b) / 2.0 for a, b in zip(l1, l2))
     return rgb_to_hex(lab_to_rgb(mid))
+
+
+def ramp_from_midtone(
+    mid_hex: str,
+    n: int,
+    *,
+    shadow_sat_boost: float = 0.25,
+    shadow_cool: float = 15.0,
+    hi_desat: float = 0.20,
+    hi_warm: float = 10.0,
+) -> list[str]:
+    """Generate a painterly n-stop dark→light ramp centred on mid_hex.
+
+    Shadows get +saturation and a cooler hue; highlights get -saturation and
+    a warmer hue, each scaling with distance from the midtone.
+
+    The four shaping keyword args are the future slider surface (feature #3).
+    """
+    L_mid, a_mid, b_mid = lab_of_hex(mid_hex)
+    C_mid = math.hypot(a_mid, b_mid)
+    h_mid = math.degrees(math.atan2(b_mid, a_mid))
+
+    mid_idx = n // 2
+
+    # Lightness anchors: aim ±40 L units from the midtone, clamped to [5, 95].
+    L_shadow = max(5.0, L_mid - 40.0)
+    L_hi = min(95.0, L_mid + 40.0)
+
+    out: list[str] = []
+    for i in range(n):
+        if i == mid_idx:
+            L, C, h = L_mid, C_mid, h_mid
+        elif i < mid_idx:
+            t = i / mid_idx  # 0 at darkest, 1 at midtone
+            L = L_shadow + t * (L_mid - L_shadow)
+            d = 1.0 - t
+            C = C_mid * (1.0 + shadow_sat_boost * d)
+            h = h_mid + shadow_cool * d
+        else:
+            t = (i - mid_idx) / (n - 1 - mid_idx)  # 0 at midtone, 1 at lightest
+            L = L_mid + t * (L_hi - L_mid)
+            C = max(0.0, C_mid * (1.0 - hi_desat * t))
+            h = h_mid - hi_warm * t
+
+        h_rad = math.radians(h)
+        out.append(rgb_to_hex(lab_to_rgb((L, C * math.cos(h_rad), C * math.sin(h_rad)))))
+
+    return out
