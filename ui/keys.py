@@ -47,6 +47,10 @@ SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
 SCHEMES = "schemes"                    # list[Scheme] in session
 
+# --- scheme preview cache (set by results.render after each analysis run) ---
+LAST_MULTI = "last_multi_result"  # MultiRegionResult from the most recent analyze_regions
+LAST_RGB = "last_rgb"             # (H,W,3) uint8 rgb that was analyzed
+
 # --- angles (multi-angle view) ---
 ANGLES = "angles"                # list[AngleData] in session: the angle records
 ACTIVE_ANGLE = "active_angle"    # int index into ANGLES of the active angle

@@ -106,6 +106,8 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                             shades=shades,
                             nmm_horizon=nmm_horizon,
                             whole_material=book.material_at(0))
+    st.session_state[keys.LAST_MULTI] = multi
+    st.session_state[keys.LAST_RGB] = rgb
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)
     st.subheader("Colour schemes — all regions")
