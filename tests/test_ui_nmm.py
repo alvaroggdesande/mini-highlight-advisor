@@ -69,7 +69,7 @@ def test_ps_mode_selecting_nmm_replans_without_error():
     tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
     tech.set_value("NMM").run()
     assert not at.exception
-    assert len(at.image) > 0            # combined preview still renders
+    # Images are now rendered by render_steps(), not render()
 
 
 def test_photo_mode_shows_technique_but_hides_horizon():

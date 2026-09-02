@@ -27,7 +27,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
         for row in advise(match_targets, match_roles, owned_paints, context.CATALOG):
             r = row.result
             chips = "".join(helpers.swatch(p.hex) for p in r.paints)
-            st.markdown(f"{chips} **{row.role}** — {r.phrase}", unsafe_allow_html=True)
+            st.markdown(f"{chips} **{row.role}** - {r.phrase}", unsafe_allow_html=True)
             if row.note:
                 st.caption(row.note)
 
@@ -45,7 +45,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
         shades = st.checkbox(
             "Recess shades", value=False, key=keys.SHADES,
             help="Darken concave recesses (creases, cavities) from the surface "
-                 "normals — the inverse of edge highlights. PS mode only; reuses "
+                 "normals - the inverse of edge highlights. PS mode only; reuses "
                  "the edge-sensitivity slider.")
 
     nmm_horizon = 0.5
@@ -62,7 +62,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
 
     cur_idx = technique_keys.index(cur_key) if cur_key in technique_keys else 0
     choice_label = st.selectbox(
-        f"Technique — {book.names()[sel]}",
+        f"Technique - {book.names()[sel]}",
         technique_labels,
         index=cur_idx,
         key=keys.material(sel),
@@ -71,12 +71,12 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
             "Smooth layering: thin glazes, dark to light.\n"
             "Drybrush: drag a nearly-dry brush across raised surfaces "
             "(fur, chainmail, cloth, textured bases).\n"
-            "NMM (PS mode only): non-metallic metal — re-bands from the "
+            "NMM (PS mode only): non-metallic metal - re-bands from the "
             "reflection of a virtual sky/ground off the surface normals."
         ),
     )
     chosen_key = technique_keys[technique_labels.index(choice_label)]
-    # Passively normalises legacy "matte" → "smooth" on first render; inert (same banding).
+    # Passively normalises legacy "matte" - "smooth" on first render; inert (same banding).
     book.set_material_at(sel, chosen_key)
 
     if normal_field is not None and chosen_key == "nmm":
@@ -87,7 +87,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
 
     relief_cap = st.checkbox(
         "Auto-reduce bands on flat regions", value=True, key=keys.RELIEF_CAP,
-        help="A flat region can't show every highlight band — cap it to what the "
+        help="A flat region can't show every highlight band - cap it to what the "
              "relief supports. Untick to force your full band count everywhere.")
 
     if ps_mode:
@@ -100,14 +100,14 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                  "material; very dark regions may be flagged as too low-contrast to read.")
 
     # --- Photo quality panel (non-blocking, photo mode only) ---
-    # `shading.mask` is the mask computed (and cached) by `helpers.shading()` above —
+    # `shading.mask` is the mask computed (and cached) by `helpers.shading()` above -
     # it is the same mask by value that `analyze_regions` will use; reusing it here
     # adds no extra depth-model run.
     if not ps_mode:
         try:
             st.subheader("\U0001F4F7 Photo quality")
             for r in check_input(rgb, shading.mask):
-                line = f"**{r.label}** — {r.detail}"
+                line = f"**{r.label}** - {r.detail}"
                 (st.success if r.ok else st.warning)(line)
             st.caption(PAINTED_CAPTURE_NOTE)
             with st.expander("How to photograph your mini"):
@@ -129,24 +129,32 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                             whole_material=book.material_at(0))
     st.session_state[keys.LAST_MULTI] = multi
     st.session_state[keys.LAST_RGB] = rgb
-    st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
-             use_container_width=True)
-    st.subheader("Colour schemes — all regions")
-    st.image(swatch_board([(p.name, p.colors) for p in multi.plans]))
+
+
+def render_steps(multi) -> None:
+    """Paint tab: swatch board + per-region paint-along steps.
+
+    Call this from the Paint tab, reading keys.LAST_MULTI from session state.
+    `multi` is None before the first analysis run; shows a placeholder then.
+    """
+    if multi is None:
+        st.info("Set your colours in Studio first, then come here to paint.")
+        return
+    st.image(swatch_board([(p.name, p.colors) for p in multi.plans]),
+             caption="Colour schemes - all regions")
     st.subheader("Paint-along steps by region")
     st.caption("Work dark to light within each region.")
     for plan in multi.plans:
         st.markdown(f"### {plan.name}")
         if plan.flat_albedo:
             st.warning(
-                f"“{plan.name}” is too dark / low-contrast to read relief — showing "
-                f"1 band. Try a paler basecoat here, or a stronger raking side light. "
-                f"(Single-photo tools can’t recover form from a dark, flat colour.)")
+                f'"{plan.name}" is too dark / low-contrast to read relief - showing '
+                f"1 band. Try a paler basecoat here, or a stronger raking side light.")
         elif plan.capped:
             st.warning(
-                f"“{plan.name}” looks fairly flat — showing {len(plan.names)} "
-                f"band(s) instead of {plan.requested_bands}. Untick "
-                f"“Auto-reduce bands on flat regions” to force all "
+                f'"{plan.name}" looks fairly flat - showing {len(plan.names)} '
+                f'band(s) instead of {plan.requested_bands}. Untick '
+                f'"Auto-reduce bands on flat regions" to force all '
                 f"{plan.requested_bands}.")
         helpers.render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage,
                                     technique=plan.technique)
