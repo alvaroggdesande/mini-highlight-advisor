@@ -6,8 +6,8 @@ import streamlit as st
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
-    angles_panel, editor, gallery_panel, helpers, keys, paints_tab,
-    projects_panel, ps_mode, results, scheme_gen_panel, schemes_panel, state,
+    angles_panel, colour_panel, coverage_editor, gallery_panel, helpers, keys,
+    paints_tab, projects_panel, ps_mode, regions_panel, results, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -69,26 +69,53 @@ with tab_studio:
         with st.spinner("Preparing shading…"):
             rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
 
+        normal_field = st.session_state.get(keys.NORMALS)
+        light_field = None  # photo mode; PS mode takes a different branch above
+
+        # Run analysis BEFORE columns using session_state from the previous run.
+        # (Session_state holds the values the user set on the previous run, which
+        # are the same as what the widgets currently display. This keeps the left
+        # render in sync with the controls without an extra rerun.)
+        multi = helpers.run_analysis(rgb, alpha, book, shading,
+                                     light_field=light_field, normal_field=normal_field)
+        st.session_state[keys.LAST_MULTI] = multi
+        st.session_state[keys.LAST_RGB] = rgb
+
         col_render, col_controls = st.columns([1, 1])
 
         with col_render:
-            cached_multi = st.session_state.get(keys.LAST_MULTI)
-            if cached_multi is not None:
-                st.image(cached_multi.combined_rgb,
-                         caption="Painted preview (all regions)",
-                         use_container_width=True)
-            else:
-                st.info("Preview will appear here after the first analysis run.")
+            st.image(multi.combined_rgb,
+                     caption="Painted preview (all regions)",
+                     use_container_width=True)
+            # Compact photo-quality check
+            if normal_field is None:
+                try:
+                    from mini_highlight_advisor.input_check import check_input
+                    for r in check_input(rgb, shading.mask):
+                        (st.success if r.ok else st.warning)(f"**{r.label}** — {r.detail}")
+                except Exception:
+                    pass
 
         with col_controls:
-            editor.render_editor(rgb, alpha, shading, book, picked, owned_paints)
-            scheme_gen_panel.render(owned_paints)
-            schemes_panel.render()
-            projects_panel.render_save()
+            sel = st.session_state.get(keys.REGION_RADIO, 0)
+            subtab_r, subtab_c, subtab_t = st.tabs(["🗺 Regions", "🎨 Colour", "🖌 Technique"])
 
-        # After first analysis run, left column needs a rerun to show the image.
-        if cached_multi is None and st.session_state.get(keys.LAST_MULTI) is not None:
-            st.rerun()
+            with subtab_r:
+                src_h, src_w = rgb.shape[:2]
+                sel = regions_panel.render(book, rgb, shading, src_w, src_h)
+                state.rehydrate_editor_widgets(book, sel)
+                n = st.session_state.get(keys.N, 5)
+                coverage = coverage_editor.render(n)
+                book.set_coverage_at(sel, coverage)
+
+            with subtab_c:
+                colour_panel.render(book, sel, picked, owned_paints)
+
+            with subtab_t:
+                has_normals = normal_field is not None
+                results.render_technique_controls(book, sel, has_normals=has_normals)
+
+        projects_panel.render_save()
 
     except Exception as e:
         st.error("Error processing image — see traceback below.")

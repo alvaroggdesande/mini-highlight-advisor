@@ -1,6 +1,6 @@
 def test_panel_absent_without_regions_present_with_them():
-    # Smoke: the app imports and the panel module loads without error.
-    import ui.scheme_gen_panel as p
+    # Smoke: the colour_panel module (which absorbed scheme_gen_panel) loads without error.
+    import ui.colour_panel as p
     assert hasattr(p, "render")
 
 
