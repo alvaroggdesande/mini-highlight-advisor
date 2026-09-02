@@ -12,10 +12,26 @@ from collections import Counter
 
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_names, ramp_hex, valid_hex
 from mini_highlight_advisor.color import blend_hex_lab, hue_rotate, ramp_from_midtone
+from mini_highlight_advisor.overlay import preview_scheme
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor import collection
 from ui import context, helpers, keys
+
+
+def _mini_preview(proposed_hex: list[str], sel: int) -> None:
+    """Render a thumbnail of the mini with the proposed scheme on the selected region.
+
+    Other regions keep their current colours. Silent no-op when the analysis
+    cache is cold (no photo uploaded yet).
+    """
+    multi = st.session_state.get(keys.LAST_MULTI)
+    rgb = st.session_state.get(keys.LAST_RGB)
+    if multi is None or rgb is None:
+        return
+    proposed = [PaintColor(f"p{i}", h).rgb for i, h in enumerate(proposed_hex)]
+    preview = preview_scheme(rgb, multi.plans, proposed, region_index=sel)
+    st.image(preview, use_container_width=True)
 
 
 def _apply_paste_hex(i: int) -> None:
@@ -67,6 +83,7 @@ def render(book, sel, picked) -> tuple[list[PaintColor], int]:
             col.markdown(helpers.swatch(h, size="2.2em"), unsafe_allow_html=True)
             if p:
                 col.caption(p.name)
+        _mini_preview(mid_hexes, sel)
         apply_col, save_col = st.columns(2)
         if apply_col.button("Apply", key=keys.GENERATE_RAMP):
             for i, h in enumerate(mid_hexes):
@@ -118,6 +135,7 @@ def render(book, sel, picked) -> tuple[list[PaintColor], int]:
                 col.markdown(helpers.swatch(h, size="2.2em"), unsafe_allow_html=True)
                 if p:
                     col.caption(p.name)
+            _mini_preview(hexes, sel)
 
             if idx < len(variants) - 1:
                 st.divider()
