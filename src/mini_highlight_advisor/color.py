@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import colorsys
 import math
 
 
@@ -173,3 +174,12 @@ def ramp_from_midtone(
         out.append(rgb_to_hex(lab_to_rgb((L, C * math.cos(h_rad), C * math.sin(h_rad)))))
 
     return out
+
+
+def hue_rotate(hex_color: str, degrees: float) -> str:
+    """Rotate the hue of a hex colour by `degrees` in HLS space."""
+    r, g, b = hex_to_rgb(hex_color)
+    h, l, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
+    h = (h + degrees / 360.0) % 1.0
+    r2, g2, b2 = colorsys.hls_to_rgb(h, l, s)
+    return rgb_to_hex((r2 * 255, g2 * 255, b2 * 255))

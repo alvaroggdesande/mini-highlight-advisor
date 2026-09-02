@@ -11,7 +11,7 @@ import streamlit as st
 from collections import Counter
 
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, PaintColor, role_names, ramp_hex, valid_hex
-from mini_highlight_advisor.color import blend_hex_lab, ramp_from_midtone
+from mini_highlight_advisor.color import blend_hex_lab, hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor import collection
@@ -64,6 +64,26 @@ def render(book, sel, picked) -> tuple[list[PaintColor], int]:
                 st.session_state[keys.slot_hex(i)] = h
                 st.session_state[keys.slot_code(i)] = context.CUSTOM
             st.rerun()
+
+    # --- Colour variants ---
+    with st.expander("🎨 Colour variants"):
+        mid = st.session_state.get(keys.MIDTONE_HEX, "#808080")
+        variants = [
+            ("Complementary", hue_rotate(mid, 180)),
+            ("Warm analogous", hue_rotate(mid, 30)),
+            ("Cool analogous", hue_rotate(mid, -30)),
+        ]
+        for label, base_hex in variants:
+            hexes = ramp_from_midtone(base_hex, n)
+            col1, col2, col3 = st.columns([1, 3, 1])
+            col1.markdown(f"**{label}**")
+            swatch_html = " ".join(helpers.swatch(h, size="1.8em") for h in hexes)
+            col2.markdown(swatch_html, unsafe_allow_html=True)
+            if col3.button("Use", key=f"use_variant_{label}"):
+                for i, h in enumerate(hexes):
+                    st.session_state[keys.slot_hex(i)] = h
+                    st.session_state[keys.slot_code(i)] = context.CUSTOM
+                st.rerun()
 
     st.markdown("**Palette** (dark to light)")
     palette = []
