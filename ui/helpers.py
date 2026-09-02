@@ -8,6 +8,7 @@ from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.pipeline import prepare_shading
 from mini_highlight_advisor.palette import default_coverage
 from mini_highlight_advisor.techniques import get_technique
+from ui import keys
 
 
 @st.cache_data(show_spinner=False)
@@ -69,3 +70,35 @@ def render_region_steps(steps, roles, names, coverage, technique: str = "smooth"
             c3.image(step.exact_rgb,
                      caption=_spec.captions.stays.format(pct=cov),
                      use_container_width=True)
+
+
+def run_analysis(rgb, alpha, book, shading,
+                 light_field=None, normal_field=None):
+    """Run analyze_regions reading all control values from session_state.
+
+    Call this BEFORE rendering columns so the result is available for the
+    left-column render in the same Streamlit pass.
+    """
+    from mini_highlight_advisor.pipeline import analyze_regions
+
+    edges = st.session_state.get(keys.EDGE_HL, True)
+    extreme_edge = st.session_state.get(keys.EDGE_EXTREME, False)
+    edge_sensitivity = st.session_state.get(keys.EDGE_SENS, 0.5)
+    relief_cap = st.session_state.get(keys.RELIEF_CAP, True)
+    per_region_norm = st.session_state.get(keys.PER_REGION_NORM, False)
+    shades = st.session_state.get(keys.SHADES, False)
+    nmm_horizon = st.session_state.get(keys.NMM_HORIZON, 0.5)
+
+    wp, wcov, drawn = book.analyze_args()
+    return analyze_regions(
+        rgb, alpha, wp, wcov, drawn,
+        edges=edges, extreme_edge=extreme_edge,
+        edge_sensitivity=edge_sensitivity,
+        relief_cap=relief_cap,
+        per_region_norm=per_region_norm,
+        light_field=light_field,
+        normal_field=normal_field,
+        shades=shades,
+        nmm_horizon=nmm_horizon,
+        whole_material=book.material_at(0),
+    )

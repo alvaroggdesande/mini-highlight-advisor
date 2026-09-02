@@ -12,7 +12,7 @@ from mini_highlight_advisor import relight
 from mini_highlight_advisor.masking import compute_mask
 from mini_highlight_advisor.pipeline import ShadingResult
 from mini_highlight_advisor.region_state import new_book
-from ui import editor, keys, relight_panel
+from ui import colour_panel, coverage_editor, helpers, keys, regions_panel, results, relight_panel, state
 
 
 def _import_gate() -> bool:
@@ -79,5 +79,32 @@ def render(picked, owned_paints) -> None:
     st.session_state.setdefault(keys.PS_BOOK, new_book(5))
     book = st.session_state[keys.PS_BOOK]
 
-    editor.render_editor(relit_rgb, mask_u8, shading, book, picked, owned_paints,
-                         light_field=light_field, normal_field=normals)
+    # Run analysis before columns (standard pattern: uses session_state from previous run).
+    multi = helpers.run_analysis(relit_rgb, mask_u8, book, shading,
+                                 light_field=light_field, normal_field=normals)
+    st.session_state[keys.LAST_MULTI] = multi
+    st.session_state[keys.LAST_RGB] = relit_rgb
+
+    col_render, col_controls = st.columns([1, 1])
+
+    with col_render:
+        st.image(multi.combined_rgb,
+                 caption="Painted preview (all regions)",
+                 use_container_width=True)
+
+    with col_controls:
+        subtab_r, subtab_c, subtab_t = st.tabs(["🗺 Regions", "🎨 Colour", "🖌 Technique"])
+
+        with subtab_r:
+            src_h, src_w = relit_rgb.shape[:2]
+            sel = regions_panel.render(book, relit_rgb, shading, src_w, src_h)
+            state.rehydrate_editor_widgets(book, sel)
+            n = st.session_state.get(keys.N, 5)
+            coverage = coverage_editor.render(n)
+            book.set_coverage_at(sel, coverage)
+
+        with subtab_c:
+            colour_panel.render(book, sel, picked, owned_paints)
+
+        with subtab_t:
+            results.render_technique_controls(book, sel, has_normals=True)

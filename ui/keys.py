@@ -33,9 +33,8 @@ LIGHT_AZ = "light_az"            # virtual-light azimuth slider (deg)
 LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
 
-SAVE_NAME = "save_name"          # recipe save name text input
-MIDTONE_HEX = "midtone_hex"      # Generate-from-midtone colour picker
-GENERATE_RAMP = "generate_ramp"  # Generate-from-midtone button
+def midtone_hex(g: int) -> str: return f"midtone_hex_{g}"
+
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
 ANGLE_LABEL_PREFIX = "angle_label_"  # prefix of per-angle rename text-input keys
@@ -46,8 +45,9 @@ LOADED_NAME = "loaded_project_name"    # display name of the loaded project (sav
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
 SCHEMES = "schemes"                    # list[Scheme] in session
+SCHEME_GENERATED = "scheme_generated"  # True once Level 1 scheme has been applied
 
-# --- scheme preview cache (set by results.render after each analysis run) ---
+# --- scheme preview cache (set by app.py / ps_mode.py after each analysis run) ---
 LAST_MULTI = "last_multi_result"  # MultiRegionResult from the most recent analyze_regions
 LAST_RGB = "last_rgb"             # (H,W,3) uint8 rgb that was analyzed
 
