@@ -19,7 +19,7 @@ from .schemes import Scheme
 
 PROJECTS_DIR = Path(__file__).resolve().parents[2] / "user_data" / "projects"
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 @dataclass(frozen=True)
@@ -132,14 +132,17 @@ def _write_angle(project_dir: Path, idx: int, a: AngleData) -> dict:
         _write_mask(angle_dir / mask_file, r.mask)
         drawn.append({"name": r.name, "palette": _palette_to_dicts(r.palette),
                       "coverage": list(r.coverage), "mask_file": mask_file,
-                      "material": r.material})
+                      "material": r.material,
+                      "surface": r.surface, "tone": r.tone})
     return {
         "label": a.label,
         "photo_file": photo_file,
         "settings": _settings_to_dict(a.settings),
         "book": {"whole": {"palette": _palette_to_dicts(a.book.whole_palette),
                            "coverage": list(a.book.whole_coverage),
-                           "material": a.book.whole_material},
+                           "material": a.book.whole_material,
+                           "surface": a.book.whole_surface,
+                           "tone": a.book.whole_tone},
                  "drawn": drawn, "selected": a.book.selected},
     }
 
@@ -152,12 +155,15 @@ def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
     drawn = [
         Region(name=d["name"], mask=_read_mask(angle_dir / d["mask_file"]),
                palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]),
-               material=d.get("material", "matte"))
+               material=d.get("material", "matte"),
+               surface=d.get("surface", "other"), tone=d.get("tone"))
         for d in b["drawn"]
     ]
     book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
                       whole_coverage=list(b["whole"]["coverage"]),
                       whole_material=b["whole"].get("material", "matte"),
+                      whole_surface=b["whole"].get("surface", "other"),
+                      whole_tone=b["whole"].get("tone"),
                       drawn=drawn, selected=b["selected"])
     return AngleData(label=entry["label"], photo_bytes=photo_bytes,
                      photo_suffix=photo_suffix, book=book,
@@ -220,12 +226,15 @@ def _adapt_v1(m: dict, project_dir: Path) -> LoadedProject:
     drawn = [
         Region(name=d["name"], mask=_read_mask(project_dir / d["mask_file"]),
                palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]),
-               material=d.get("material", "matte"))
+               material=d.get("material", "matte"),
+               surface=d.get("surface", "other"), tone=d.get("tone"))
         for d in b["drawn"]
     ]
     book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
                       whole_coverage=list(b["whole"]["coverage"]),
                       whole_material=b["whole"].get("material", "matte"),
+                      whole_surface=b["whole"].get("surface", "other"),
+                      whole_tone=b["whole"].get("tone"),
                       drawn=drawn, selected=b["selected"])
     angle = AngleData(label=m.get("name", "angle 1"), photo_bytes=photo_bytes,
                       photo_suffix=photo_suffix, book=book,
