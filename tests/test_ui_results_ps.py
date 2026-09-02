@@ -52,3 +52,26 @@ def test_photo_mode_still_shows_coloured_toggle():
     assert not at.exception
     labels = [c.label for c in at.checkbox]
     assert any("painted mini" in (l or "").lower() for l in labels)
+
+
+def test_render_technique_controls_exists():
+    import ui.results as r
+    assert hasattr(r, "render_technique_controls")
+
+
+def test_render_technique_controls_smoke():
+    HARNESS = """
+import numpy as np
+import streamlit as st
+from mini_highlight_advisor.region_state import new_book
+from ui import results, keys
+
+book = new_book(5)
+st.session_state[keys.BOOK] = book
+results.render_technique_controls(book, 0, has_normals=False)
+st.write("ok")
+"""
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_string(HARNESS)
+    at.run()
+    assert not at.exception
