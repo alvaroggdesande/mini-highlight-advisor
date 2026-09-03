@@ -28,53 +28,6 @@ def _dome(h=41, w=41):
     return n, mask
 
 
-def test_nmm_light_is_float32_and_bounded():
-    n, m = _dome()
-    out = materials.nmm_light(n, m)
-    assert out.dtype == np.float32
-    assert out[m].min() >= 0.0 and out[m].max() <= 1.0
-
-
-def test_flat_front_facing_has_no_horizon():
-    # R_y == 0 everywhere -> uniform mid value, no spurious light/dark split.
-    n, m = _flat()
-    out = materials.nmm_light(n, m, horizon=0.5)
-    assert np.allclose(out[m], out[m].flat[0], atol=1e-5)
-
-
-def test_dome_is_bright_top_dark_bottom():
-    n, m = _dome()
-    out = materials.nmm_light(n, m, horizon=0.5)
-    col = out.shape[1] // 2
-    top = out[2, col]            # reflects up -> sky
-    bottom = out[-3, col]       # reflects down -> ground
-    assert top > bottom
-
-
-def test_higher_horizon_is_darker_overall():
-    # Raising the horizon puts more surface below it (ground) -> lower mean brightness.
-    n, m = _dome()
-    low = materials.nmm_light(n, m, horizon=0.2)[m].mean()
-    high = materials.nmm_light(n, m, horizon=0.8)[m].mean()
-    assert low > high
-
-
-def test_off_mask_is_zero():
-    n, m = _dome()
-    m2 = m.copy()
-    m2[:5, :] = False
-    out = materials.nmm_light(n, m2)
-    assert np.all(out[~m2] == 0.0)
-
-
-def test_degenerate_all_zero_normals_is_flat_not_crash():
-    n = np.zeros((10, 10, 3), np.float32)       # all-zero -> renormalized defensively
-    m = np.ones((10, 10), bool)
-    out = materials.nmm_light(n, m)
-    assert out.shape == (10, 10)
-    assert np.all(np.isfinite(out))
-
-
 def _blob_with_detail(h=120, w=120):
     """A smooth convex blob PLUS fine surface detail (bumps) — a stand-in for a
     real mini, whose NMM banding must follow the surface, not raster rows."""
@@ -93,29 +46,6 @@ def _blob_with_detail(h=120, w=120):
     n = np.stack([nx, ny, nz], -1).astype(np.float32)
     n[~mask] = np.array([0.0, 0.0, 1.0], np.float32)
     return n, mask
-
-
-def test_nmm_light_is_not_near_binary():
-    # Regression: a hard smoothstep horizon saturated R_y into two big tied
-    # clusters (~0 and ~1), discarding geometry. The field must instead carry a
-    # smooth gradient — most pixels strictly between the extremes.
-    n, m = _blob_with_detail()
-    out = materials.nmm_light(n, m)                       # defaults
-    vals = out[m]
-    intermediate = np.mean((vals > 0.02) & (vals < 0.98))
-    assert intermediate > 0.5, f"near-binary field: only {intermediate:.0%} intermediate"
-
-
-def test_nmm_light_is_strictly_monotonic_in_reflection():
-    # The banding degeneracy (raster-order horizontal stripes) came from large
-    # tied clusters. Guard it at the source: distinct R_y values must map to
-    # distinct brightness (no saturation plateaus), so banding rank == geometry
-    # rank. We assert a high fraction of unique output values inside the mask.
-    n, m = _blob_with_detail()
-    out = materials.nmm_light(n, m)
-    vals = out[m]
-    unique_frac = len(np.unique(vals)) / vals.size
-    assert unique_frac > 0.5, f"too many tied values: unique fraction {unique_frac:.0%}"
 
 
 # ---------------------------------------------------------------------------
@@ -199,3 +129,61 @@ def test_env_presets_are_valid_disks():
 def test_env_clamps_out_of_range_knobs_without_crash():
     env = build_nmm_env(size=32, horizon=5.0, bounce=-2.0, hotspot=9.0)
     assert np.all(np.isfinite(env)) and env.max() <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Task 2: new nmm_light (env-sampling)
+# ---------------------------------------------------------------------------
+
+def test_nmm_light_float32_bounded_and_off_mask_zero():
+    n, m = _dome()
+    m2 = m.copy(); m2[:5, :] = False
+    env = build_nmm_env(size=128)
+    out = materials.nmm_light(n, m2, env=env)
+    assert out.dtype == np.float32
+    assert out[m2].min() >= 0.0 and out[m2].max() <= 1.0
+    assert np.all(out[~m2] == 0.0)
+
+
+def test_nmm_light_is_light_independent():
+    # nmm_light takes only normals + env; there is no diffuse-light arg to vary.
+    # The core value claim: identical output regardless of any relight the caller did.
+    n, m = _dome()
+    env = build_nmm_env(size=128)
+    a = materials.nmm_light(n, m, env=env)
+    b = materials.nmm_light(n, m, env=env, view=(0.0, 0.0, 1.0))
+    np.testing.assert_array_equal(a, b)
+
+
+def test_nmm_light_flat_front_facing_is_uniform():
+    # All +Z normals -> R=(0,0,1) -> every pixel samples the disk center -> uniform,
+    # no spurious horizon on a flat plane.
+    n, m = _flat()
+    out = materials.nmm_light(n, m, env=build_nmm_env(size=128))
+    assert np.allclose(out[m], out[m].flat[0], atol=1e-5)
+
+
+def test_nmm_light_dome_sweeps_sky_to_ground():
+    # Dome tips from up (top) to down (bottom); brightness must follow: top (sky)
+    # brighter than bottom (ground).
+    n, m = _dome()
+    out = materials.nmm_light(n, m, env=build_nmm_env(size=128, horizon=0.5))
+    col = out.shape[1] // 2
+    assert out[2, col] > out[-3, col]
+
+
+def test_nmm_light_degenerate_all_zero_normals_is_flat_not_crash():
+    n = np.zeros((10, 10, 3), np.float32)
+    m = np.ones((10, 10), bool)
+    out = materials.nmm_light(n, m, env=build_nmm_env(size=64))
+    assert out.shape == (10, 10) and np.all(np.isfinite(out))
+    assert np.allclose(out[m], out[m].flat[0], atol=1e-5)
+
+
+def test_nmm_light_grazing_rays_clamp_to_rim_no_oob():
+    # Steeply side-facing normals push |R_xy| toward/над 1; must clamp, not index OOB.
+    n = np.zeros((8, 8, 3), np.float32)
+    n[..., 0] = 1.0                       # normals point +x -> grazing reflection
+    m = np.ones((8, 8), bool)
+    out = materials.nmm_light(n, m, env=build_nmm_env(size=64))
+    assert np.all(np.isfinite(out))

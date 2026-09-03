@@ -130,7 +130,8 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         # Metal is a mirror: re-band from the reflection environment, not the
         # caught/relit light. Geometry (not the virtual light) places the NMM
         # horizon. normals absent -> silently stay matte (defense in depth).
-        light = materials.nmm_light(normals, sub_mask, horizon=nmm_horizon)
+        _env = materials.build_nmm_env(horizon=nmm_horizon)
+        light = materials.nmm_light(normals, sub_mask, env=_env)
     requested_bands = len(palette)
     capped = False
     if flat_albedo:

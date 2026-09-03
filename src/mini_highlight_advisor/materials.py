@@ -87,41 +87,49 @@ def build_nmm_env(size: int = 256, *, horizon: float = 0.5, light_dir: float = 1
 
 
 # ---------------------------------------------------------------------------
-# Weight of the horizon smoothstep vs. the raw reflection ramp. The ramp term
-# (1 - _CONTRAST) keeps the mapping STRICTLY monotonic in R_y so no two distinct
-# reflection values collapse to the same brightness — see the long comment in
-# nmm_light for why that matters for banding.
-_CONTRAST = 0.7
+# nmm_light — env-matcap sampler (Task 2)
+# ---------------------------------------------------------------------------
+
+def _bilinear(img: np.ndarray, row: np.ndarray, col: np.ndarray) -> np.ndarray:
+    """Bilinear sample img at fractional (row, col); indices clamped in-bounds."""
+    h, w = img.shape
+    r = np.clip(row, 0.0, h - 1.0)
+    c = np.clip(col, 0.0, w - 1.0)
+    r0 = np.floor(r).astype(np.int64); c0 = np.floor(c).astype(np.int64)
+    r1 = np.minimum(r0 + 1, h - 1);    c1 = np.minimum(c0 + 1, w - 1)
+    fr = (r - r0).astype(np.float32);  fc = (c - c0).astype(np.float32)
+    top = img[r0, c0] * (1 - fc) + img[r0, c1] * fc
+    bot = img[r1, c0] * (1 - fc) + img[r1, c1] * fc
+    return (top * (1 - fr) + bot * fr).astype(np.float32)
 
 
-def nmm_light(normals: np.ndarray, mask: np.ndarray,
-              view=(0.0, 0.0, 1.0), horizon: float = 0.5,
-              softness: float = 0.15) -> np.ndarray:
-    """Reflection-environment brightness for NMM, in [0,1]; off-mask 0.
+def nmm_light(normals: np.ndarray, mask: np.ndarray, *, view=(0.0, 0.0, 1.0),
+              env: np.ndarray) -> np.ndarray:
+    """Reflection-environment brightness for NMM, (H,W) float32 in [0,1]; off-mask 0.
 
-    A metal surface mirrors a two-zone virtual environment (bright sky above a
-    horizon, dark ground below), sampled along the per-pixel reflection vector's
-    y-up component ``R_y`` (in ``[-1, 1]``). ``horizon`` in ``[0, 1]`` slides the
-    sky/ground split (0 = all sky/bright, 1 = all ground/dark); ``softness`` sets
-    the contrast of that split.
+    A metal surface mirrors the virtual environment `env` (a matcap disk from
+    build_nmm_env). Per pixel we take the reflection vector R = reflect(view,
+    normals), read (R_x, R_y), and bilinear-sample the disk where that ray points.
+    Brightness is a function of the FULL reflected direction, so azimuth (streak +
+    glint) and a non-monotone vertical profile (ground bounce) all survive.
 
-    Critically, the result is a **strictly monotonic** function of ``R_y``: the
-    horizon smoothstep supplies the NMM sky/ground contrast, but it is blended
-    with the raw reflection ramp so the brightness never saturates into large
-    tied clusters. A pure smoothstep with a narrow ``softness`` clips most of the
-    surface to exactly 0 or 1 (a near-binary field); rank-based banding then
-    breaks those ties by pixel raster order and paints flat horizontal image
-    stripes instead of following the geometry. Keeping the mapping monotonic
-    makes banding rank track the surface everywhere.
+    Light-independence: this takes only `normals` + `env`, never a diffuse light
+    direction. Grazing rays (R_x^2+R_y^2 > 1) clamp to the unit-circle rim; a
+    degenerate all-zero normal field -> R=(0,0,-Z) -> samples the disk center ->
+    flat map (never a crash, never mud). Off-mask -> 0.
     """
     m = mask.astype(bool)
-    r = reflect(np.asarray(view, np.float32), normals)   # reflect() validates normals
-    ry = r[..., 1]                                        # y-up component, in [-1, 1]
-    ramp = (0.5 * (ry + 1.0)).astype(np.float32)         # [0,1], strictly increasing in R_y
-    thr = 2.0 * float(horizon) - 1.0                     # horizon height -> R_y threshold
-    contrast = _smoothstep(thr - softness, thr + softness, ry).astype(np.float32)
-    # Blend keeps strict monotonicity (ramp term never plateaus) while contrast
-    # gives the characteristic NMM sky/ground split around the horizon.
-    light = (_CONTRAST * contrast + (1.0 - _CONTRAST) * ramp).astype(np.float32)
+    r = reflect(np.asarray(view, np.float32), normals)   # validates + renormalizes
+    rx = r[..., 0].astype(np.float32)
+    ry = r[..., 1].astype(np.float32)
+    rad = np.sqrt(rx * rx + ry * ry)
+    scale = np.where(rad > 1.0, 1.0 / np.maximum(rad, 1e-9), 1.0).astype(np.float32)
+    u = rx * scale
+    v = ry * scale
+    size = env.shape[0]
+    col = (u * 0.5 + 0.5) * (size - 1)
+    row = (0.5 - v * 0.5) * (size - 1)          # v=+1 -> row 0 (sky/top)
+    light = _bilinear(env, row, col)
     light[~m] = 0.0
-    return light
+    return light.astype(np.float32)
+
