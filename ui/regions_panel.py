@@ -21,15 +21,16 @@ def render_management(book, rgb, shading, src_w, src_h, sel: int) -> None:
 
     if draw_mode and st_canvas is not None:
         st.caption("Trace a lasso around an area below, then click **Add region**.")
+        bg = geometry.region_outline_image(rgb, book.drawn)
         canvas = st_canvas(
             fill_color="rgba(255,40,200,0.25)", stroke_width=2, stroke_color="#ff28c8",
-            background_image=Image.fromarray(rgb), height=disp_h, width=disp_w,
+            background_image=Image.fromarray(bg), height=disp_h, width=disp_w,
             drawing_mode="freedraw", key=keys.canvas(len(book.drawn)),
         )
     else:
         canvas = None
         outline = geometry.region_outline_image(rgb, book.drawn)
-        st.image(outline, caption="Region outlines", use_container_width=True)
+        st.image(outline, caption="Region outlines", width=disp_w)
 
     st.divider()
 

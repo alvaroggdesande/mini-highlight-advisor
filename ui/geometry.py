@@ -33,6 +33,23 @@ def points_from_object(obj) -> list[tuple[float, float]]:
     return [(seg[-2], seg[-1]) for seg in obj.get("path", []) if len(seg) >= 3]
 
 
+def highlight_region_image(rgb, book, sel: int):
+    """RGB copy dimmed everywhere except the selected region, which stays at full
+    brightness. Boundary of the selected region is drawn in its region colour.
+    Falls back to an unmodified copy when sel==0 or no drawn regions exist."""
+    src = np.ascontiguousarray(rgb[..., :3])
+    if not book.drawn or sel < 1 or sel > len(book.drawn):
+        return src.copy()
+    region = book.drawn[sel - 1]
+    out = (src.astype(np.float32) * 0.25).astype(np.uint8)
+    out[region.mask] = src[region.mask]
+    kernel = np.ones((3, 3), np.uint8)
+    m = region.mask.astype(np.uint8)
+    edge = (m - cv2.erode(m, kernel, iterations=2)).astype(bool)
+    out[edge] = REGION_COLORS[(sel - 1) % len(REGION_COLORS)]
+    return out
+
+
 def region_outline_image(rgb, regions):
     """RGB copy of the photo with each region's boundary drawn in a distinct
     colour matching REGION_COLORS. Read-only preview."""
