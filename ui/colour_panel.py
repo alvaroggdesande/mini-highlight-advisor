@@ -210,9 +210,9 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
         pal = to_palette(recipe_by_name[choice])
         st.session_state[keys.N] = max(3, min(7, len(pal)))
         for i, p in enumerate(pal[:st.session_state[keys.N]]):
-            match = find_by_name(context.CATALOG, p.name)
+            _found = find_by_name(context.CATALOG, p.name)
             unique = name_counts.get(p.name) == 1
-            st.session_state[keys.slot_code(i)] = match.code if (match and unique) else context.CUSTOM
+            st.session_state[keys.slot_code(i)] = _found.code if (_found and unique) else context.CUSTOM
             st.session_state[keys.slot_hex(i)] = p.hex
         st.rerun()
 
