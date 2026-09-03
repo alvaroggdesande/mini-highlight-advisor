@@ -19,7 +19,7 @@ from .schemes import Scheme
 
 PROJECTS_DIR = Path(__file__).resolve().parents[2] / "user_data" / "projects"
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 @dataclass(frozen=True)
@@ -133,7 +133,8 @@ def _write_angle(project_dir: Path, idx: int, a: AngleData) -> dict:
         drawn.append({"name": r.name, "palette": _palette_to_dicts(r.palette),
                       "coverage": list(r.coverage), "mask_file": mask_file,
                       "material": r.material,
-                      "surface": r.surface, "tone": r.tone})
+                      "surface": r.surface, "tone": r.tone,
+                      "ramp_midtone": r.ramp_midtone, "ramp_variant": r.ramp_variant})
     return {
         "label": a.label,
         "photo_file": photo_file,
@@ -143,7 +144,8 @@ def _write_angle(project_dir: Path, idx: int, a: AngleData) -> dict:
                            "material": a.book.whole_material,
                            "surface": a.book.whole_surface,
                            "tone": a.book.whole_tone},
-                 "drawn": drawn, "selected": a.book.selected},
+                 "drawn": drawn, "selected": a.book.selected,
+                 "colour_context": {"hero_hex": a.book.hero_hex, "mood": a.book.mood}},
     }
 
 
@@ -156,15 +158,19 @@ def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
         Region(name=d["name"], mask=_read_mask(angle_dir / d["mask_file"]),
                palette=_palette_from_dicts(d["palette"]), coverage=list(d["coverage"]),
                material=d.get("material", "matte"),
-               surface=d.get("surface", "other"), tone=d.get("tone"))
+               surface=d.get("surface", "other"), tone=d.get("tone"),
+               ramp_midtone=d.get("ramp_midtone"), ramp_variant=d.get("ramp_variant"))
         for d in b["drawn"]
     ]
+    colour_context = b.get("colour_context", {})
     book = RegionBook(whole_palette=_palette_from_dicts(b["whole"]["palette"]),
                       whole_coverage=list(b["whole"]["coverage"]),
                       whole_material=b["whole"].get("material", "matte"),
                       whole_surface=b["whole"].get("surface", "other"),
                       whole_tone=b["whole"].get("tone"),
-                      drawn=drawn, selected=b["selected"])
+                      drawn=drawn, selected=b["selected"],
+                      hero_hex=colour_context.get("hero_hex"),
+                      mood=colour_context.get("mood"))
     return AngleData(label=entry["label"], photo_bytes=photo_bytes,
                      photo_suffix=photo_suffix, book=book,
                      settings=_settings_from_dict(entry["settings"]))

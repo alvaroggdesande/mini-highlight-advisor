@@ -32,12 +32,12 @@ def test_scheme_roundtrip(tmp_path):
     assert got.palettes["armour"] == [PaintColor("Red", "#ff0000")]
 
 
-def test_schema_version_is_4(tmp_path):
+def test_schema_version_is_5(tmp_path):
     book = new_book(5)
     projects.save_project("Mini Two", [], 0, [_angle(book)],
                           schemes=[], root=tmp_path)
     manifest = json.loads((tmp_path / "mini-two" / "manifest.json").read_text())
-    assert manifest["schema_version"] == 4
+    assert manifest["schema_version"] == 5
 
 
 def test_load_v2_project_without_schemes_key(tmp_path):
