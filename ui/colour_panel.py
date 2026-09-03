@@ -113,8 +113,35 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     Applies immediately on button click (no preview thumbnail — left-column
     render is the preview).
     """
+    _VARIANT_MAP = {"Ramp": "standard", "Complementary": "complementary",
+                    "Warm (+30°)": "warm", "Cool (−30°)": "cool"}
+
     st.divider()
     st.markdown(f"**Ramp for: {book.names()[sel]}**")
+
+    # Pre-fill midtone picker from stored ramp decision (only when session key absent)
+    if sel > 0:
+        _region = book.drawn[sel - 1]
+        if _region.ramp_midtone is not None and keys.midtone_hex(sel) not in st.session_state:
+            st.session_state[keys.midtone_hex(sel)] = _region.ramp_midtone
+
+    # Last-applied indicator
+    if sel > 0 and book.drawn[sel - 1].ramp_variant is not None:
+        _applied_label = {v: k for k, v in _VARIANT_MAP.items()}.get(
+            book.drawn[sel - 1].ramp_variant, book.drawn[sel - 1].ramp_variant)
+        st.caption(f"✓ Last applied: {_applied_label}")
+
+    # Complement shortcut: seed the midtone picker with 180° rotation of hero colour
+    if book.hero_hex is not None:
+        comp_hex = hue_rotate(book.hero_hex, 180)
+        c_info, c_btn = st.columns([3, 1])
+        c_info.caption(
+            f"⊕ Complement of hero: {helpers.swatch(comp_hex, size='1.2em')} `{comp_hex}`",
+            unsafe_allow_html=True,
+        )
+        if c_btn.button("Use", key=f"use_complement_{sel}"):
+            st.session_state[keys.midtone_hex(sel)] = comp_hex
+            st.rerun()
 
     mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
 
@@ -140,6 +167,9 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
         apply_col, save_col = st.columns(2)
         if apply_col.button(f"Apply {label}", key=f"apply_ramp_{label}"):
             _apply_ramp(hexes, n)
+            if sel > 0:
+                book.drawn[sel - 1].ramp_midtone = mid_hex
+                book.drawn[sel - 1].ramp_variant = _VARIANT_MAP[label]
         if save_col.button(f"💾 Save", key=f"save_ramp_{label}"):
             steps = [
                 RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))

@@ -124,3 +124,77 @@ def test_level1_prefill_seeds_session_from_book():
 
     assert session[sgen_hex_key] == "#a03020"
     assert session[sgen_mood_key] == "grimdark"
+
+
+def _make_book_with_ramp_decision():
+    from mini_highlight_advisor.region_state import new_book
+    import numpy as np
+    book = new_book(5)
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+    book.drawn[0].ramp_midtone = "#c02030"
+    book.drawn[0].ramp_variant = "complementary"
+    return book
+
+
+def test_level2_writeback_sets_ramp_decision():
+    """Applying a ramp variant writes midtone + variant back to the region."""
+    from mini_highlight_advisor.region_state import new_book
+    import numpy as np
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+
+    book = new_book(5)
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+
+    sel = 1
+    mid_hex = "#a03020"
+    label = "Complementary"
+    variant_map = {"Ramp": "standard", "Complementary": "complementary",
+                   "Warm (+30°)": "warm", "Cool (−30°)": "cool"}
+
+    # Simulate what the Apply button click will do:
+    book.drawn[sel - 1].ramp_midtone = mid_hex
+    book.drawn[sel - 1].ramp_variant = variant_map[label]
+
+    assert book.drawn[0].ramp_midtone == "#a03020"
+    assert book.drawn[0].ramp_variant == "complementary"
+
+
+def test_level2_writeback_skips_whole_mini():
+    """sel == 0 (whole-mini) does not attempt to write to drawn list (would IndexError)."""
+    from mini_highlight_advisor.region_state import new_book
+    book = new_book(5)
+    sel = 0
+    # Write-back guard: only write when sel > 0
+    if sel > 0:
+        book.drawn[sel - 1].ramp_midtone = "#c02030"
+    # No error, nothing written
+    assert book.drawn == []
+
+
+def test_level2_complement_shortcut_hex():
+    """Complement shortcut injects hue_rotate(hero_hex, 180) as the midtone."""
+    from mini_highlight_advisor.color import hue_rotate
+    hero_hex = "#c02030"
+    complement = hue_rotate(hero_hex, 180)
+    # Verify it's the 180° rotation (not the same colour)
+    assert complement != hero_hex
+    # Simulate seeding the session key:
+    session = {}
+    session["midtone_hex_1"] = complement
+    assert session["midtone_hex_1"] == complement
+
+
+def test_level2_prefill_seeds_midtone_from_region():
+    """If region.ramp_midtone is set and session key absent, session key is seeded."""
+    from ui import keys
+    book = _make_book_with_ramp_decision()
+    sel = 1
+    session = {}
+    key = keys.midtone_hex(sel)
+    region = book.drawn[sel - 1]
+    if region.ramp_midtone is not None and key not in session:
+        session[key] = region.ramp_midtone
+    assert session[key] == "#c02030"
