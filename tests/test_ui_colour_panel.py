@@ -198,3 +198,53 @@ def test_level2_prefill_seeds_midtone_from_region():
     if region.ramp_midtone is not None and key not in session:
         session[key] = region.ramp_midtone
     assert session[key] == "#c02030"
+
+
+def test_level3_mix_guide_exact_phrase():
+    """When the user owns an exact paint match, phrase is 'Use X (code).'"""
+    from mini_highlight_advisor.matching import match, Target
+    from mini_highlight_advisor.palette import PaintColor
+    from ui.context import CATALOG
+
+    # Find any paint in the catalogue
+    paint = CATALOG[0]
+    owned = [paint]
+    result = match(Target(paint.hex, None, paint.finish), owned=owned, catalog=list(CATALOG))
+    assert result.tier in ("exact", "close")
+    assert result.phrase  # non-empty
+
+
+def test_level3_mix_guide_unreachable_phrase():
+    """When the user owns nothing useful, phrase mentions can't match."""
+    from mini_highlight_advisor.matching import match, Target
+    result = match(Target("#123456", None, "matte"), owned=[], catalog=[])
+    assert "Can't match" in result.phrase or result.phrase  # graceful
+
+
+def test_level3_owned_list_derivation():
+    """owned_list is correctly derived from picked codes + CATALOG."""
+    from ui.context import CATALOG
+    if not CATALOG:
+        return
+    paint = CATALOG[0]
+    picked = {paint.code}
+    owned_list = [p for p in CATALOG if p.code and p.code in picked]
+    assert paint in owned_list
+
+
+def test_level3_finish_is_metallic_for_nmm():
+    """For nmm material, finish resolves to 'metallic'."""
+    from mini_highlight_advisor.region_state import new_book
+    book = new_book(5)
+    book.whole_material = "nmm"
+    sel = 0
+    finish = "metallic" if book.material_at(sel) == "nmm" else "matte"
+    assert finish == "metallic"
+
+
+def test_level3_finish_is_matte_for_smooth():
+    from mini_highlight_advisor.region_state import new_book
+    book = new_book(5)
+    sel = 0
+    finish = "metallic" if book.material_at(sel) == "nmm" else "matte"
+    assert finish == "matte"

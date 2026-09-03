@@ -12,6 +12,7 @@ from mini_highlight_advisor.palette import (
 from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
+from mini_highlight_advisor.matching import match, Target
 from mini_highlight_advisor import collection
 from ui import context, coverage_editor, helpers, keys
 
@@ -245,10 +246,10 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
                 c3.caption("⚠️ invalid hex")
             paint = PaintColor(f"Custom {i+1}", hexv)
             palette.append(paint)
-            near = collection.nearest_paint(paint.rgb, context.CATALOG)
-            if near is not None:
-                owned_badge = "✅ owned" if near.code in set(picked) else "⚠️ not owned"
-                c3.caption(f"{hexv} · closest: {near.name} · {near.code} ({owned_badge})")
+            _owned_list = [p for p in context.CATALOG if p.code and p.code in set(picked)]
+            _finish = "metallic" if book.material_at(sel) == "nmm" else "matte"
+            _result = match(Target(hexv, None, _finish), owned=_owned_list, catalog=list(context.CATALOG))
+            c3.caption(_result.phrase)
         else:
             paint = find_by_code(context.CATALOG, slot_sel)
             c2.markdown(helpers.swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
