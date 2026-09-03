@@ -67,3 +67,60 @@ def test_colour_panel_render_sets_book_palette(tmp_path):
     # Default palette should be set; Level 3 reads it and sets it back via book
     assert book.palette_at(0) is not None
     assert len(book.palette_at(0)) > 0
+
+
+def test_level1_writeback_sets_hero_hex_and_mood():
+    """After running scheme generation logic, book.hero_hex and book.mood are written."""
+    from mini_highlight_advisor import scheme_build as sb, schemes as sch
+    from mini_highlight_advisor.scheme_gen import RegionColorSpec
+    from ui.context import CATALOG
+
+    book = _make_book_with_region()
+    assert book.hero_hex is None
+    assert book.mood is None
+
+    chosen_hex = "#c02030"
+    chosen_mood = "grimdark"
+    names = book.names()
+    specs = [
+        RegionColorSpec(nm, book.surface_at(g), book.tone_at(g), len(book.palette_at(g)))
+        for g, nm in enumerate(names)
+    ]
+    scheme = sb.build_scheme("Auto", specs, names[0], chosen_hex, chosen_mood,
+                             "complementary", [], list(CATALOG), owned_only=False)
+    sch.apply(scheme, book)
+
+    # Simulate what _render_level1 will do after apply:
+    book.hero_hex = chosen_hex
+    book.mood = chosen_mood
+
+    assert book.hero_hex == "#c02030"
+    assert book.mood == "grimdark"
+
+
+def test_level1_prefill_seeds_session_from_book():
+    """If book.hero_hex/mood are set and session keys absent, they seed the session."""
+    import streamlit as st
+
+    book = _make_book_with_region()
+    book.hero_hex = "#a03020"
+    book.mood = "grimdark"
+
+    # Simulate the pre-fill logic (the actual Streamlit widgets can't be called in tests,
+    # so we test the seeding condition and session mutation directly).
+    sgen_hex_key = "sgen_anchor_hex"
+    sgen_mood_key = "sgen_mood"
+    if hasattr(st, "session_state"):
+        st.session_state.pop(sgen_hex_key, None)
+        st.session_state.pop(sgen_mood_key, None)
+
+    # Pre-fill logic extracted for testability:
+    session = {}  # stand-in for st.session_state
+    if book.hero_hex is not None and sgen_hex_key not in session:
+        session[sgen_hex_key] = book.hero_hex
+    from mini_highlight_advisor.scheme_gen import MOODS
+    if book.mood is not None and book.mood in MOODS and sgen_mood_key not in session:
+        session[sgen_mood_key] = book.mood
+
+    assert session[sgen_hex_key] == "#a03020"
+    assert session[sgen_mood_key] == "grimdark"

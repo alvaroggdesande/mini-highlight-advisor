@@ -27,6 +27,11 @@ def _reseed_editor_widgets() -> None:
 
 def _render_level1(book, owned_paints) -> None:
     """Level 1 — whole-mini scheme: surfaces + hero + mood → generate & apply."""
+    # Pre-fill from stored colour decisions (only when session keys are absent)
+    if book.hero_hex is not None and "sgen_anchor_hex" not in st.session_state:
+        st.session_state["sgen_anchor_hex"] = book.hero_hex
+    if book.mood is not None and book.mood in MOODS and "sgen_mood" not in st.session_state:
+        st.session_state["sgen_mood"] = book.mood
     generated = st.session_state.get(keys.SCHEME_GENERATED, False)
     with st.expander("🎯 Generate scheme (surfaces + hero colour + mood)",
                      expanded=not generated):
@@ -86,6 +91,8 @@ def _render_level1(book, owned_paints) -> None:
                     if tech == "nmm" and not ps_on:
                         continue
                     book.set_material_at(g, tech)
+            book.hero_hex = anchor_hex
+            book.mood = mood
             st.session_state[keys.SCHEME_GENERATED] = True
             _reseed_editor_widgets()
             st.success("Scheme generated and applied. Adjust any colour below.")
