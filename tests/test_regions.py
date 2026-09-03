@@ -1,6 +1,7 @@
 import numpy as np
 from mini_highlight_advisor.regions import Region, assign_owners, scale_points, polygon_to_mask
-from mini_highlight_advisor.palette import PaintColor
+from mini_highlight_advisor.palette import PaintColor, default_ramp, default_coverage
+from mini_highlight_advisor.region_state import RegionBook
 
 
 def test_assign_owners_last_wins_on_overlap():
@@ -58,3 +59,43 @@ def test_polygons_to_mask_empty_is_all_false():
     from mini_highlight_advisor.regions import polygons_to_mask
     m = polygons_to_mask([], (4, 4))
     assert m.shape == (4, 4) and not m.any()
+
+
+def _mask():
+    m = np.zeros((4, 4), dtype=bool)
+    m[1:3, 1:3] = True
+    return m
+
+
+def test_region_new_fields_default_to_none():
+    r = Region("Cloak", _mask(), default_ramp(5), default_coverage(5))
+    assert r.ramp_midtone is None
+    assert r.ramp_variant is None
+
+
+def test_region_new_fields_accept_values():
+    r = Region("Cloak", _mask(), default_ramp(5), default_coverage(5),
+               ramp_midtone="#c02030", ramp_variant="complementary")
+    assert r.ramp_midtone == "#c02030"
+    assert r.ramp_variant == "complementary"
+
+
+def test_regionbook_new_fields_default_to_none():
+    book = RegionBook(default_ramp(5), default_coverage(5))
+    assert book.hero_hex is None
+    assert book.mood is None
+
+
+def test_regionbook_new_fields_accept_values():
+    book = RegionBook(default_ramp(5), default_coverage(5),
+                      hero_hex="#a03020", mood="grimdark")
+    assert book.hero_hex == "#a03020"
+    assert book.mood == "grimdark"
+
+
+def test_existing_region_construction_unchanged():
+    # Existing callers that don't pass new fields must still work.
+    r = Region("Cape", _mask(), default_ramp(3), default_coverage(3),
+               material="nmm", surface="metal", tone=None, blank=False)
+    assert r.ramp_midtone is None
+    assert r.ramp_variant is None
