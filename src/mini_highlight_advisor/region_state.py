@@ -24,6 +24,8 @@ class RegionBook:
     drawn: list[Region] = field(default_factory=list)
     selected: int = 0
     whole_blank: bool = False
+    hero_hex: str | None = None   # L1 hero colour
+    mood: str | None = None       # L1 mood variant name
 
     def names(self) -> list[str]:
         return [WHOLE_MINI] + [r.name for r in self.drawn]

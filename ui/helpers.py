@@ -101,4 +101,5 @@ def run_analysis(rgb, alpha, book, shading,
         shades=shades,
         nmm_horizon=nmm_horizon,
         whole_material=book.material_at(0),
+        whole_blank=book.whole_blank,
     )

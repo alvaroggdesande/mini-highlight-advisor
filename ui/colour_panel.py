@@ -12,6 +12,7 @@ from mini_highlight_advisor.palette import (
 from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
+from mini_highlight_advisor.matching import match, Target
 from mini_highlight_advisor import collection
 from ui import context, coverage_editor, helpers, keys
 
@@ -27,6 +28,11 @@ def _reseed_editor_widgets() -> None:
 
 def _render_level1(book, owned_paints) -> None:
     """Level 1 — whole-mini scheme: surfaces + hero + mood → generate & apply."""
+    # Pre-fill from stored colour decisions (only when session keys are absent)
+    if book.hero_hex is not None and "sgen_anchor_hex" not in st.session_state:
+        st.session_state["sgen_anchor_hex"] = book.hero_hex
+    if book.mood is not None and book.mood in MOODS and "sgen_mood" not in st.session_state:
+        st.session_state["sgen_mood"] = book.mood
     generated = st.session_state.get(keys.SCHEME_GENERATED, False)
     with st.expander("🎯 Generate scheme (surfaces + hero colour + mood)",
                      expanded=not generated):
@@ -86,6 +92,8 @@ def _render_level1(book, owned_paints) -> None:
                     if tech == "nmm" and not ps_on:
                         continue
                     book.set_material_at(g, tech)
+            book.hero_hex = anchor_hex
+            book.mood = mood
             st.session_state[keys.SCHEME_GENERATED] = True
             _reseed_editor_widgets()
             st.success("Scheme generated and applied. Adjust any colour below.")
@@ -106,8 +114,38 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     Applies immediately on button click (no preview thumbnail — left-column
     render is the preview).
     """
+    _VARIANT_MAP = {"Ramp": "standard", "Complementary": "complementary",
+                    "Warm (+30°)": "warm", "Cool (−30°)": "cool"}
+
     st.divider()
     st.markdown(f"**Ramp for: {book.names()[sel]}**")
+
+    # Pre-fill midtone picker from stored ramp decision (only when session key absent)
+    if sel > 0:
+        _region = book.drawn[sel - 1]
+        if _region.ramp_midtone is not None and keys.midtone_hex(sel) not in st.session_state:
+            st.session_state[keys.midtone_hex(sel)] = _region.ramp_midtone
+
+    # Last-applied indicator
+    if sel > 0 and book.drawn[sel - 1].ramp_variant is not None:
+        _applied_label = {v: k for k, v in _VARIANT_MAP.items()}.get(
+            book.drawn[sel - 1].ramp_variant, book.drawn[sel - 1].ramp_variant)
+        st.caption(f"✓ Last applied: {_applied_label}")
+
+    # Scheme shortcut: seed the midtone picker with the midtone of this region's
+    # palette, which is the colour the scheme assigned to it.  Works uniformly
+    # for whole-mini (sel==0) and all drawn regions — no hue-rotate needed.
+    if book.hero_hex is not None:
+        _pal = book.palette_at(sel)
+        _anchor_hex = _pal[len(_pal) // 2].hex
+        c_info, c_btn = st.columns([3, 1])
+        c_info.caption(
+            f"⊕ Scheme colour: {helpers.swatch(_anchor_hex, size='1.2em')} `{_anchor_hex}`",
+            unsafe_allow_html=True,
+        )
+        if c_btn.button("Use", key=f"use_complement_{sel}"):
+            st.session_state[keys.midtone_hex(sel)] = _anchor_hex
+            st.rerun()
 
     mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
 
@@ -133,6 +171,9 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
         apply_col, save_col = st.columns(2)
         if apply_col.button(f"Apply {label}", key=f"apply_ramp_{label}"):
             _apply_ramp(hexes, n)
+            if sel > 0:
+                book.drawn[sel - 1].ramp_midtone = mid_hex
+                book.drawn[sel - 1].ramp_variant = _VARIANT_MAP[label]
         if save_col.button(f"💾 Save", key=f"save_ramp_{label}"):
             steps = [
                 RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))
@@ -172,9 +213,9 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
         pal = to_palette(recipe_by_name[choice])
         st.session_state[keys.N] = max(3, min(7, len(pal)))
         for i, p in enumerate(pal[:st.session_state[keys.N]]):
-            match = find_by_name(context.CATALOG, p.name)
+            _found = find_by_name(context.CATALOG, p.name)
             unique = name_counts.get(p.name) == 1
-            st.session_state[keys.slot_code(i)] = match.code if (match and unique) else context.CUSTOM
+            st.session_state[keys.slot_code(i)] = _found.code if (_found and unique) else context.CUSTOM
             st.session_state[keys.slot_hex(i)] = p.hex
         st.rerun()
 
@@ -208,10 +249,10 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
                 c3.caption("⚠️ invalid hex")
             paint = PaintColor(f"Custom {i+1}", hexv)
             palette.append(paint)
-            near = collection.nearest_paint(paint.rgb, context.CATALOG)
-            if near is not None:
-                owned_badge = "✅ owned" if near.code in set(picked) else "⚠️ not owned"
-                c3.caption(f"{hexv} · closest: {near.name} · {near.code} ({owned_badge})")
+            _owned_list = [p for p in context.CATALOG if p.code and p.code in set(picked)]
+            _finish = "metallic" if book.material_at(sel) == "nmm" else "matte"
+            _result = match(Target(hexv, None, _finish), owned=_owned_list, catalog=list(context.CATALOG))
+            c3.caption(_result.phrase)
         else:
             paint = find_by_code(context.CATALOG, slot_sel)
             c2.markdown(helpers.swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)

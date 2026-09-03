@@ -193,7 +193,8 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     normal_field: np.ndarray | None = None,
                     shades: bool = False,
                     nmm_horizon: float = 0.5,
-                    whole_material: str = "matte") -> MultiRegionResult:
+                    whole_material: str = "matte",
+                    whole_blank: bool = False) -> MultiRegionResult:
     regions = regions or []
     if normal_field is not None:
         if (normal_field.ndim != 3 or normal_field.shape[2] != 3
@@ -227,7 +228,7 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
             return ll.light, ll.flat
         return light, False
 
-    if default_sub.any():
+    if default_sub.any() and not whole_blank:
         lgt, flat = _region_light(default_sub)
         plans.append(plan_region(rgb, default_sub, lgt, WHOLE_MINI, default_palette,
                                  coverage, flat_albedo=flat,

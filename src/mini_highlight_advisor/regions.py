@@ -18,6 +18,8 @@ class Region:
     surface: str = "other"           # surface vocabulary key (skin/metal/cloth/…)
     tone: str | None = None          # chosen tone key for realistic surfaces
     blank: bool = False              # skip paint overlay in preview (treated as whole-mini)
+    ramp_midtone: str | None = None  # hex used to generate the L2 ramp
+    ramp_variant: str | None = None  # "standard"|"complementary"|"warm"|"cool"
 
 
 def assign_owners(base_mask: np.ndarray, region_masks: list[np.ndarray]) -> np.ndarray:
