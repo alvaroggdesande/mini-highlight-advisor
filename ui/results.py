@@ -1,4 +1,5 @@
 """Results panel: technique controls and paint-along steps."""
+import io
 import streamlit as st
 
 from mini_highlight_advisor.overlay import swatch_board
@@ -65,8 +66,12 @@ def render_steps(multi) -> None:
     if multi is None:
         st.info("Set your colours in Studio first, then come here to paint.")
         return
-    st.image(swatch_board([(p.name, p.colors) for p in multi.plans]),
-             caption="Colour schemes - all regions")
+    board_img = swatch_board([(p.name, p.colors) for p in multi.plans])
+    st.image(board_img, caption="Colour schemes - all regions")
+    buf = io.BytesIO()
+    board_img.save(buf, format="PNG")
+    st.download_button("⬇ Download swatch board", buf.getvalue(),
+                       file_name="swatch_board.png", mime="image/png")
     st.subheader("Paint-along steps by region")
     st.caption("Work dark to light within each region.")
     for plan in multi.plans:

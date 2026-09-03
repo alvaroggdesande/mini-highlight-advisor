@@ -104,7 +104,7 @@ def render(picked, owned_paints) -> None:
             book.set_coverage_at(sel, coverage)
 
         with subtab_c:
-            colour_panel.render(book, sel, picked, owned_paints)
+            colour_panel.render(book, sel, picked, owned_paints, rgb=relit_rgb)
 
         with subtab_t:
             results.render_technique_controls(book, sel, has_normals=True)

@@ -135,7 +135,7 @@ with tab_studio:
                 regions_panel.render_management(book, rgb, shading, src_w, src_h, sel)
 
             with subtab_c:
-                colour_panel.render(book, sel, picked, owned_paints)
+                colour_panel.render(book, sel, picked, owned_paints, rgb=rgb)
 
             with subtab_t:
                 results.render_technique_controls(book, sel, has_normals=has_normals)

@@ -14,7 +14,7 @@ from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.matching import match, Target
 from mini_highlight_advisor import collection
-from ui import context, coverage_editor, helpers, keys
+from ui import context, coverage_editor, geometry, helpers, keys
 
 
 def _reseed_editor_widgets() -> None:
@@ -307,9 +307,12 @@ def _render_scheme_save(book) -> None:
                 st.rerun()
 
 
-def render(book, sel: int, picked, owned_paints) -> None:
+def render(book, sel: int, picked, owned_paints, rgb=None) -> None:
     """Render the three-level colour panel for the selected region."""
     st.markdown(f"**Editing:** {book.names()[sel]}")
+    if rgb is not None and book.drawn and sel >= 1:
+        thumb = geometry.highlight_region_image(rgb, book, sel)
+        st.image(thumb, width=220)
 
     _render_level1(book, owned_paints)
 
