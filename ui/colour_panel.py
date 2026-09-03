@@ -132,16 +132,19 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
             book.drawn[sel - 1].ramp_variant, book.drawn[sel - 1].ramp_variant)
         st.caption(f"✓ Last applied: {_applied_label}")
 
-    # Complement shortcut: seed the midtone picker with 180° rotation of hero colour
+    # Scheme shortcut: seed the midtone picker with the midtone of this region's
+    # palette, which is the colour the scheme assigned to it.  Works uniformly
+    # for whole-mini (sel==0) and all drawn regions — no hue-rotate needed.
     if book.hero_hex is not None:
-        comp_hex = hue_rotate(book.hero_hex, 180)
+        _pal = book.palette_at(sel)
+        _anchor_hex = _pal[len(_pal) // 2].hex
         c_info, c_btn = st.columns([3, 1])
         c_info.caption(
-            f"⊕ Complement of hero: {helpers.swatch(comp_hex, size='1.2em')} `{comp_hex}`",
+            f"⊕ Scheme colour: {helpers.swatch(_anchor_hex, size='1.2em')} `{_anchor_hex}`",
             unsafe_allow_html=True,
         )
         if c_btn.button("Use", key=f"use_complement_{sel}"):
-            st.session_state[keys.midtone_hex(sel)] = comp_hex
+            st.session_state[keys.midtone_hex(sel)] = _anchor_hex
             st.rerun()
 
     mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
