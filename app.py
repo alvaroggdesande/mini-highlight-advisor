@@ -72,6 +72,14 @@ with tab_studio:
         normal_field = st.session_state.get(keys.NORMALS)
         light_field = None  # photo mode; PS mode takes a different branch above
 
+        # Sync visibility toggles from session_state into book before analysis.
+        # The toggles render after run_analysis (they live in col_controls), so
+        # without this pre-sync the preview is always one rerun behind the toggle state.
+        for _g in range(len(book.names())):
+            _vk = f"vis_{_g}"
+            if _vk in st.session_state:
+                book.set_blank_at(_g, not st.session_state[_vk])
+
         # Run analysis BEFORE columns using session_state from the previous run.
         # (Session_state holds the values the user set on the previous run, which
         # are the same as what the widgets currently display. This keeps the left
@@ -111,6 +119,11 @@ with tab_studio:
                 key=keys.REGION_RADIO,
                 horizontal=True,
             )
+            if book.drawn:
+                vis_cols = st.columns(len(labels))
+                for _g, (_col, _lbl) in enumerate(zip(vis_cols, labels)):
+                    _vis = _col.toggle(_lbl, value=not book.blank_at(_g), key=f"vis_{_g}")
+                    book.set_blank_at(_g, not _vis)
             state.load_region_into_widgets(book, sel)
             state.rehydrate_editor_widgets(book, sel)
             book.selected = sel

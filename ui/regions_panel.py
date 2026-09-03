@@ -66,11 +66,9 @@ def render_management(book, rgb, shading, src_w, src_h, sel: int) -> None:
             st.session_state[keys.DRAW_MODE] = False
             st.rerun()
 
-    # Per-region controls for the selected region
-    if len(book.drawn) > 0 or sel == 0:
+    # Per-region controls for the selected region (hidden while drawing)
+    if not draw_mode and sel >= 1:
         st.divider()
-
-    if sel >= 1:
         renamed = st.text_input("Rename region", value=book.names()[sel],
                                 key=keys.rename(sel))
         if renamed.strip() and renamed.strip() != book.names()[sel]:
@@ -78,22 +76,9 @@ def render_management(book, rgb, shading, src_w, src_h, sel: int) -> None:
             st.session_state.pop(keys.LOADED_G, None)
             st.rerun()
 
-        cur_blank = book.blank_at(sel)
-        new_blank = st.checkbox(
-            "Skip in preview (blank)", value=cur_blank, key=f"blank_{sel}",
-            help="Blank regions fall back to the Whole mini palette in the preview.")
-        book.set_blank_at(sel, new_blank)
-
         if st.button("🗑 Delete this region", key="delete_region_btn"):
             book.remove(sel)
             st.session_state.pop(keys.LOADED_G, None)
             for _k in [k for k in list(st.session_state) if k.startswith(keys.RENAME_PREFIX)]:
                 st.session_state.pop(_k, None)
             st.rerun()
-
-    elif sel == 0 and book.drawn:
-        cur_blank = book.blank_at(0)
-        new_blank = st.checkbox(
-            "Skip whole mini in preview", value=cur_blank, key="blank_0",
-            help="Hides the Whole mini paint overlay; leftover pixels show as greyscale.")
-        book.set_blank_at(0, new_blank)
