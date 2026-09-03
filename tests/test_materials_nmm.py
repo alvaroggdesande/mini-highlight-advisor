@@ -116,3 +116,86 @@ def test_nmm_light_is_strictly_monotonic_in_reflection():
     vals = out[m]
     unique_frac = len(np.unique(vals)) / vals.size
     assert unique_frac > 0.5, f"too many tied values: unique fraction {unique_frac:.0%}"
+
+
+# ---------------------------------------------------------------------------
+# Task 1: build_nmm_env + NMM_PRESETS
+# ---------------------------------------------------------------------------
+from mini_highlight_advisor.materials import build_nmm_env, NMM_PRESETS  # noqa: E402
+
+
+def _disk_col(env):
+    """Center column of the disk, top->bottom (sky->ground)."""
+    size = env.shape[0]
+    return env[:, size // 2]
+
+
+def test_env_vertical_profile_is_non_monotone():
+    # sky (top) bright, horizon row darkest, ground bounce (bottom rim) brighter
+    # than the ground band just above it. A monotone v1 curve could not pass this.
+    env = build_nmm_env(size=201, horizon=0.5)          # v_h = 0 -> horizon at center row
+    col = _disk_col(env)
+    size = env.shape[0]
+    sky = col[size // 6]                 # high up = sky
+    horizon = col[size // 2]             # center row = horizon line
+    ground = col[int(size * 0.72)]       # below horizon = ground
+    bottom_rim = col[size - 3]           # near bottom rim = ground bounce
+    assert sky > horizon
+    assert horizon <= ground             # horizon is the darkest zone
+    assert bottom_rim > ground           # bounce lifts the rim above the ground band
+
+
+def test_env_hard_horizon_is_crisp():
+    env = build_nmm_env(size=201, horizon=0.5)
+    col = _disk_col(env)
+    size = env.shape[0]
+    just_above = col[size // 2 - int(size * 0.10)]
+    horizon = col[size // 2]
+    assert just_above - horizon > 0.25   # sharp dark break, not a soft ramp
+
+
+def _argmax_uv(env):
+    size = env.shape[0]
+    r, c = np.unravel_index(int(np.argmax(env)), env.shape)
+    u = c / (size - 1) * 2 - 1
+    v = 1 - r / (size - 1) * 2
+    return u, v
+
+
+def test_env_brightest_pixel_sits_at_light_dir():
+    u, v = _argmax_uv(build_nmm_env(size=201, light_dir=135.0))
+    assert u < -0.1 and v > 0.1          # upper-left glint
+
+
+def test_env_rotating_light_180_moves_glint_opposite():
+    u0, v0 = _argmax_uv(build_nmm_env(size=201, light_dir=135.0))
+    u1, v1 = _argmax_uv(build_nmm_env(size=201, light_dir=315.0))
+    assert np.sign(u1) == -np.sign(u0) and np.sign(v1) == -np.sign(v0)
+
+
+def test_env_raising_horizon_moves_dark_band_down():
+    def dark_row(h):
+        env = build_nmm_env(size=201, horizon=h)
+        col = env[:, 100]
+        disk_rows = np.where(col > 0)[0]     # ignore off-disk zeros at the poles
+        return disk_rows[np.argmin(col[disk_rows])]
+    assert dark_row(0.7) > dark_row(0.3)     # higher horizon -> darkest row lower down
+
+
+def test_env_raising_hotspot_concentrates_peak():
+    def peak_area(hs):
+        env = build_nmm_env(size=201, hotspot=hs)
+        return int((env > 0.95).sum())
+    assert peak_area(0.9) < peak_area(0.2)   # tighter glint = fewer near-white px
+
+
+def test_env_presets_are_valid_disks():
+    for knobs in NMM_PRESETS.values():
+        env = build_nmm_env(size=64, **knobs)
+        assert env.shape == (64, 64) and env.dtype == np.float32
+        assert np.all(np.isfinite(env)) and env.min() >= 0.0 and env.max() <= 1.0
+
+
+def test_env_clamps_out_of_range_knobs_without_crash():
+    env = build_nmm_env(size=32, horizon=5.0, bounce=-2.0, hotspot=9.0)
+    assert np.all(np.isfinite(env)) and env.max() <= 1.0

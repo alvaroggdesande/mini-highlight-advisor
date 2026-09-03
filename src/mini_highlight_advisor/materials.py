@@ -24,6 +24,69 @@ def _smoothstep(a: float, b: float, x: np.ndarray) -> np.ndarray:
     return t * t * (3.0 - 2.0 * t)
 
 
+# ---------------------------------------------------------------------------
+# Procedural NMM environment disk (build_nmm_env) — Task 1
+# ---------------------------------------------------------------------------
+
+def _disk_coords(size: int):
+    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
+    u = xx / (size - 1) * 2.0 - 1.0            # x-right
+    v = 1.0 - yy / (size - 1) * 2.0            # y-up: row 0 -> v=+1 (sky)
+    return u, v
+
+
+def _vert_profile(v: np.ndarray, v_h: float, bounce: float) -> np.ndarray:
+    """Non-monotone sky->horizon->ground->bounce curve down the disk."""
+    sky_level, ground_level = 0.7, 0.20
+    above = _smoothstep(v_h, v_h + 0.25, v)                 # 0 below horizon, 1 in sky
+    base = ground_level + (sky_level - ground_level) * above
+    notch = np.exp(-((v - v_h) / 0.06) ** 2).astype(np.float32)   # dark horizon line
+    rim = 1.0 - _smoothstep(-1.0, -0.6, v)                  # 1 at bottom rim, 0 above
+    return (base * (1.0 - notch) + bounce * rim * (1.0 - above)).astype(np.float32)
+
+
+NMM_PRESETS = {
+    "Steel":  dict(horizon=0.50, light_dir=135.0, bounce=0.30, hotspot=0.50),
+    "Gold":   dict(horizon=0.55, light_dir=120.0, bounce=0.45, hotspot=0.45),
+    "Chrome": dict(horizon=0.50, light_dir=135.0, bounce=0.20, hotspot=0.80),
+}
+
+
+def build_nmm_env(size: int = 256, *, horizon: float = 0.5, light_dir: float = 135.0,
+                  bounce: float = 0.35, hotspot: float = 0.5) -> np.ndarray:
+    """Procedural NMM environment disk, (size, size) float32 in [0,1].
+
+    Disk coords u=x-right, v=y-up over the unit circle (same pinned convention as
+    surface.py / relight.py). Off-disk pixels are 0 and never sampled by nmm_light
+    (grazing rays clamp to the rim). Four terms: a non-monotone vertical profile
+    (hard horizon + ground bounce), a broad directional streak, and a tight glint.
+    """
+    size = max(16, int(size))
+    horizon = float(np.clip(horizon, 0.0, 1.0))
+    bounce = float(np.clip(bounce, 0.0, 1.0))
+    hotspot = float(np.clip(hotspot, 0.0, 1.0))
+    u, v = _disk_coords(size)
+    disk = (u * u + v * v) <= 1.0
+    v_h = 1.0 - 2.0 * horizon
+
+    E = _vert_profile(v, v_h, bounce)
+
+    theta = np.radians(float(light_dir))
+    r_L = 0.6
+    pu, pv = r_L * np.cos(theta), r_L * np.sin(theta)
+    d2 = (u - pu) ** 2 + (v - pv) ** 2
+    streak = 0.20 * np.exp(-d2 / (2.0 * 0.20 ** 2)).astype(np.float32)
+    E = np.clip(E + streak, 0.0, 1.0)
+
+    sigma_hot = 0.22 * (1.0 - hotspot) + 0.03           # bigger hotspot -> tighter
+    glint = np.exp(-d2 / (2.0 * sigma_hot ** 2)).astype(np.float32)
+    E = np.maximum(E, glint)
+
+    E[~disk] = 0.0
+    return E.astype(np.float32)
+
+
+# ---------------------------------------------------------------------------
 # Weight of the horizon smoothstep vs. the raw reflection ramp. The ramp term
 # (1 - _CONTRAST) keeps the mapping STRICTLY monotonic in R_y so no two distinct
 # reflection values collapse to the same brightness — see the long comment in
