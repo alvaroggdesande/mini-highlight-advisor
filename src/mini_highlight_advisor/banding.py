@@ -45,3 +45,27 @@ def band_light(light: np.ndarray, mask: np.ndarray, coverage: list[float]) -> np
     edges = np.cumsum(coverage)[:-1] * m             # interior cut points, in ranks
     bands[mask] = np.digitize(ranks, edges).astype(np.int32)  # 0..n-1
     return bands
+
+
+def band_by_value(light: np.ndarray, mask: np.ndarray, n_bands: int) -> np.ndarray:
+    """Bands by VALUE interval (not rank). -1 off-mask, 0 dark .. n_bands-1 light.
+
+    Cuts the in-mask robust value span [p2, p98] into n_bands equal-width intervals
+    and assigns each pixel by np.digitize on its VALUE. Flat zones collapse to one
+    band; a thin feature keeps its own band regardless of area; there is no rank
+    ordering, so no raster-order tie-break. Empty mask -> all -1; a constant field
+    -> a single occupied band (band 0).
+    """
+    m = mask.astype(bool)
+    bands = np.full(light.shape, -1, dtype=np.int32)
+    vals = light[m]
+    if vals.size == 0:
+        return bands
+    lo, hi = np.percentile(vals, [2, 98])
+    if hi <= lo:
+        bands[m] = 0
+        return bands
+    edges = lo + (hi - lo) * np.arange(1, n_bands, dtype=np.float64) / n_bands
+    b = np.clip(np.digitize(vals, edges), 0, n_bands - 1).astype(np.int32)
+    bands[m] = b
+    return bands
