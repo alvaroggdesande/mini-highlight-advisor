@@ -1,3 +1,5 @@
+import numpy as np
+from types import SimpleNamespace
 from streamlit.testing.v1 import AppTest
 
 # Mounts render_technique_controls() on a minimal book in PS mode.
@@ -68,3 +70,26 @@ st.write("ok")
     at = AppTest.from_string(HARNESS)
     at.run()
     assert not at.exception
+
+
+def _fake_step(label):
+    img = np.zeros((4, 4, 3), np.uint8)
+    return SimpleNamespace(label=label, zone_rgb=img, cumulative_rgb=img, kind="osl")
+
+
+def test_render_osl_steps_uses_layer_captions(monkeypatch):
+    import ui.results as results
+    captured = []
+    monkeypatch.setattr(results.st, "subheader", lambda *a, **k: None)
+    monkeypatch.setattr(results.st, "caption", lambda *a, **k: None)
+    monkeypatch.setattr(results.st, "columns",
+                        lambda n: [SimpleNamespace(image=lambda *a, **k: captured.append(k.get("caption")))
+                                   for _ in range(n)])
+    osl_result = SimpleNamespace(steps=[_fake_step("Moot Green"),
+                                        _fake_step("Warpstone"),
+                                        _fake_step("Dead White")])
+    results.render_osl_steps(osl_result)
+    joined = " ".join(c or "" for c in captured).lower()
+    assert "broad" in joined
+    assert "hotspot" in joined
+    assert "moot green" in joined

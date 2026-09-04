@@ -87,3 +87,17 @@ def test_capture_tab_contains_guide_text():
     has_side_light = "side light" in all_text.lower() or "side light" in guide_text.lower()
 
     assert has_raking or has_side_light
+
+
+def test_paint_tab_renders_osl_steps():
+    src = Path(__file__).parent.parent.joinpath("app.py").read_text(encoding="utf-8")
+    assert "render_osl_steps" in src
+
+
+def test_ps_mode_has_no_bottom_osl_image():
+    import inspect, ui.ps_mode as ps
+    src = inspect.getsource(ps)
+    # the duplicate "With object-source glow" preview image is gone
+    assert "With object-source glow" not in src
+    # step rendering no longer lives in ps_mode
+    assert "render_osl_steps" not in src

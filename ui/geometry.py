@@ -22,6 +22,27 @@ def region_label(g: int, name: str) -> str:
     return f"{REGION_EMOJIS[(g - 1) % len(REGION_EMOJIS)]} {name}"
 
 
+def last_point(canvas) -> tuple[float, float] | None:
+    """Return the (x, y) of the last point/circle object drawn on an st_canvas,
+    or None if no objects or if canvas is None / missing expected keys.
+
+    Fabric.js point drawing-mode objects are circles; their position is stored
+    as obj["left"], obj["top"] (top-left of the bounding box, which equals the
+    centre for a zero-radius point marker).
+    """
+    try:
+        objects = canvas.json_data.get("objects", [])
+    except (AttributeError, TypeError):
+        return None
+    if not objects:
+        return None
+    obj = objects[-1]
+    try:
+        return float(obj["left"]), float(obj["top"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def points_from_object(obj) -> list[tuple[float, float]]:
     # Extract traced vertices from a drawable-canvas (fabric.js) object.
     # Freedraw/polygon objects expose the stroke as obj["path"], a list of SVG

@@ -79,8 +79,34 @@ def render(picked, owned_paints) -> None:
     st.session_state.setdefault(keys.PS_BOOK, new_book(5))
     book = st.session_state[keys.PS_BOOK]
 
+    # Seed OSL session keys from a loaded project's persisted OSL params (if any)
+    # whenever the OSL keys have not yet been set this session.  Mirrors the
+    # seed_editor_from_angle pattern in ui/state.py for all other settings keys.
+    _active_idx = st.session_state.get(keys.ACTIVE_ANGLE, 0)
+    _angles = st.session_state.get(keys.ANGLES, [])
+    if _angles and _active_idx < len(_angles):
+        _saved_osl = getattr(_angles[_active_idx].settings, "osl", None)
+        if _saved_osl and not st.session_state.get(keys.OSL_ON):
+            st.session_state.setdefault(keys.OSL_ON, True)
+            if "x" in _saved_osl and "y" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_POINT,
+                                            (_saved_osl["x"], _saved_osl["y"]))
+            if "glow" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_GLOW, _saved_osl["glow"])
+            if "hot" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_HOT, _saved_osl["hot"])
+            if "height" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_HEIGHT, _saved_osl["height"])
+            if "reach" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_REACH, _saved_osl["reach"])
+            if "intensity" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_INTENSITY, _saved_osl["intensity"])
+            if "layers" in _saved_osl:
+                st.session_state.setdefault(keys.OSL_LAYERS, _saved_osl["layers"])
+
     # The shared editor renders preview + region selector + Manage/Colour/Technique.
     # PS is session-only, so (unlike the photo path) there is no project save call.
+    # The editor now owns OSL (Glow tab) and stores keys.OSL_RESULT in session state.
     editor.render(relit_rgb, mask_u8, book, shading,
                   light_field=light_field, normal_field=normals,
                   picked=picked, owned_paints=owned_paints)

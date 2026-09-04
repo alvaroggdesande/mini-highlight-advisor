@@ -61,3 +61,16 @@ def test_ps_mode_recess_shades_toggle_runs():
     box.set_value(True).run()
     assert not at.exception
     assert at.session_state["shades"] is True
+
+
+def test_editor_composites_osl_and_has_glow_tab():
+    import inspect, ui.editor as ed
+    src = inspect.getsource(ed)
+    # Glow tab wired in
+    assert "Glow" in src
+    # glow computed via the shared helper, before the preview image
+    assert "build_osl_result" in src
+    # result stored for the Paint tab
+    assert "OSL_RESULT" in src
+    # PS-only: the 4th tab is gated on normals
+    assert "has_normals" in src
