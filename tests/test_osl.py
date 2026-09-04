@@ -2,6 +2,10 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from mini_highlight_advisor import osl
+from mini_highlight_advisor import banding  # noqa
+
+GLOW_RGB = np.array([40.0, 200.0, 90.0], np.float32)   # green
+HOT_RGB  = np.array([200.0, 255.0, 210.0], np.float32) # hue-tinted white
 
 _FIX = Path(__file__).parent / "fixtures" / "ps"
 
@@ -55,3 +59,35 @@ def test_falloff_monotonic_in_distance():
     g = osl.osl_field(flat, m, x=50.0, y=50.0, height=10.0, reach=20.0, intensity=1.0)
     near = g[50, 50]; mid = g[50, 60]; far = g[50, 90]
     assert near > mid > far
+
+def test_ramp_endpoints():
+    glow = np.array([[0.0, 1.0]], np.float32)
+    out = osl.osl_ramp(glow, GLOW_RGB, HOT_RGB)
+    assert np.allclose(out[0, 0], 0.0)                 # no glow -> no contribution
+    assert np.allclose(out[0, 1], HOT_RGB, atol=1e-3)  # full glow -> hot colour
+
+def test_colors_faint_to_hot():
+    cols = osl.osl_colors(GLOW_RGB, HOT_RGB, 3)
+    assert len(cols) == 3
+    assert np.allclose(cols[0], GLOW_RGB)
+    assert np.allclose(cols[-1], HOT_RGB)
+
+def test_bands_exclude_unlit_and_nest():
+    n, mask = _load()
+    g = osl.osl_field(n, mask, x=63.5, y=63.5, height=40.0, reach=25.0, intensity=1.0)
+    bands = osl.osl_bands(g, mask, coverage=[1.0, 0.5, 0.2], floor=0.1)
+    assert bands.shape == mask.shape
+    assert np.all(bands[~mask] == -1)
+    assert np.all(bands[mask & (g <= 0.1)] == -1)      # unlit excluded
+    lit = bands >= 0
+    assert lit.sum() > 0
+    # nested: brighter bands are subsets of fainter ones
+    assert (bands >= 2).sum() <= (bands >= 1).sum() <= (bands >= 0).sum()
+
+def test_field_multi_is_max():
+    n, mask = _load()
+    a = osl.osl_field(n, mask, 40.0, 63.5, 30.0, 40.0, 1.0)
+    b = osl.osl_field(n, mask, 88.0, 63.5, 30.0, 40.0, 1.0)
+    both = osl.osl_field_multi(n, mask, [(40.0, 63.5, 30.0, 40.0, 1.0),
+                                         (88.0, 63.5, 30.0, 40.0, 1.0)])
+    assert np.allclose(both, np.maximum(a, b))
