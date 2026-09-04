@@ -30,6 +30,7 @@ NMM_PRESET = "nmm_preset"        # Metal-environment preset selectbox
 # --- photometric-stereo (PS) mode ---
 NORMALS = "ps_normals"           # decoded (H,W,3) unit normals in session
 PS_MASK = "ps_mask"              # (H,W) bool foreground mask from the imported bundle
+PS_ALBEDO = "ps_albedo"          # (H,W,3) float32 albedo from imported bundle, or None
 PS_BOOK = "ps_book"              # RegionBook for PS mode, kept separate from the
                                  # photo-mode BOOK so switching modes can't apply a
                                  # photo-sized region to the PS mask (shape mismatch)
@@ -37,7 +38,8 @@ LIGHT_AZ = "light_az"            # virtual-light azimuth slider (deg)
 LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
 
-SAVE_NAME = "save_name"          # recipe save name text input
+def midtone_hex(g: int) -> str: return f"midtone_hex_{g}"
+
 OWNED = "owned"                  # owned-paints multiselect
 RENAME_PREFIX = "rename_"        # prefix of per-region rename text-input keys
 ANGLE_LABEL_PREFIX = "angle_label_"  # prefix of per-angle rename text-input keys
@@ -47,6 +49,12 @@ LOADED_PHOTO = "loaded_photo"          # {"bytes":..., "suffix":...} for a loade
 LOADED_NAME = "loaded_project_name"    # display name of the loaded project (save default)
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
+SCHEMES = "schemes"                    # list[Scheme] in session
+SCHEME_GENERATED = "scheme_generated"  # True once Level 1 scheme has been applied
+
+# --- scheme preview cache (set by app.py / ps_mode.py after each analysis run) ---
+LAST_MULTI = "last_multi_result"  # MultiRegionResult from the most recent analyze_regions
+LAST_RGB = "last_rgb"             # (H,W,3) uint8 rgb that was analyzed
 
 # --- angles (multi-angle view) ---
 ANGLES = "angles"                # list[AngleData] in session: the angle records

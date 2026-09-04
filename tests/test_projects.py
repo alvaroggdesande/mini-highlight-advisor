@@ -225,3 +225,125 @@ def test_angle_write_read_roundtrip_bit_identical(tmp_path):
     assert out.book.drawn[0].name == "Cloak"
     assert np.array_equal(out.book.drawn[0].mask, m0)
     assert out.book.selected == 1
+
+
+def test_surface_and_tone_round_trip(tmp_path):
+    import numpy as np
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+
+    book = _whole_book()
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+    book.set_surface_at(0, "skin"); book.set_tone_at(0, "orc-green")
+    book.set_surface_at(1, "cloak")
+
+    angles = [_angle("front", b"PHOTO", book=book)]
+    slug = projects.save_project("Surface Test", [], 0, angles, root=tmp_path)
+    reloaded = projects.load_project(slug, root=tmp_path).angles[0].book
+    assert reloaded.surface_at(0) == "skin"
+    assert reloaded.tone_at(0) == "orc-green"
+    assert reloaded.surface_at(1) == "cloak"
+    assert reloaded.tone_at(1) is None
+
+
+def test_surface_defaults_to_other_when_key_absent(tmp_path):
+    import json
+    import numpy as np
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+
+    book = _whole_book()
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+    book.set_surface_at(1, "cloak")
+    angles = [_angle("front", b"PHOTO", book=book)]
+    slug = projects.save_project("Surface Default", [], 0, angles, root=tmp_path)
+
+    mpath = tmp_path / slug / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    del manifest["angles"][0]["book"]["drawn"][0]["surface"]
+    del manifest["angles"][0]["book"]["whole"]["surface"]
+    mpath.write_text(json.dumps(manifest), encoding="utf-8")
+
+    reloaded = projects.load_project(slug, root=tmp_path).angles[0].book
+    assert reloaded.surface_at(0) == "other"
+    assert reloaded.surface_at(1) == "other"
+
+
+def _book_with_decisions():
+    """RegionBook with hero_hex/mood set and a drawn region with ramp decisions."""
+    from mini_highlight_advisor.region_state import RegionBook
+    from mini_highlight_advisor.regions import Region
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    m = np.zeros((5, 5), dtype=bool); m[1:3, 1:3] = True
+    region = Region("Cape", m, default_ramp(5), default_coverage(5),
+                    ramp_midtone="#c02030", ramp_variant="complementary")
+    return RegionBook(default_ramp(5), default_coverage(5),
+                      drawn=[region], selected=1,
+                      hero_hex="#a03020", mood="grimdark")
+
+
+def test_colour_decisions_round_trip(tmp_path):
+    book = _book_with_decisions()
+    angle = projects.AngleData("front", b"IMG", ".png", book, _settings())
+    slug = projects.save_project("Hero", [], 0, [angle], root=tmp_path)
+    lp = projects.load_project(slug, root=tmp_path)
+    loaded_book = lp.angles[0].book
+    assert loaded_book.hero_hex == "#a03020"
+    assert loaded_book.mood == "grimdark"
+    assert loaded_book.drawn[0].ramp_midtone == "#c02030"
+    assert loaded_book.drawn[0].ramp_variant == "complementary"
+
+
+def test_colour_decisions_none_round_trip(tmp_path):
+    """None values serialise as null and deserialise back to None."""
+    book = _whole_book()  # hero_hex=None, mood=None by default
+    angle = projects.AngleData("front", b"IMG", ".png", book, _settings())
+    slug = projects.save_project("NoDecisions", [], 0, [angle], root=tmp_path)
+    lp = projects.load_project(slug, root=tmp_path)
+    loaded_book = lp.angles[0].book
+    assert loaded_book.hero_hex is None
+    assert loaded_book.mood is None
+
+
+def test_v4_manifest_loads_with_none_decision_defaults(tmp_path):
+    """A v4 manifest (no colour_context, no ramp fields) loads cleanly with None defaults."""
+    import json
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    m = np.zeros((4, 4), dtype=bool)
+    project_dir = tmp_path / "old-mini"
+    project_dir.mkdir()
+    mask_path = project_dir / "angle_00" / "region_00.png"
+    mask_path.parent.mkdir(parents=True)
+    from PIL import Image
+    Image.fromarray(np.asarray(m, dtype=bool)).save(mask_path)
+    (project_dir / "angle_00" / "photo.png").write_bytes(b"IMG")
+
+    from mini_highlight_advisor.projects import _palette_to_dicts
+    pal = _palette_to_dicts(default_ramp(5))
+    cov = list(default_coverage(5))
+    manifest = {
+        "schema_version": 4, "name": "OldMini", "slug": "old-mini",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+        "paints_pool": [], "active_angle": 0,
+        "angles": [{
+            "label": "front", "photo_file": "photo.png",
+            "settings": {"n": 5, "edge_hl": True, "edge_extreme": False,
+                         "edge_sens": 0.5, "relief_cap": False, "per_region_norm": False},
+            "book": {
+                "whole": {"palette": pal, "coverage": cov,
+                          "material": "matte", "surface": "other", "tone": None},
+                "drawn": [{"name": "Cape", "palette": pal, "coverage": cov,
+                           "mask_file": "region_00.png",
+                           "material": "matte", "surface": "other", "tone": None}],
+                "selected": 0
+            }
+        }],
+        "schemes": []
+    }
+    (project_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    lp = projects.load_project("old-mini", root=tmp_path)
+    assert lp.angles[0].book.hero_hex is None
+    assert lp.angles[0].book.mood is None
+    assert lp.angles[0].book.drawn[0].ramp_midtone is None
+    assert lp.angles[0].book.drawn[0].ramp_variant is None

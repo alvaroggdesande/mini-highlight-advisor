@@ -18,6 +18,7 @@ from .overlay import (
 )
 from .palette import PaintColor, coverage_pct, default_coverage, role_names
 from .regions import Region, assign_owners
+from .techniques import get_technique
 from . import materials
 
 WHOLE_MINI = "Whole mini"
@@ -109,6 +110,7 @@ class RegionPlan:
     capped: bool = False
     requested_bands: int | None = None
     flat_albedo: bool = False
+    technique: str = "smooth"          # technique name (resolved via alias)
 
 
 @dataclass
@@ -127,7 +129,8 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 shades: bool = False,
                 material: str = "matte",
                 env: np.ndarray | None = None,
-                nmm_smooth: float = 0.0) -> RegionPlan:
+                nmm_smooth: float = 0.0,
+                technique: str = "smooth") -> RegionPlan:
     is_nmm = material == "nmm" and normals is not None and env is not None
     if is_nmm:
         # Metal is a mirror: re-band from the reflection environment, not the
@@ -160,7 +163,8 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 coverage = default_coverage(k)
     colors = [p.rgb for p in palette]
     names = [p.name for p in palette]
-    roles = role_names(len(palette))
+    spec = get_technique(technique)
+    roles = spec.role_names(len(palette))
     if is_nmm:
         # Value-anchored banding: flat sky -> one paint, thin horizon keeps its band.
         # The relief/flat cap is bypassed above — the env injects deliberate contrast.
@@ -193,7 +197,7 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         steps = steps + shade_steps(rgb, recess, shade_rgb, start_index=len(steps))
     return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps, overlays,
                       capped=capped, requested_bands=requested_bands,
-                      flat_albedo=flat_albedo)
+                      flat_albedo=flat_albedo, technique=spec.name)
 
 
 def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
@@ -209,7 +213,8 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     nmm_bounce: float = 0.35,
                     nmm_hotspot: float = 0.5,
                     nmm_smooth: float = 2.0,
-                    whole_material: str = "matte") -> MultiRegionResult:
+                    whole_material: str = "matte",
+                    whole_blank: bool = False) -> MultiRegionResult:
     regions = regions or []
     if normal_field is not None:
         if (normal_field.ndim != 3 or normal_field.shape[2] != 3
@@ -245,17 +250,18 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
             return ll.light, ll.flat
         return light, False
 
-    if default_sub.any():
+    if default_sub.any() and not whole_blank:
         lgt, flat = _region_light(default_sub)
         plans.append(plan_region(rgb, default_sub, lgt, WHOLE_MINI, default_palette,
                                  coverage, flat_albedo=flat,
-                                 material=whole_material, **ekw))
+                                 material=whole_material, technique=whole_material, **ekw))
     for i, r in enumerate(regions):
         sub = owner == i
         if not sub.any():
             continue
         lgt, flat = _region_light(sub)
         plans.append(plan_region(rgb, sub, lgt, r.name, r.palette, r.coverage,
-                                 flat_albedo=flat, material=r.material, **ekw))
+                                 flat_albedo=flat, material=r.material,
+                                 technique=r.material, **ekw))
     combined = paint_regions(rgb, plans)
     return MultiRegionResult(mask, light, plans, combined)

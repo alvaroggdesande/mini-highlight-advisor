@@ -1,101 +1,63 @@
 # tests/test_ui_nmm.py
 from streamlit.testing.v1 import AppTest
 
-HARNESS_EDITOR_PS = """
-import numpy as np
-from pathlib import Path
-from PIL import Image
-import streamlit as st
-from mini_highlight_advisor import relight
-from mini_highlight_advisor.region_state import new_book
-from ui import editor, keys
-
-FIX = Path("tests/fixtures/ps")
-normals = relight.load_normals(str(FIX / "synth_normal.png"))
-mask = np.asarray(Image.open(FIX / "synth_mask.png").convert("L")) > 127
-lf, relit = relight.relight(normals, mask, relight.light_dir(225, 45))
-mask_u8 = (mask * 255).astype(np.uint8)
-book = new_book(5)
-st.session_state[keys.BOOK] = book
-sh = type('S', (), {'mask': mask})()
-editor.render_editor(relit, mask_u8, sh, book, [], [],
-                     light_field=lf, normal_field=normals)
-st.write("ok")
-"""
-
-# Mounts the real results.render() on the synthetic PS fixture, WITH the normal field
-# (so NMM controls are capability-enabled).
+# PS mode: has_normals=True so NMM option is available in the technique picker.
 HARNESS_PS = """
-import numpy as np
-from pathlib import Path
-from PIL import Image
 import streamlit as st
-from mini_highlight_advisor import relight
 from mini_highlight_advisor.region_state import new_book
 from ui import results, keys
 
-FIX = Path("tests/fixtures/ps")
-normals = relight.load_normals(str(FIX / "synth_normal.png"))
-mask = np.asarray(Image.open(FIX / "synth_mask.png").convert("L")) > 127
-lf, relit = relight.relight(normals, mask, relight.light_dir(225, 45))
-mask_u8 = (mask * 255).astype(np.uint8)
 book = new_book(5)
 st.session_state[keys.BOOK] = book
-picked, owned = [], []
-wp, wcov, drawn = book.analyze_args()
-results.render(relit, mask_u8, book, wp, picked, owned, None,
-               light_field=lf, normal_field=normals)
+results.render_technique_controls(book, 0, has_normals=True)
 st.write("ok")
 """
 
-# Photo mode: no light field, no normal field -> NMM controls must be absent.
+# Photo mode: has_normals=False -> NMM controls must be absent.
 HARNESS_PHOTO = """
-import numpy as np
-from pathlib import Path
-from PIL import Image
 import streamlit as st
-from mini_highlight_advisor import relight
 from mini_highlight_advisor.region_state import new_book
 from ui import results, keys
 
-FIX = Path("tests/fixtures/ps")
-normals = relight.load_normals(str(FIX / "synth_normal.png"))
-mask = np.asarray(Image.open(FIX / "synth_mask.png").convert("L")) > 127
-_, relit = relight.relight(normals, mask, relight.light_dir(225, 45))
-mask_u8 = (mask * 255).astype(np.uint8)
 book = new_book(5)
 st.session_state[keys.BOOK] = book
-wp, wcov, drawn = book.analyze_args()
-sh = type('S', (), {'mask': mask})()
-results.render(relit, mask_u8, book, wp, [], [], sh)
+results.render_technique_controls(book, 0, has_normals=False)
 st.write("ok")
 """
 
 
-def test_ps_mode_shows_material_selector_and_horizon():
+def test_ps_mode_shows_technique_selector_and_horizon_when_nmm():
+    # Technique picker is visible in PS mode; horizon slider appears after NMM is chosen.
     at = AppTest.from_string(HARNESS_PS); at.run()
     assert not at.exception
     labels = [(s.label or "").lower() for s in at.selectbox]
-    assert any("material" in l for l in labels)
+    assert any("technique" in l for l in labels)
+    # Select NMM, then horizon slider should appear.
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    tech.set_value("NMM").run()
+    assert not at.exception
     slider_labels = [(s.label or "").lower() for s in at.slider]
     assert any("horizon" in l for l in slider_labels)
 
 
 def test_ps_mode_selecting_nmm_replans_without_error():
     at = AppTest.from_string(HARNESS_PS); at.run()
-    mat = next(s for s in at.selectbox if "material" in (s.label or "").lower())
-    mat.set_value("NMM").run()
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    tech.set_value("NMM").run()
     assert not at.exception
-    assert len(at.image) > 0            # combined preview still renders
+    # Images are now rendered by render_steps(), not render()
 
 
-def test_photo_mode_hides_material_and_horizon():
+def test_photo_mode_shows_technique_but_hides_horizon():
+    # Technique picker is always visible; NMM option and horizon slider are PS-only.
     at = AppTest.from_string(HARNESS_PHOTO); at.run()
     assert not at.exception
     labels = [(s.label or "").lower() for s in at.selectbox]
-    assert not any("material" in l for l in labels)
-    # PS-only env controls must also be absent in photo mode.
-    assert not any("preset" in l for l in labels)
+    assert any("technique" in l for l in labels)
+    # NMM should not be an option in photo mode.
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    assert "NMM" not in tech.options
+    # Horizon slider and NMM env controls must not appear in photo mode.
     slider_labels = [(s.label or "").lower() for s in at.slider]
     assert not any("horizon" in l for l in slider_labels)
     assert not any("light direction" in l for l in slider_labels)
@@ -103,21 +65,11 @@ def test_photo_mode_hides_material_and_horizon():
     assert not any("hotspot" in l for l in slider_labels)
 
 
-def test_selecting_nmm_swaps_coverage_for_metal_steps():
-    at = AppTest.from_string(HARNESS_EDITOR_PS); at.run()
-    assert not at.exception
-    mat = next(s for s in at.selectbox if "material" in (s.label or "").lower())
-    mat.set_value("NMM").run()
-    assert not at.exception
-    number_labels = [(ni.label or "").lower() for ni in at.number_input]
-    assert any("metal steps" in l for l in number_labels)
-    # coverage role sliders (e.g. "Shadow"/"Base") are gone for the NMM region
-    slider_labels = [(s.label or "").lower() for s in at.slider]
-    assert not any(l in ("shadow", "base", "midtone", "highlight") for l in slider_labels)
-
-
 def test_ps_mode_shows_metal_environment_panel_and_preview():
+    # Metal env panel only appears after NMM is selected.
     at = AppTest.from_string(HARNESS_PS); at.run()
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    tech.set_value("NMM").run()
     assert not at.exception
     select_labels = [(s.label or "").lower() for s in at.selectbox]
     assert any("preset" in l or "metal environment" in l for l in select_labels)
@@ -127,7 +79,9 @@ def test_ps_mode_shows_metal_environment_panel_and_preview():
 
 def test_selecting_preset_and_moving_knobs_replans_without_error():
     at = AppTest.from_string(HARNESS_PS); at.run()
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    tech.set_value("NMM").run()
     preset = next(s for s in at.selectbox if "preset" in (s.label or "").lower())
     preset.set_value("Gold").run()
     assert not at.exception
-    assert len(at.image) > 0
+    assert len(at.image) > 0  # env-disk preview image

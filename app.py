@@ -1,12 +1,13 @@
 import os
+from pathlib import Path
 
 import streamlit as st
 
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
-    angles_panel, editor, gallery_panel, helpers, keys, paints_tab,
-    projects_panel, ps_mode, state,
+    angles_panel, colour_panel, gallery_panel, geometry, helpers, keys,
+    paints_tab, projects_panel, ps_mode, regions_panel, results, state,
 )
 
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
@@ -17,19 +18,19 @@ st.caption(
     "side light (not on-axis flash) — that gives the sculpt the shadows the tool reads."
 )
 
-tab_mini, tab_paints, tab_gallery = st.tabs(["🖌️ Miniature", "🎨 Paints", "🖼️ All angles"])
+# NOTE: st.tabs runs ALL bodies every rerun in code order.
+# Paints must execute before Studio so owned_codes is finalised before Studio
+# renders ownership badges. Display order is fixed by the label list.
+tab_studio, tab_paint, tab_paints, tab_angles, tab_capture = st.tabs([
+    "🖌️ Studio", "🪜 Paint", "🎨 Paints", "🖼️ All angles", "📷 Capture & help",
+])
 
-# NOTE: st.tabs runs BOTH bodies every rerun, in code order. Fill the Paints
-# tab FIRST so owned_codes / owned_paints are finalised before the Miniature
-# tab renders its ownership badges. Display order (Miniature first) is fixed by
-# the label list above, not by code order — do not reorder the labels.
-
-# --- 🎨 Paints tab: inventory ---
+# --- 🎨 Paints: inventory (must run first — see note above) ---
 with tab_paints:
     picked, owned_paints = paints_tab.render()
 
-# --- 🖌️ Miniature tab: region-centric editor ---
-with tab_mini:
+# --- 🖌️ Studio: visualise and decide ---
+with tab_studio:
     st.session_state.setdefault(keys.ANGLES, [])
     st.session_state.setdefault(keys.ACTIVE_ANGLE, 0)
 
@@ -65,23 +66,109 @@ with tab_mini:
     photo_bytes, photo_suffix = active.photo_bytes, active.photo_suffix
 
     try:
-        with st.spinner("Preparing shading (first run downloads the depth model if no alpha channel)..."):
+        with st.spinner("Preparing shading…"):
             rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
 
-        editor.render_editor(rgb, alpha, shading, book, picked, owned_paints)
+        normal_field = st.session_state.get(keys.NORMALS)
+        light_field = None  # photo mode; PS mode takes a different branch above
+
+        # Sync visibility toggles from session_state into book before analysis.
+        # The toggles render after run_analysis (they live in col_controls), so
+        # without this pre-sync the preview is always one rerun behind the toggle state.
+        for _g in range(len(book.names())):
+            _vk = f"vis_{_g}"
+            if _vk in st.session_state:
+                book.set_blank_at(_g, not st.session_state[_vk])
+
+        # Run analysis BEFORE columns using session_state from the previous run.
+        # (Session_state holds the values the user set on the previous run, which
+        # are the same as what the widgets currently display. This keeps the left
+        # render in sync with the controls without an extra rerun.)
+        multi = helpers.run_analysis(rgb, alpha, book, shading,
+                                     light_field=light_field, normal_field=normal_field)
+        st.session_state[keys.LAST_MULTI] = multi
+        st.session_state[keys.LAST_RGB] = rgb
+
+        col_render, col_controls = st.columns([1, 1])
+
+        with col_render:
+            st.image(multi.combined_rgb,
+                     caption="Painted preview (all regions)",
+                     use_container_width=True)
+            if normal_field is None:
+                try:
+                    from mini_highlight_advisor.input_check import check_input
+                    checks = check_input(rgb, shading.mask)
+                    all_ok = all(r.ok for r in checks)
+                    label = "📷 Photo quality" if all_ok else "📷 Photo quality ⚠️"
+                    with st.expander(label, expanded=not all_ok):
+                        for r in checks:
+                            (st.success if r.ok else st.warning)(f"**{r.label}** — {r.detail}")
+                except Exception:
+                    pass
+
+        with col_controls:
+            # Persistent region selector — visible across all tabs.
+            src_h, src_w = rgb.shape[:2]
+            labels = book.names()
+            sel = st.radio(
+                "Region to edit",
+                list(range(len(labels))),
+                index=min(book.selected, len(labels) - 1),
+                format_func=lambda g: geometry.region_label(g, labels[g]),
+                key=keys.REGION_RADIO,
+                horizontal=True,
+            )
+            if book.drawn:
+                vis_cols = st.columns(len(labels))
+                for _g, (_col, _lbl) in enumerate(zip(vis_cols, labels)):
+                    _vis = _col.toggle(_lbl, value=not book.blank_at(_g), key=f"vis_{_g}")
+                    book.set_blank_at(_g, not _vis)
+            state.load_region_into_widgets(book, sel)
+            state.rehydrate_editor_widgets(book, sel)
+            book.selected = sel
+
+            has_normals = normal_field is not None
+            subtab_m, subtab_c, subtab_t = st.tabs(["🗺 Manage", "🎨 Colour", "🖌 Technique"])
+
+            with subtab_m:
+                regions_panel.render_management(book, rgb, shading, src_w, src_h, sel)
+
+            with subtab_c:
+                colour_panel.render(book, sel, picked, owned_paints, rgb=rgb)
+
+            with subtab_t:
+                results.render_technique_controls(book, sel, has_normals=has_normals)
 
         projects_panel.render_save()
+
     except Exception as e:
         st.error("Error processing image — see traceback below.")
         st.exception(e)
 
-# --- 🖼️ All angles tab: read-only combined gallery ---
-# Runs AFTER the Miniature editor so it sees the active angle's live edits. When
-# there are no angles the editor above st.stop()s the run, so this stays empty.
-with tab_gallery:
+# --- 🪜 Paint: paint-along steps ---
+with tab_paint:
+    multi = st.session_state.get(keys.LAST_MULTI)
+    results.render_steps(multi)
+
+# --- 🖼️ All angles: read-only gallery ---
+with tab_angles:
     _angles = st.session_state.get(keys.ANGLES, [])
     _active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
     if _angles:
-        # reflect the active angle's unsaved edits (settings + live book) in its cell
         _angles[_active] = state.flush_editor_into_angle(_angles[_active])
     gallery_panel.render(_angles, _active)
+
+# --- 📷 Capture & help ---
+with tab_capture:
+    from mini_highlight_advisor.input_check import SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
+    st.header("How to photograph your mini")
+    st.markdown(SHOOTING_GUIDE)
+    st.divider()
+    st.markdown(PAINTED_CAPTURE_NOTE)
+    st.header("Photometric stereo (PS) capture")
+    ps_guide = Path("docs/ps-capture-guide.md")
+    if ps_guide.exists():
+        st.markdown(ps_guide.read_text(encoding="utf-8"))
+    else:
+        st.caption("PS capture guide not found.")

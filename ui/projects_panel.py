@@ -26,6 +26,7 @@ def render_library() -> None:
             st.session_state[keys.OWNED] = list(lp.paints_pool)
             st.session_state[keys.LOADED_NAME] = labels[slug]
             state.seed_editor_from_angle(lp.angles[lp.active_angle])
+            st.session_state[keys.SCHEMES] = list(lp.schemes)
             st.rerun()
         confirm_del = st.checkbox("Confirm delete", key=f"confirm_del_{slug}")
         if c_del.button("Delete", disabled=not confirm_del):
@@ -54,7 +55,8 @@ def render_save() -> None:
             angles[active] = state.flush_editor_into_angle(angles[active])
             pool = list(st.session_state.get(keys.OWNED, []))
             try:
-                projects.save_project(name, pool, active, angles)
+                projects.save_project(name, pool, active, angles,
+                                      schemes=st.session_state.get(keys.SCHEMES, []))
                 st.session_state[keys.LOADED_NAME] = name
                 st.toast(f"Saved \"{name}\".")
             except ValueError as e:

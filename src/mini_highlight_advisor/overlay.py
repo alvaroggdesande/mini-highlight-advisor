@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -148,7 +149,8 @@ def _font(size: int):
     return ImageFont.load_default()
 
 
-def render_legend(colors, names, roles, coverage, height: int, width: int = 430) -> Image.Image:
+def render_legend(colors, names, roles, coverage, height: int, width: int = 430,
+                  coverage_notes: dict | None = None) -> Image.Image:
     img = Image.new("RGB", (width, height), (26, 27, 32))
     d = ImageDraw.Draw(img)
     title_f, role_f, body_f, small_f = _font(26), _font(21), _font(18), _font(15)
@@ -157,6 +159,7 @@ def render_legend(colors, names, roles, coverage, height: int, width: int = 430)
     n = len(colors)
     top, sw = 92, 54
     row_h = min(96, (height - top - 16) // max(n, 1))
+    notes = coverage_notes if coverage_notes is not None else _COVERAGE_NOTES
     for i in range(n):
         y = top + i * row_h
         rgb = tuple(int(v) for v in colors[i])
@@ -165,7 +168,7 @@ def render_legend(colors, names, roles, coverage, height: int, width: int = 430)
         tx = 20 + sw + 18
         d.text((tx, y), roles[i], font=role_f, fill=(235, 236, 240))
         d.text((tx, y + 26), names[i], font=body_f, fill=(190, 192, 200))
-        note = _COVERAGE_NOTES.get(roles[i], "")
+        note = notes.get(roles[i], "")
         d.text((tx, y + 50), f"~{coverage[i]:.0f}% - {note}", font=small_f, fill=(150, 152, 160))
     return img
 
@@ -180,6 +183,30 @@ def compose_panel(original_rgb, preview_rgb, legend: Image.Image, gap: int = 10)
         canvas.paste(im, (x, (h - im.height) // 2))
         x += im.width + gap
     return canvas
+
+
+def preview_scheme(rgb: np.ndarray, plans, proposed_colors: list,
+                   alpha: float = 0.78,
+                   region_index: int | None = None) -> np.ndarray:
+    """Composite proposed_colors onto the mini using the existing band masks.
+
+    region_index: if given, apply proposed_colors only to that plan; all other
+    plans keep their current colours. If None, apply to every plan.
+    Returns a (H,W,3) uint8 array — same shape as rgb.
+    No new analysis run; only the colours change, not where highlights are placed.
+    """
+    modified = [
+        SimpleNamespace(
+            sub_mask=p.sub_mask,
+            bands=p.bands,
+            colors=(proposed_colors[:len(p.colors)]
+                    if region_index is None or i == region_index
+                    else p.colors),
+            edge_overlays=getattr(p, 'edge_overlays', None),
+        )
+        for i, p in enumerate(plans)
+    ]
+    return paint_regions(rgb, modified, alpha=alpha)
 
 
 def swatch_board(regions, width: int = 460, sw: int = 44, pad: int = 12) -> Image.Image:

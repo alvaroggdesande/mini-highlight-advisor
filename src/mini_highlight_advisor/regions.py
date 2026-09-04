@@ -14,7 +14,12 @@ class Region:
     mask: np.ndarray                 # source-resolution bool
     palette: list[PaintColor]
     coverage: list[float]            # len == len(palette), sums to ~1.0
-    material: str = "matte"          # "matte" (default) | "nmm"
+    material: str = "matte"          # "matte" (default) | "nmm" | technique key
+    surface: str = "other"           # surface vocabulary key (skin/metal/cloth/…)
+    tone: str | None = None          # chosen tone key for realistic surfaces
+    blank: bool = False              # skip paint overlay in preview (treated as whole-mini)
+    ramp_midtone: str | None = None  # hex used to generate the L2 ramp
+    ramp_variant: str | None = None  # "standard"|"complementary"|"warm"|"cool"
 
 
 def assign_owners(base_mask: np.ndarray, region_masks: list[np.ndarray]) -> np.ndarray:

@@ -31,4 +31,19 @@ def test_checkpoint_check_rejects_dir_without_normal_subdir(tmp_path):
 def test_checkpoint_check_accepts_valid_dir(tmp_path):
     ckpt = tmp_path / "checkpoint"
     (ckpt / "normal").mkdir(parents=True)
+    (ckpt / "brdf").mkdir(parents=True)
+    ps_tool._check_checkpoint(ckpt)   # no raise
+
+
+def test_checkpoint_check_rejects_dir_without_brdf_subdir(tmp_path):
+    ckpt = tmp_path / "checkpoint"
+    (ckpt / "normal").mkdir(parents=True)   # normal/ present, brdf/ absent
+    with pytest.raises(PreflightError, match="brdf"):
+        ps_tool._check_checkpoint(ckpt)
+
+
+def test_checkpoint_check_accepts_dir_with_both_subdirs(tmp_path):
+    ckpt = tmp_path / "checkpoint"
+    (ckpt / "normal").mkdir(parents=True)
+    (ckpt / "brdf").mkdir(parents=True)
     ps_tool._check_checkpoint(ckpt)   # no raise

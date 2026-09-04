@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from types import SimpleNamespace
-from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board, edge_steps, shade_steps
+from mini_highlight_advisor.overlay import paint_preview, render_legend, compose_panel, per_band_images, BandStep, paint_regions, swatch_board, edge_steps, shade_steps, preview_scheme
 
 
 def test_paint_preview_colors_bands_and_darkens_background():
@@ -309,3 +309,98 @@ def test_shade_steps_empty_mask_renders():
     steps = shade_steps(rgb, recess, np.array([10, 10, 10], np.float32), start_index=6)
     assert len(steps) == 1                     # still one step, no crash
     assert steps[0].kind == "shade"
+
+
+# preview_scheme tests
+
+def _simple_plan(sub_mask, bands, original_colors):
+    return SimpleNamespace(sub_mask=sub_mask, bands=bands,
+                           colors=original_colors, edge_overlays=None)
+
+
+def test_preview_scheme_output_shape_matches_rgb():
+    rgb = np.zeros((8, 8, 3), np.uint8)
+    mask = np.ones((8, 8), bool)
+    bands = np.zeros((8, 8), np.int32)
+    plan = _simple_plan(mask, bands, [np.array([50, 50, 50], np.float32)])
+    proposed = [np.array([200, 0, 0], np.float32)]
+    out = preview_scheme(rgb, [plan], proposed)
+    assert out.shape == rgb.shape
+    assert out.dtype == np.uint8
+
+
+def test_preview_scheme_applies_proposed_colors_not_original():
+    rgb = np.full((6, 6, 3), 128, np.uint8)
+    mask = np.ones((6, 6), bool)
+    bands = np.zeros((6, 6), np.int32)
+    original = [np.array([10, 10, 10], np.float32)]   # very dark — original plan colour
+    proposed = [np.array([255, 0, 0], np.float32)]    # red — proposed scheme
+    plan = _simple_plan(mask, bands, original)
+    out = preview_scheme(rgb, [plan], proposed, alpha=1.0)
+    # Every foreground pixel should be red, not the original near-black
+    assert out[0, 0, 0] == 255   # R channel high
+    assert out[0, 0, 2] == 0     # B channel zero
+
+
+def test_preview_scheme_truncates_proposed_to_plan_band_count():
+    # Plan has 2 bands; proposed has 4 colours — only first 2 should be used.
+    rgb = np.full((4, 4, 3), 100, np.uint8)
+    bands = np.array([[0, 0, 1, 1]] * 4, np.int32)
+    mask = np.ones((4, 4), bool)
+    original = [np.array([50, 50, 50], np.float32),
+                np.array([200, 200, 200], np.float32)]
+    proposed = [np.array([255, 0, 0], np.float32),   # band 0 → red
+                np.array([0, 0, 255], np.float32),   # band 1 → blue
+                np.array([0, 255, 0], np.float32),   # extra — ignored
+                np.array([255, 255, 0], np.float32)] # extra — ignored
+    plan = _simple_plan(mask, bands, original)
+    out = preview_scheme(rgb, [plan], proposed, alpha=1.0)
+    assert out[0, 0, 0] == 255 and out[0, 0, 2] == 0   # band 0 = red
+    assert out[0, 3, 2] == 255 and out[0, 3, 0] == 0   # band 1 = blue
+
+
+def test_preview_scheme_multi_region_each_gets_proposed_colors():
+    rgb = np.full((4, 8, 3), 100, np.uint8)
+    left = np.zeros((4, 8), bool); left[:, :4] = True
+    right = np.zeros((4, 8), bool); right[:, 4:] = True
+    left_bands = np.zeros((4, 8), np.int32)
+    right_bands = np.zeros((4, 8), np.int32)
+    plan_left = _simple_plan(left, left_bands, [np.array([10, 10, 10], np.float32)])
+    plan_right = _simple_plan(right, right_bands, [np.array([10, 10, 10], np.float32)])
+    proposed = [np.array([255, 0, 0], np.float32)]   # red for all
+    out = preview_scheme(rgb, [plan_left, plan_right], proposed, alpha=1.0)
+    assert out[0, 0, 0] == 255   # left region red
+    assert out[0, 7, 0] == 255   # right region also red
+
+
+def test_render_legend_accepts_custom_coverage_notes():
+    from mini_highlight_advisor.overlay import render_legend
+    import numpy as np
+    colors = [np.array([100, 50, 200], np.float32) for _ in range(3)]
+    names = ["Base coat", "First drybrush", "Highlight drybrush"]
+    roles = ["Base coat", "First drybrush", "Highlight drybrush"]
+    coverage = [50.0, 30.0, 20.0]
+    custom_notes = {
+        "Base coat": "wash into recesses",
+        "First drybrush": "heavy drybrush",
+        "Highlight drybrush": "light drybrush on peaks",
+    }
+    # Must not raise; returns an Image
+    img = render_legend(colors, names, roles, coverage, height=300,
+                        coverage_notes=custom_notes)
+    assert img is not None
+
+
+def test_preview_scheme_region_index_only_updates_selected_plan():
+    # Two plans: left and right. Proposed = red. region_index=0 → only left turns red;
+    # right keeps its original dark colour.
+    rgb = np.full((4, 8, 3), 100, np.uint8)
+    left = np.zeros((4, 8), bool); left[:, :4] = True
+    right = np.zeros((4, 8), bool); right[:, 4:] = True
+    original_dark = [np.array([20, 20, 20], np.float32)]
+    plan_left = _simple_plan(left, np.zeros((4, 8), np.int32), original_dark)
+    plan_right = _simple_plan(right, np.zeros((4, 8), np.int32), original_dark)
+    proposed = [np.array([255, 0, 0], np.float32)]
+    out = preview_scheme(rgb, [plan_left, plan_right], proposed, alpha=1.0, region_index=0)
+    assert out[0, 0, 0] == 255   # left (index 0) → red (proposed)
+    assert out[0, 7, 0] == 20    # right (index 1) → keeps original dark colour

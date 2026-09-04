@@ -416,3 +416,124 @@ Explicitly **not** chosen: further relight-slider polish.
 Next: a B design spec (`docs/superpowers/specs/2026-08-24-geometry-from-normals-design.md`)
 whose first job is the dual-path seam (`normal_field=` capability gate), then the first
 geometry consumer.
+
+## Addendum (2026-09-01): Fork B complete — painted-mini validation run
+
+### Fork B status — all four slices merged to main
+
+- **Slice 1 — geometric edge highlights** (PR #12, `feat/edge-highlights`) ✅
+- **Slice 2 — cavity / AO recess shades** (PR #25, `feat/cavity-ao-recess-shades`) ✅
+- **Slice 3a — NMM metal-from-normals** (PR #27, `feat/nmm-metal-from-normals`) ✅ — stripe bug root-caused (near-binary R_y saturation → raster-order horizontal stripes) and fixed (monotonic blend, commit `b30416b`); deeper limitation documented: the reflection-environment model is intrinsically a vertical gradient, correct on a single lassoed metal region but not whole-mini; branch merged, NMM is for a lassoed region not the whole mini.
+- **Slice 4 — cash the albedo** (PR #28, `feat/cash-the-albedo`) ✅ — `ps_tool` now always runs `--target normal_and_brdf` and exports `albedo.png`; `relight.py` gains `load_albedo` + `plausible_albedo` + `relight(albedo=)` so Path P renders the actual paint colours instead of flat grey; Path L byte-identical; three-file bundles backward-compatible.
+
+### Painted-mini validation run (2026-09-01)
+
+**First PS run on a fully painted mini.** Same mini used for the black-primer staircase (Rungs 1–2), now almost fully painted. 9 frames (`L_01`–`L_09`), all kept (dropped: none), IoUs 0.967–1.0 (near-perfect mask consistency), lighting std 42.4. Data at `spikes/phone_ps/data/painted_mini.data`; outputs at `spikes/phone_ps/data/painted_mini_out/`.
+
+**Albedo result:** mean RGB `[0.107, 0.104, 0.105]` — very dark but near-perfect channel balance (no systematic shading tint), expected for a dark-armor mini. Visual inspection of `albedo.png` confirms real paint colours extracted per region: red armor/straps visible, green/teal cloak, grey stone base. Shading is not baked in — the base reads as flat grey, not a light-to-dark gradient. **Albedo extraction works on a painted mini.**
+
+**Normal map result:** detailed and plausible — rocky base texture clearly resolved, rider body geometrically coherent; some faceting on complex overlapping parts at 512px crop, expected at this scale. Quality consistent with the black-primer staircase.
+
+**Verdict: colored-mini fork is validated. The albedo carries real paint colours. The next feature layer — palette auto-suggestion from albedo (sampling `albedo.png` per region and matching to the paint catalogue) — is green-lit.**
+
+### Honest caveats (recorded, not buried)
+
+- Very dark armor areas (low albedo) will be harder to palette-match reliably — the signal is there but thin. Base, cloak, and bright details all have enough signal for confident matching.
+- `albedo.png` quality on a fully painted mini with complex multi-layer blends is still unknown — the spike used a mid-progress paint job. Richer blends may produce noisier per-region colour samples.
+- Normal map faceting on dense/overlapping geometry is a known PS resolution limit at 512px — not a regression, not blocking.
+
+### What's next
+
+**Immediate:** palette auto-suggestion from albedo — sample dominant colour per drawn region from `albedo.png`, run through existing palette-matcher to suggest the closest owned/catalogue paints. The user now has real paint colours in the albedo; this closes the loop for Path P.
+
+**Backlog (unchanged):** OSL (sibling slice to NMM on `surface.reflect()`); normal-discontinuity auto-regions; PS polish (top-light preset tonemapping); `spikes/phone_ps/` ~1GB cleanup (delete once Streamlit app stopped); exclude-brush.
+
+## Addendum (2026-09-02): colour-variant-preview merged — synthesis of PS and colour streams, new priority order
+
+### What's been built since PS merged
+
+After PS + Fork B shipped, all subsequent work has been in the **colour / palette stream** (single-photo, orthogonal to geometry):
+
+- Scheme experimenter — quick-swap named colour schemes, persisted in project manifest (schema v3)
+- Ramp-from-midtone — generate a full painterly highlight ramp from a picked midtone colour
+- Colour variant preview — show nearest catalogue paint swatch + save-as-recipe, per variant and per generated ramp
+
+These features are entirely **abstract**: they show colour swatches and recipes but have no spatial awareness of the mini.
+
+### The synthesis insight
+
+The two streams are currently orthogonal but have a natural seam:
+
+- **Colour stream proposes schemes** (ramp, variants, schemes).
+- **PS / analysis stream provides the mini as a spatial canvas** (banded regions, albedo, geometry).
+
+Combining them means: **show the proposed colour scheme rendered on the actual mini**, not as swatches. In Path P this can be photorealistic (albedo-based coloured render + banding overlaid). In Path L it still works — banding overlaid on the greyscale analysis render with the chosen scheme colours. Same mechanism, two quality levels.
+
+### Revised priority order (colour + geometry streams, 2026-09-02)
+
+1. **Scheme preview on the mini** *(chosen, building next)* — composite the ramp/scheme bands onto the existing analysis render (greyscale in Path L, coloured albedo in Path P) instead of swatches. Bounded: the band masks and the analysis render already exist; it is a compositing step in `overlay.py` or `results.py`. Works in both paths. This is the highest-value connection between the two streams and does not require PS.
+
+2. **Albedo → palette auto-suggest** *(PS fast-follow, green-lit by painted-mini validation above)* — sample dominant colour per drawn region from `albedo.png`, match via existing `matching.py` to the owned/catalogue database. The scheme experimenter pre-populates from real paint colours instead of defaults.
+
+3. **Roughness/metallic → auto-NMM** *(PS only)* — the BRDF checkpoint already emits `roughness.png` + `metallic.png` (currently discarded). Consume them to auto-propose NMM material for metallic regions instead of requiring the manual per-region selector. Makes Path P feel intelligent.
+
+4. **Top-light preset polish** *(PS polish, known "looks weird" backlog item)* — tonemapping fix for the top-light relight preset.
+
+5. **OSL as a colour tint** *(sibling to NMM on `surface.reflect()`)* — lower priority than the colour-stream synthesis above.
+
+**Deferred / unchanged:** normal-discontinuity auto-regions; `spikes/phone_ps/` ~1GB cleanup; exclude-brush; PDF export (#11).
+
+## Addendum (2026-09-02): technique axis is saturating — pivot to the colour-decision axis
+
+Technique system shipped (smooth + drybrush; NMM pending, PS-only). Honest assessment: the
+**technique axis is nearly dry.** smooth + drybrush + NMM cover the physical ways paint reaches
+the mini that matter. The remaining "techniques" (glaze, wet-blend, stipple, edge highlight)
+mostly produce the *same banding* with different guide text — drybrush proved this: zero new
+math, labels only. Adding more is *completeness*, not *capability*. Of the 5 previously-listed
+pending ideas, 3 are PS-only (gated behind heavy capture) and the non-PS remainder (material
+presets, OSL tint) is thin. That is why the roadmap felt underwhelming.
+
+**Reframe.** The tool answers three painter questions: (1) *where do highlights go?* → solved
+(banding/geometry); (2) *how do I apply paint?* → now solved (techniques); (3) *what colours do
+I use?* → **fragmented and abstract.** The machinery exists but scattered and none of it is
+aware of the mini in front of the user: `collection.py` (owned paints + `nearest_paint`),
+`matching.py` (hex→real paint + mixing), `schemes.py` (save/apply per-region palettes),
+`color.py` (`ramp_from_midtone`, `hue_rotate` — harmony primitives already present!),
+`recipes.py`. Question (3) — the colour *decision* — is the real under-served axis.
+
+### Idea A — "Scheme my whole mini" (colour-decision engine) — CHOSEN, building next
+
+Not "here's a fur preset" (a thin wrapper: the technique is one click, the palette is colours
+you'd have picked anyway). Instead: the user lasso-tags each region with a **material
+vocabulary** (fur / skin / metal / cloth / leather / bone / …), picks an overall **mood**
+(grimdark / bright-heroic / earthy / …), and the tool generates a **complete, coherent scheme
+for the whole mini — one buildable ramp per region.** Two layers, kept separate:
+
+1. **Colour-decision layer (theory-driven, paint-agnostic):** choose per-region base hues using
+   colour harmony (complementary / analogous / triadic via existing `hue_rotate`), mood, and
+   material realism, then expand each into a ramp (existing `ramp_from_midtone`). This layer
+   knows nothing about what paints exist.
+2. **Paint-mapping layer:** map each ramp colour to a real paint — **owned-first, not
+   owned-only.** Prefer the user's collection, fall back to nearest catalogue paint, then to a
+   buildable mix (`matching.py`). Owned-paints is a *filter/preference*, never a hard wall.
+
+**Design principles (from user, 2026-09-02):** the user must stay able to (a) override any
+individual colour and re-derive the rest, (b) ask for complementary / harmony variants, (c) NOT
+be locked to only owned paints. Material presets fold in here as the **seed vocabulary**, not
+the product. This is the first feature to use collection + matching + schemes + colour-harmony
+together, and it targets the actual paralysis: "I own 40 paints and a bare mini — what do I do?"
+
+**Dependency note:** region **auto-selection does not exist** — regions are manual lasso only
+(`regions.py`: polygon→mask + owner assignment; no material segmentation). A works fine on
+manually-lassoed regions; auto-region tagging is a *future* combo, not a prerequisite.
+
+### Idea B — Contrast / value coaching (feedback loop) — PARKED, next real frontier
+
+The #1 beginner mistake is insufficient contrast, and the tool **already knows the value
+structure of every region's plan.** So it could critique instead of only planning: "this 5-band
+plan spans only 30% value range — it'll read flat at arm's length, push the top highlight
+lighter"; "midtone and highlight are 12% apart — that gap won't be visible." Zero new capture,
+non-PS. Strategic significance: it is the cheapest slice of the one thing wholly missing today —
+a **feedback loop.** The tool is currently one-shot (plan and done); feedback is what would make
+a user *return*. Longer-horizon version: photograph the WIP mini and compare against the plan.
+Parked behind A; revisit when the tool should become sticky rather than one-shot.
