@@ -9,11 +9,10 @@ import streamlit as st
 from PIL import Image
 
 from mini_highlight_advisor import relight
-from mini_highlight_advisor import pipeline as _pl
 from mini_highlight_advisor.masking import compute_mask
 from mini_highlight_advisor.pipeline import ShadingResult
 from mini_highlight_advisor.region_state import new_book
-from ui import context, editor, keys, osl_panel, relight_panel, results
+from ui import editor, keys, relight_panel
 
 
 def _import_gate() -> bool:
@@ -80,16 +79,6 @@ def render(picked, owned_paints) -> None:
     st.session_state.setdefault(keys.PS_BOOK, new_book(5))
     book = st.session_state[keys.PS_BOOK]
 
-    # The shared editor renders preview + region selector + Manage/Colour/Technique.
-    # PS is session-only, so (unlike the photo path) there is no project save call.
-    multi = editor.render(relit_rgb, mask_u8, book, shading,
-                          light_field=light_field, normal_field=normals,
-                          picked=picked, owned_paints=owned_paints)
-
-    # Object-source lighting (OSL) — PS mode only (normals required).
-    # Rendered after the base preview so the panel appears below the editor.
-    st.divider()
-    st.subheader("Object-source lighting (OSL)")
     # Seed OSL session keys from a loaded project's persisted OSL params (if any)
     # whenever the OSL keys have not yet been set this session.  Mirrors the
     # seed_editor_from_angle pattern in ui/state.py for all other settings keys.
@@ -114,20 +103,10 @@ def render(picked, owned_paints) -> None:
                 st.session_state.setdefault(keys.OSL_INTENSITY, _saved_osl["intensity"])
             if "layers" in _saved_osl:
                 st.session_state.setdefault(keys.OSL_LAYERS, _saved_osl["layers"])
-    osl_params = osl_panel.render(mask.shape)
-    osl_result = None
-    if osl_params is not None:
-        src = _pl.OslSource(x=osl_params["x"], y=osl_params["y"],
-                            height=osl_params["height"],
-                            glow_rgb=osl_params["glow_rgb"],
-                            hot_rgb=osl_params["hot_rgb"])
-        osl_result = _pl.apply_osl(multi.combined_rgb, normals, mask, src,
-                                   reach=osl_params["reach"],
-                                   intensity=osl_params["intensity"],
-                                   coverage=osl_params["coverage"],
-                                   owned=owned_paints,
-                                   catalog=context.CATALOG)
-        st.image(osl_result.preview_rgb, caption="With object-source glow",
-                 use_container_width=True)
-    st.session_state[keys.OSL_RESULT] = osl_result
-    results.render_osl_steps(osl_result)
+
+    # The shared editor renders preview + region selector + Manage/Colour/Technique.
+    # PS is session-only, so (unlike the photo path) there is no project save call.
+    # The editor now owns OSL (Glow tab) and stores keys.OSL_RESULT in session state.
+    editor.render(relit_rgb, mask_u8, book, shading,
+                  light_field=light_field, normal_field=normals,
+                  picked=picked, owned_paints=owned_paints)

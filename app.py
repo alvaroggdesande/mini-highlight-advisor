@@ -86,6 +86,7 @@ with tab_studio:
 with tab_paint:
     multi = st.session_state.get(keys.LAST_MULTI)
     results.render_steps(multi)
+    results.render_osl_steps(st.session_state.get(keys.OSL_RESULT))
 
 # --- 🖼️ All angles: read-only gallery ---
 with tab_angles:
