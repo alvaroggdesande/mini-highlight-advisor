@@ -5,6 +5,7 @@ returned params. Returns None until the user places a source AND ticks 'Enable'.
 """
 import numpy as np
 import streamlit as st
+from PIL import Image
 
 from ui import keys
 from ui.compat import st_canvas
@@ -23,7 +24,13 @@ def _hex_to_rgb(h: str) -> np.ndarray:
     return np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], np.float32)
 
 
-def render(mask_shape) -> dict | None:
+def _rescale_click(click, disp_w, disp_h, src_w, src_h) -> tuple[float, float]:
+    """Map a click on the display-scaled canvas back to full mask resolution."""
+    sx, sy = src_w / disp_w, src_h / disp_h
+    return float(click[0]) * sx, float(click[1]) * sy
+
+
+def render(mask_shape, background_rgb) -> dict | None:
     st.markdown("**Object-source glow** (OSL) — click where the light lives, pick a colour.")
     enabled = st.checkbox("Enable glow", value=st.session_state.get(keys.OSL_ON, False),
                           key=keys.OSL_ON)
@@ -39,13 +46,20 @@ def render(mask_shape) -> dict | None:
     intensity = st.slider("Intensity", 0.1, 2.0, 1.0, key=keys.OSL_INTENSITY)
     n_layers = st.slider("Glow layers", 2, 4, 3, key=keys.OSL_LAYERS)
 
-    st.caption("Click the source point on the canvas below.")
+    st.caption("Click the source point on the mini below.")
+    src_h, src_w = mask_shape
+    disp_w = min(600, src_w)
+    disp_h = round(src_h * disp_w / src_w)
     click = None
     if st_canvas is not None:
-        h, w = mask_shape
-        canvas = st_canvas(height=h, width=w, drawing_mode="point",
-                           stroke_width=6, key=keys.OSL_CANVAS)
-        click = geometry.last_point(canvas)
+        canvas = st_canvas(
+            background_image=Image.fromarray(background_rgb),
+            height=disp_h, width=disp_w, drawing_mode="point",
+            stroke_width=6, stroke_color="#ff28c8", key=keys.OSL_CANVAS,
+        )
+        raw = geometry.last_point(canvas)
+        if raw is not None:
+            click = _rescale_click(raw, disp_w, disp_h, src_w, src_h)
     if click is None:
         click = st.session_state.get(keys.OSL_POINT)
     if click is None:
