@@ -133,6 +133,13 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         # caught/relit light. Geometry places the NMM horizon. normals/env absent
         # -> silently stay matte (defense in depth).
         light = materials.nmm_light(normals, sub_mask, env=env)
+        # Resample palette to the requested band count (Metal steps UI knob).
+        # Keep BOTH endpoints (darkest shadow + lightest glint) so the full
+        # dark→light ramp is represented. No-op when k == len(palette).
+        k = len(coverage)
+        if k < len(palette):
+            idx = np.linspace(0, len(palette) - 1, k).round().astype(int)
+            palette = [palette[i] for i in idx]
     requested_bands = len(palette)
     capped = False
     if not is_nmm:

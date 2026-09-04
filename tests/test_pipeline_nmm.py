@@ -120,6 +120,32 @@ def test_nmm_knobs_thread_through_analyze_regions():
     assert not np.array_equal(lo_bands, hi_bands)   # horizon knob changes the plan
 
 
+def test_nmm_palette_resampled_to_coverage_length():
+    """NMM with k < len(palette): resampled palette has exactly k entries, both
+    endpoints (darkest/lightest) are preserved, and every band has a step."""
+    n, mask = _dome()
+    rgb = np.full((*mask.shape, 3), 120, np.uint8)
+    light = _uniform_light(mask)
+    cov3 = default_coverage(3)
+    plan = plan_region(rgb, mask, light, "x", PAL, cov3,
+                       edges=False, normals=n, material="nmm", env=ENV)
+
+    # (a) at most 3 distinct in-mask band values
+    in_mask_bands = plan.bands[mask]
+    unique_bands = np.unique(in_mask_bands)
+    assert len(unique_bands) <= 3
+
+    # (b) colors list has exactly 3 entries — no dead paints
+    assert len(plan.colors) == 3
+
+    # (c) steps reflect 3 band steps (edges=False, no shade steps)
+    assert len(plan.steps) == 3
+
+    # (d) endpoints preserved: colors[0] == PAL[0].rgb, colors[-1] == PAL[-1].rgb
+    assert np.array_equal(plan.colors[0], PAL[0].rgb)
+    assert np.array_equal(plan.colors[-1], PAL[-1].rgb)
+
+
 def test_analyze_regions_per_region_material_isolation():
     # The whole-mini leftover uses material="matte" while the drawn blade region uses
     # material="nmm". With a dome normal field and uniform injected light, NMM

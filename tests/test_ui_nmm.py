@@ -94,8 +94,13 @@ def test_photo_mode_hides_material_and_horizon():
     assert not at.exception
     labels = [(s.label or "").lower() for s in at.selectbox]
     assert not any("material" in l for l in labels)
+    # PS-only env controls must also be absent in photo mode.
+    assert not any("preset" in l for l in labels)
     slider_labels = [(s.label or "").lower() for s in at.slider]
     assert not any("horizon" in l for l in slider_labels)
+    assert not any("light direction" in l for l in slider_labels)
+    assert not any("bounce" in l for l in slider_labels)
+    assert not any("hotspot" in l for l in slider_labels)
 
 
 def test_selecting_nmm_swaps_coverage_for_metal_steps():

@@ -202,8 +202,10 @@ def swatch_board(regions, width: int = 460, sw: int = 44, pad: int = 12) -> Imag
 def nmm_env_preview(env, colors, n_bands, *, bg=(30, 30, 30)):
     """RGB uint8 preview of the NMM environment disk, value-banded and tinted with
     the region's paints: a legend for 'where each colour goes'. Off-disk = bg;
-    band 0 (darkest) -> colors[0] ... top band -> colors[-1]. Reuses the Pillar-2
-    band_by_value thresholds, so the preview matches the actual plan cuts."""
+    band 0 (darkest) -> colors[0] ... top band -> colors[-1]. Reuses the same
+    band_by_value function as the plan, but applied over the full disk value span
+    rather than the surface-reachable span — so the band boundaries approximate
+    the actual plan cuts, not exact matches."""
     from .banding import band_by_value
 
     size = env.shape[0]
