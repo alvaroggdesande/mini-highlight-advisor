@@ -38,6 +38,19 @@ LIGHT_AZ = "light_az"            # virtual-light azimuth slider (deg)
 LIGHT_EL = "light_el"            # virtual-light elevation slider (deg)
 LIGHT_PRESET = "light_preset"    # nonce to force slider re-seed after a preset click
 
+# --- object-source lighting (OSL, PS mode only) ---
+OSL_ON = "osl_on"
+OSL_PRESET = "osl_preset"
+OSL_GLOW = "osl_glow"
+OSL_HOT = "osl_hot"
+OSL_HEIGHT = "osl_height"
+OSL_REACH = "osl_reach"
+OSL_INTENSITY = "osl_intensity"
+OSL_LAYERS = "osl_layers"
+OSL_CANVAS = "osl_canvas"
+OSL_POINT = "osl_point"
+OSL_RESULT = "osl_result"
+
 def midtone_hex(g: int) -> str: return f"midtone_hex_{g}"
 
 OWNED = "owned"                  # owned-paints multiselect

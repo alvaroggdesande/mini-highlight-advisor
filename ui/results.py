@@ -91,6 +91,24 @@ def render_technique_controls(book, sel: int, has_normals: bool) -> None:
                          "own relief. Off = primed-mini mode (default).")
 
 
+def render_osl_steps(osl_result) -> None:
+    """Render the object-source glow paint-along steps.
+
+    No-op when osl_result is None or has no steps. Call this right after
+    render_steps() in the Paint tab to show OSL glazing layers.
+    """
+    if osl_result is None or not osl_result.steps:
+        return
+    st.subheader("Object-source glow — extra steps")
+    st.caption("Paint the object normally first, then glaze the glow on top.")
+    for s in osl_result.steps:
+        cols = st.columns(2)
+        cols[0].image(s.zone_rgb, caption=(s.label or "glow zone"),
+                      use_container_width=True)
+        cols[1].image(s.cumulative_rgb, caption="after this layer",
+                      use_container_width=True)
+
+
 def render_steps(multi) -> None:
     """Paint tab: swatch board + per-region paint-along steps.
 
