@@ -21,24 +21,29 @@ from .surface import reflect
 
 
 def smooth_normals(normals: np.ndarray, mask: np.ndarray, sigma: float) -> np.ndarray:
-    """Masked Gaussian-smooth a normal field, then renormalize to unit length.
+    """Edge-preserving (bilateral) denoise of a normal field; renormalized to unit.
 
     The NMM reflection lookup amplifies normal noise (a small wobble in N throws
     the reflection vector a larger distance across the env disk), so pixel-scale
     noise in a photo/PS-derived normal map turns the tight glint into scattered
-    speckle. Blurring the normals BEFORE reflect() collapses that speckle into
-    coherent value zones. sigma is in pixels; sigma<=0 is identity.
+    speckle. Plain Gaussian removes the speckle but also smears the form into mud,
+    because on phone-PS normals the noise and the real form live at overlapping
+    scales (see docs/superpowers/specs/2026-09-04-nmm-v2-postmortem.md). A
+    BILATERAL filter escapes that trap: it averages the flats (killing speckle)
+    while preserving big normal jumps (keeping form edges crisp). `sigma` (px)
+    drives the spatial diameter; sigma<=0 is identity.
 
-    Masked blur (blur N*mask and mask, then divide) so background zeros never
-    bleed across the silhouette edge. Off-mask pixels are returned unchanged.
+    NOTE (parked): even bilateral does not fully make a greebled surface read as
+    metal — the reflection-matcap approach itself is the limiting factor. This is
+    the best available stopgap, not the fix. See the post-mortem.
     """
     if sigma <= 0:
         return normals
     m = mask.astype(bool)
-    mf = m.astype(np.float32)
-    num = cv2.GaussianBlur(normals * mf[..., None], (0, 0), sigma)
-    den = cv2.GaussianBlur(mf, (0, 0), sigma)[..., None] + 1e-6
-    sm = num / den
+    d = max(3, int(2.0 * sigma) + 1)
+    # sigmaColor in normal units: only average vectors within ~0.2 of each other,
+    # so silhouette/form edges (large jumps, incl. the jump to off-mask) survive.
+    sm = cv2.bilateralFilter(normals.astype(np.float32), d, 0.2, float(sigma))
     mag = np.linalg.norm(sm, axis=-1, keepdims=True)
     mag[mag == 0] = 1.0
     sm = (sm / mag).astype(np.float32)
