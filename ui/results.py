@@ -6,7 +6,8 @@ from mini_highlight_advisor.advisor import advise
 from mini_highlight_advisor.palette import role_names
 from mini_highlight_advisor.input_check import check_input, SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
 from mini_highlight_advisor.pipeline import analyze_regions
-from mini_highlight_advisor.overlay import swatch_board
+from mini_highlight_advisor.overlay import swatch_board, nmm_env_preview
+from mini_highlight_advisor import materials
 from ui import context, helpers, keys
 
 
@@ -48,7 +49,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                  "normals — the inverse of edge highlights. PS mode only; reuses "
                  "the edge-sensitivity slider.")
 
-    nmm_horizon = 0.5
+    nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot = 0.5, 135.0, 0.35, 0.5
     if normal_field is not None:
         sel = book.selected
         cur = book.material_at(sel)
@@ -56,13 +57,38 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
             f"Material — {book.names()[sel]}", ["Matte", "NMM"],
             index=0 if cur == "matte" else 1, key=keys.material(sel),
             help="NMM re-bands this region as non-metallic metal: it reads the "
-                 "reflection of a virtual sky/ground off the surface normals. "
+                 "reflection of a virtual environment off the surface normals. "
                  "PS mode only.")
         book.set_material_at(sel, "nmm" if choice == "NMM" else "matte")
-        nmm_horizon = st.slider(
-            "Horizon height", 0.0, 1.0, 0.5, 0.05, key=keys.NMM_HORIZON,
-            help="Slide the virtual NMM horizon up (darker, more reflected ground) "
-                 "or down (brighter, more sky). Affects NMM regions only.")
+
+        st.markdown("**Metal environment** (the world your metal reflects)")
+        preset = st.selectbox("Preset", ["Steel", "Gold", "Chrome", "Custom"],
+                              key=keys.NMM_PRESET)
+        if preset != "Custom":
+            knobs = materials.NMM_PRESETS[preset]
+        else:
+            knobs = dict(horizon=0.5, light_dir=135.0, bounce=0.35, hotspot=0.5)
+        nmm_horizon = st.slider("Horizon height", 0.0, 1.0, knobs["horizon"], 0.05,
+                                key=keys.NMM_HORIZON,
+                                help="Where the sky/ground break sits on the reflection.")
+        nmm_light_dir = st.slider("Light direction", 0.0, 360.0, knobs["light_dir"], 5.0,
+                                  key=keys.NMM_LIGHT_DIR,
+                                  help="Azimuth of the reflected light streak/glint "
+                                       "(90=top, 135=upper-left).")
+        with st.expander("Custom / advanced"):
+            nmm_bounce = st.slider("Ground bounce", 0.0, 1.0, knobs["bounce"], 0.05,
+                                   key=keys.NMM_BOUNCE)
+            nmm_hotspot = st.slider("Hotspot", 0.0, 1.0, knobs["hotspot"], 0.05,
+                                    key=keys.NMM_HOTSPOT)
+
+        # Env-disk preview: the built env, value-banded, tinted with the selected
+        # region's paints -> a legend for where each colour goes. Re-renders live.
+        env = materials.build_nmm_env(horizon=nmm_horizon, light_dir=nmm_light_dir,
+                                      bounce=nmm_bounce, hotspot=nmm_hotspot)
+        steps = len(book.coverage_at(sel))
+        preview = nmm_env_preview(env, [p.rgb for p in palette], n_bands=steps)
+        st.image(preview, caption="Where each colour goes (reflected environment)",
+                 width=180)
 
     relief_cap = st.checkbox(
         "Auto-reduce bands on flat regions", value=True, key=keys.RELIEF_CAP,
@@ -105,6 +131,9 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                             normal_field=normal_field,
                             shades=shades,
                             nmm_horizon=nmm_horizon,
+                            nmm_light_dir=nmm_light_dir,
+                            nmm_bounce=nmm_bounce,
+                            nmm_hotspot=nmm_hotspot,
                             whole_material=book.material_at(0))
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)

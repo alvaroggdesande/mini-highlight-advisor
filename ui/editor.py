@@ -8,7 +8,7 @@ threaded through to `analyze_regions`.
 """
 import streamlit as st
 
-from ui import coverage_editor, palette_editor, regions_panel, results, state
+from ui import coverage_editor, palette_editor, regions_panel, results, state, keys
 
 
 def render_editor(rgb, alpha, shading, book, picked, owned_paints,
@@ -18,7 +18,9 @@ def render_editor(rgb, alpha, shading, book, picked, owned_paints,
     state.rehydrate_editor_widgets(book, sel)
 
     palette, n = palette_editor.render(book, sel, picked)
-    coverage = coverage_editor.render(n)
+    is_nmm = (normal_field is not None
+              and st.session_state.get(keys.material(sel), "Matte") == "NMM")
+    coverage = coverage_editor.render(n, is_nmm=is_nmm, sel=sel)
     palette_editor.render_save_recipe(palette, n)
 
     book.set_palette_at(sel, palette)
