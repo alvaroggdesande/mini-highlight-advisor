@@ -51,6 +51,7 @@ OSL_CANVAS = "osl_canvas"
 OSL_POINT = "osl_point"
 OSL_RESULT = "osl_result"
 
+
 def midtone_hex(g: int) -> str: return f"midtone_hex_{g}"
 
 OWNED = "owned"                  # owned-paints multiselect

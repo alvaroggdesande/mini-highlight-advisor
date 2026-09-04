@@ -13,7 +13,7 @@ from mini_highlight_advisor import pipeline as _pl
 from mini_highlight_advisor.masking import compute_mask
 from mini_highlight_advisor.pipeline import ShadingResult
 from mini_highlight_advisor.region_state import new_book
-from ui import context, editor, keys, osl_panel, relight_panel
+from ui import context, editor, keys, osl_panel, relight_panel, results
 
 
 def _import_gate() -> bool:
@@ -106,3 +106,4 @@ def render(picked, owned_paints) -> None:
         st.image(osl_result.preview_rgb, caption="With object-source glow",
                  use_container_width=True)
     st.session_state[keys.OSL_RESULT] = osl_result
+    results.render_osl_steps(osl_result)

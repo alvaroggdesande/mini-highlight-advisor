@@ -44,7 +44,7 @@ def render(mask_shape) -> dict | None:
         h, w = mask_shape
         canvas = st_canvas(height=h, width=w, drawing_mode="point",
                            stroke_width=6, key=keys.OSL_CANVAS)
-        click = geometry.last_point(canvas) if hasattr(geometry, "last_point") else None
+        click = geometry.last_point(canvas)
     if click is None:
         click = st.session_state.get(keys.OSL_POINT)
     if click is None:
