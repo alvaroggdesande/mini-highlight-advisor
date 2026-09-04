@@ -248,3 +248,14 @@ def nmm_env_preview(env, colors, n_bands, *, bg=(30, 30, 30)):
         col = np.clip(colors[min(b, k - 1)], 0, 255).astype(np.uint8)
         out[bands == b] = col
     return out
+
+
+def osl_preview(base_rgb: np.ndarray, contribution: np.ndarray) -> np.ndarray:
+    """Screen-blend an OSL glow contribution (0-255 float) over a painted preview."""
+    # Check if contribution is all zeros to preserve identity exactly
+    if np.all(contribution == 0):
+        return base_rgb.copy()
+    b = base_rgb.astype(np.float32) / 255.0
+    c = np.clip(contribution.astype(np.float32) / 255.0, 0.0, 1.0)
+    out = 1.0 - (1.0 - b) * (1.0 - c)
+    return np.clip(out * 255.0, 0, 255).astype(np.uint8)
