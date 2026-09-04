@@ -9,6 +9,7 @@ import streamlit as st
 from ui import keys
 from ui.compat import st_canvas
 from ui import geometry
+from mini_highlight_advisor import palette
 
 PRESETS = {  # (glow_rgb, hot_rgb)
     "Torch":  ((255, 150, 40), (255, 230, 190)),
@@ -55,6 +56,6 @@ def render(mask_shape) -> dict | None:
     x, y = float(click[0]), float(click[1])
     return {
         "x": x, "y": y, "height": float(height), "reach": float(reach),
-        "intensity": float(intensity), "coverage": [1.0] * int(n_layers),
+        "intensity": float(intensity), "coverage": palette.default_coverage(int(n_layers)),
         "glow_rgb": _hex_to_rgb(glow_hex), "hot_rgb": _hex_to_rgb(hot_hex),
     }

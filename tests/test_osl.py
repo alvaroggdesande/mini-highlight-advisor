@@ -3,6 +3,7 @@ from PIL import Image
 from pathlib import Path
 from mini_highlight_advisor import osl
 from mini_highlight_advisor import banding  # noqa
+from mini_highlight_advisor import palette
 
 GLOW_RGB = np.array([40.0, 200.0, 90.0], np.float32)   # green
 HOT_RGB  = np.array([200.0, 255.0, 210.0], np.float32) # hue-tinted white
@@ -74,15 +75,21 @@ def test_colors_faint_to_hot():
 
 def test_bands_exclude_unlit_and_nest():
     n, mask = _load()
+    # Use a low floor so the lit zone is large enough to split into 3 non-empty bands.
     g = osl.osl_field(n, mask, x=63.5, y=63.5, height=40.0, reach=25.0, intensity=1.0)
-    bands = osl.osl_bands(g, mask, coverage=[1.0, 0.5, 0.2], floor=0.1)
+    coverage = palette.default_coverage(3)  # valid partition summing to 1.0
+    bands = osl.osl_bands(g, mask, coverage=coverage, floor=0.05)
     assert bands.shape == mask.shape
     assert np.all(bands[~mask] == -1)
-    assert np.all(bands[mask & (g <= 0.1)] == -1)      # unlit excluded
+    assert np.all(bands[mask & (g <= 0.05)] == -1)      # unlit excluded
     lit = bands >= 0
     assert lit.sum() > 0
-    # nested: brighter bands are subsets of fainter ones
-    assert (bands >= 2).sum() <= (bands >= 1).sum() <= (bands >= 0).sum()
+    # All three bands must be non-empty (would fail under [1.0]*n collapse)
+    assert (bands == 0).sum() > 0
+    assert (bands == 1).sum() > 0
+    assert (bands == 2).sum() > 0
+    # Strict superset chain: brighter bands are proper subsets of fainter ones
+    assert (bands >= 2).sum() < (bands >= 1).sum() < (bands >= 0).sum()
 
 def test_field_multi_is_max():
     n, mask = _load()

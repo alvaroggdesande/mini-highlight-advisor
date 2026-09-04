@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from pathlib import Path
-from mini_highlight_advisor import pipeline
+from mini_highlight_advisor import pipeline, osl, palette
 
 _FIX = Path(__file__).parent / "fixtures" / "ps"
 
@@ -18,8 +18,9 @@ def test_apply_osl_makes_glow_steps_and_preview():
     src = pipeline.OslSource(x=63.5, y=63.5, height=40.0,
                              glow_rgb=np.array([40., 200., 90.], np.float32),
                              hot_rgb=np.array([200., 255., 210.], np.float32))
+    cov = palette.default_coverage(3)  # valid partition summing to 1.0
     res = pipeline.apply_osl(base, n, mask, src, reach=25.0, intensity=1.0,
-                             coverage=[1.0, 0.5, 0.2], owned=[], catalog=[])
+                             coverage=cov, owned=[], catalog=[])
     assert len(res.steps) == 3
     assert all(s.kind == "osl" for s in res.steps)
     assert res.preview_rgb.shape == base.shape
@@ -27,6 +28,11 @@ def test_apply_osl_makes_glow_steps_and_preview():
     assert res.preview_rgb.mean() > base.mean()
     # base is untouched (caller's array not mutated)
     assert base.mean() == 60
+    # Multiple non-empty bands must exist (would fail under [1.0]*n collapse)
+    bands = osl.osl_bands(res.glow, mask, palette.default_coverage(3))
+    assert (bands == 0).sum() > 0
+    assert (bands == 1).sum() > 0
+    assert (bands == 2).sum() > 0
 
 def test_apply_osl_dark_when_source_behind():
     n, mask = _load()
