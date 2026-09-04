@@ -3,7 +3,7 @@ import io
 import streamlit as st
 
 from mini_highlight_advisor.overlay import swatch_board, nmm_env_preview
-from mini_highlight_advisor import materials
+from mini_highlight_advisor import materials, pipeline
 from ui import helpers, keys
 
 
@@ -101,9 +101,11 @@ def render_osl_steps(osl_result) -> None:
         return
     st.subheader("Object-source glow — extra steps")
     st.caption("Paint the object normally first, then glaze the glow on top.")
-    for s in osl_result.steps:
+    n = len(osl_result.steps)
+    for i, s in enumerate(osl_result.steps):
         cols = st.columns(2)
-        cols[0].image(s.zone_rgb, caption=(s.label or "glow zone"),
+        cols[0].image(s.zone_rgb,
+                      caption=pipeline.osl_step_caption(i, n, s.label),
                       use_container_width=True)
         cols[1].image(s.cumulative_rgb, caption="after this layer",
                       use_container_width=True)
