@@ -17,7 +17,15 @@ def _cap_slider(idx: int, n_ctrl: int) -> None:
         st.session_state[key] = smax
 
 
-def render(n: int) -> list[float]:
+def render(n: int, is_nmm: bool = False, sel: int = 0) -> list[float]:
+    if is_nmm:
+        st.markdown("**Metal steps** (value bands for this NMM region)")
+        steps = st.number_input(
+            "Metal steps", min_value=2, max_value=n, value=min(5, n), step=1,
+            key=keys.metal_steps(sel),
+            help="How many brightness bands the reflected environment is cut into. "
+                 "NMM has no per-band coverage — each step owns a fixed value range.")
+        return default_coverage(int(steps))
     st.markdown("**Coverage** (% of the model each layer occupies)")
     roles_now = role_names(n)
     n_ctrl = n - 1  # controllable bands; lightest band is the auto remainder

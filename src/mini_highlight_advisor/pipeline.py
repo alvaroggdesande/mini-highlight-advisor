@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image
 
-from .banding import band_light, relief_recommended_bands
+from .banding import band_light, band_by_value, relief_recommended_bands
 from .lighting import luminance_light, _clahe_gray, local_luminance_light
 from .masking import compute_mask
 from .edges import (
@@ -127,34 +127,50 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 relief_cap: bool = False, flat_albedo: bool = False,
                 normals: np.ndarray | None = None,
                 shades: bool = False,
-                material: str = "matte", nmm_horizon: float = 0.5,
+                material: str = "matte",
+                env: np.ndarray | None = None,
+                nmm_smooth: float = 0.0,
                 technique: str = "smooth") -> RegionPlan:
-    if material == "nmm" and normals is not None:
+    is_nmm = material == "nmm" and normals is not None and env is not None
+    if is_nmm:
         # Metal is a mirror: re-band from the reflection environment, not the
-        # caught/relit light. Geometry (not the virtual light) places the NMM
-        # horizon. normals absent -> silently stay matte (defense in depth).
-        light = materials.nmm_light(normals, sub_mask, horizon=nmm_horizon)
+        # caught/relit light. Geometry places the NMM horizon. normals/env absent
+        # -> silently stay matte (defense in depth).
+        # Denoise the normals first: the reflection lookup amplifies normal noise
+        # into gold speckle, so smooth before sampling (nmm_smooth in pixels).
+        nrm = materials.smooth_normals(normals, sub_mask, nmm_smooth)
+        light = materials.nmm_light(nrm, sub_mask, env=env)
+        # Resample palette to the requested band count (Metal steps UI knob).
+        # Keep BOTH endpoints (darkest shadow + lightest glint) so the full
+        # dark→light ramp is represented. No-op when k == len(palette).
+        k = len(coverage)
+        if k < len(palette):
+            idx = np.linspace(0, len(palette) - 1, k).round().astype(int)
+            palette = [palette[i] for i in idx]
     requested_bands = len(palette)
     capped = False
-    if flat_albedo:
-        # Dark/low-dynamic-range region: no relief signal to band. Keep the base only.
-        capped = True
-        palette = palette[:1]
-        coverage = default_coverage(1)
-    elif relief_cap:
-        k = relief_recommended_bands(light, sub_mask, requested_bands)
-        if k < requested_bands:
-            # Keep the darkest k paints (base + lower highlights); a flat region
-            # can't show the brightest highlights. Render-only — the caller's
-            # stored palette/coverage are untouched.
+    if not is_nmm:
+        if flat_albedo:
+            # Dark/low-dynamic-range region: no relief signal. Keep the base only.
             capped = True
-            palette = palette[:k]
-            coverage = default_coverage(k)
+            palette = palette[:1]
+            coverage = default_coverage(1)
+        elif relief_cap:
+            k = relief_recommended_bands(light, sub_mask, requested_bands)
+            if k < requested_bands:
+                capped = True
+                palette = palette[:k]
+                coverage = default_coverage(k)
     colors = [p.rgb for p in palette]
     names = [p.name for p in palette]
     spec = get_technique(technique)
     roles = spec.role_names(len(palette))
-    bands = band_light(light, sub_mask, coverage)
+    if is_nmm:
+        # Value-anchored banding: flat sky -> one paint, thin horizon keeps its band.
+        # The relief/flat cap is bypassed above — the env injects deliberate contrast.
+        bands = band_by_value(light, sub_mask, n_bands=len(coverage))
+    else:
+        bands = band_light(light, sub_mask, coverage)
     cov = coverage_pct(bands, sub_mask, len(palette))
     steps = per_band_images(rgb, bands, sub_mask, colors)
     overlays = None
@@ -193,6 +209,10 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     normal_field: np.ndarray | None = None,
                     shades: bool = False,
                     nmm_horizon: float = 0.5,
+                    nmm_light_dir: float = 135.0,
+                    nmm_bounce: float = 0.35,
+                    nmm_hotspot: float = 0.5,
+                    nmm_smooth: float = 2.0,
                     whole_material: str = "matte",
                     whole_blank: bool = False) -> MultiRegionResult:
     regions = regions or []
@@ -216,9 +236,11 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     owner = assign_owners(mask, [r.mask for r in regions])
     plans: list[RegionPlan] = []
     default_sub = owner == -1
+    env = materials.build_nmm_env(horizon=nmm_horizon, light_dir=nmm_light_dir,
+                                  bounce=nmm_bounce, hotspot=nmm_hotspot)
     ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
-               relief_cap=relief_cap, normals=normal_field, shades=shades,
-               nmm_horizon=nmm_horizon)
+               relief_cap=relief_cap, normals=normal_field, shades=shades, env=env,
+               nmm_smooth=nmm_smooth)
 
     gray = _clahe_gray(rgb) if per_region_norm else None
 

@@ -88,6 +88,10 @@ def run_analysis(rgb, alpha, book, shading,
     per_region_norm = st.session_state.get(keys.PER_REGION_NORM, False)
     shades = st.session_state.get(keys.SHADES, False)
     nmm_horizon = st.session_state.get(keys.NMM_HORIZON, 0.5)
+    nmm_light_dir = st.session_state.get(keys.NMM_LIGHT_DIR, 135.0)
+    nmm_bounce = st.session_state.get(keys.NMM_BOUNCE, 0.35)
+    nmm_hotspot = st.session_state.get(keys.NMM_HOTSPOT, 0.5)
+    nmm_smooth = st.session_state.get(keys.NMM_SMOOTH, 2.0)
 
     wp, wcov, drawn = book.analyze_args()
     return analyze_regions(
@@ -100,6 +104,10 @@ def run_analysis(rgb, alpha, book, shading,
         normal_field=normal_field,
         shades=shades,
         nmm_horizon=nmm_horizon,
+        nmm_light_dir=nmm_light_dir,
+        nmm_bounce=nmm_bounce,
+        nmm_hotspot=nmm_hotspot,
+        nmm_smooth=nmm_smooth,
         whole_material=book.material_at(0),
         whole_blank=book.whole_blank,
     )

@@ -224,3 +224,27 @@ def swatch_board(regions, width: int = 460, sw: int = 44, pad: int = 12) -> Imag
             d.rectangle([x, yy, x + sw, yy + sw], fill=fill, outline=(70, 72, 80), width=2)
             x += sw + 6
     return img
+
+
+def nmm_env_preview(env, colors, n_bands, *, bg=(30, 30, 30)):
+    """RGB uint8 preview of the NMM environment disk, value-banded and tinted with
+    the region's paints: a legend for 'where each colour goes'. Off-disk = bg;
+    band 0 (darkest) -> colors[0] ... top band -> colors[-1]. Reuses the same
+    band_by_value function as the plan, but applied over the full disk value span
+    rather than the surface-reachable span — so the band boundaries approximate
+    the actual plan cuts, not exact matches."""
+    from .banding import band_by_value
+
+    size = env.shape[0]
+    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
+    u = xx / (size - 1) * 2.0 - 1.0
+    v = 1.0 - yy / (size - 1) * 2.0
+    disk = (u * u + v * v) <= 1.0
+    bands = band_by_value(env, disk, n_bands)
+    out = np.empty((size, size, 3), np.uint8)
+    out[:] = np.array(bg, np.uint8)
+    k = len(colors)
+    for b in range(n_bands):
+        col = np.clip(colors[min(b, k - 1)], 0, 255).astype(np.uint8)
+        out[bands == b] = col
+    return out

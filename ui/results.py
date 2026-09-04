@@ -2,7 +2,8 @@
 import io
 import streamlit as st
 
-from mini_highlight_advisor.overlay import swatch_board
+from mini_highlight_advisor.overlay import swatch_board, nmm_env_preview
+from mini_highlight_advisor import materials
 from ui import helpers, keys
 
 
@@ -44,8 +45,41 @@ def render_technique_controls(book, sel: int, has_normals: bool) -> None:
     book.set_material_at(sel, chosen_key)
 
     if has_normals and chosen_key == "nmm":
-        st.slider("Horizon height", 0.0, 1.0, 0.5, 0.05, key=keys.NMM_HORIZON,
-                  help="Slide the virtual NMM horizon up or down.")
+        st.markdown("**Metal environment** (the world your metal reflects)")
+        preset = st.selectbox("Preset", ["Steel", "Gold", "Chrome", "Custom"],
+                              key=keys.NMM_PRESET)
+        if preset != "Custom":
+            knobs = materials.NMM_PRESETS[preset]
+        else:
+            knobs = dict(horizon=0.5, light_dir=135.0, bounce=0.35, hotspot=0.5)
+        nmm_horizon = st.slider("Horizon height", 0.0, 1.0, knobs["horizon"], 0.05,
+                                key=keys.NMM_HORIZON,
+                                help="Where the sky/ground break sits on the reflection.")
+        nmm_light_dir = st.slider("Light direction", 0.0, 360.0, knobs["light_dir"], 5.0,
+                                  key=keys.NMM_LIGHT_DIR,
+                                  help="Azimuth of the reflected light streak/glint "
+                                       "(90=top, 135=upper-left).")
+        st.slider("Metal smoothing", 0.0, 8.0, 2.0, 0.5,
+                  key=keys.NMM_SMOOTH,
+                  help="Blurs the surface normals before the reflection lookup. "
+                       "Raw PS normals are noisy; 1.5-3 gives coherent metal zones. "
+                       "0 = off (raw, speckly).")
+        with st.expander("Custom / advanced"):
+            nmm_bounce = st.slider("Ground bounce", 0.0, 1.0, knobs["bounce"], 0.05,
+                                   key=keys.NMM_BOUNCE)
+            nmm_hotspot = st.slider("Hotspot", 0.0, 1.0, knobs["hotspot"], 0.05,
+                                    key=keys.NMM_HOTSPOT)
+        env = materials.build_nmm_env(
+            horizon=nmm_horizon,
+            light_dir=nmm_light_dir,
+            bounce=st.session_state.get(keys.NMM_BOUNCE, knobs["bounce"]),
+            hotspot=st.session_state.get(keys.NMM_HOTSPOT, knobs["hotspot"]),
+        )
+        steps = len(book.coverage_at(sel))
+        preview = nmm_env_preview(env, [p.rgb for p in book.palette_at(sel)],
+                                  n_bands=steps)
+        st.image(preview, caption="Where each colour goes (reflected environment)",
+                 width=180)
 
     st.checkbox("Auto-reduce bands on flat regions", value=True, key=keys.RELIEF_CAP,
                 help="Cap band count to what the relief supports.")

@@ -57,6 +57,31 @@ def test_photo_mode_shows_technique_but_hides_horizon():
     # NMM should not be an option in photo mode.
     tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
     assert "NMM" not in tech.options
-    # Horizon slider must not appear in photo mode.
+    # Horizon slider and NMM env controls must not appear in photo mode.
     slider_labels = [(s.label or "").lower() for s in at.slider]
     assert not any("horizon" in l for l in slider_labels)
+    assert not any("light direction" in l for l in slider_labels)
+    assert not any("bounce" in l for l in slider_labels)
+    assert not any("hotspot" in l for l in slider_labels)
+
+
+def test_ps_mode_shows_metal_environment_panel_and_preview():
+    # Metal env panel only appears after NMM is selected.
+    at = AppTest.from_string(HARNESS_PS); at.run()
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    tech.set_value("NMM").run()
+    assert not at.exception
+    select_labels = [(s.label or "").lower() for s in at.selectbox]
+    assert any("preset" in l or "metal environment" in l for l in select_labels)
+    slider_labels = [(s.label or "").lower() for s in at.slider]
+    assert any("light direction" in l for l in slider_labels)
+
+
+def test_selecting_preset_and_moving_knobs_replans_without_error():
+    at = AppTest.from_string(HARNESS_PS); at.run()
+    tech = next(s for s in at.selectbox if "technique" in (s.label or "").lower())
+    tech.set_value("NMM").run()
+    preset = next(s for s in at.selectbox if "preset" in (s.label or "").lower())
+    preset.set_value("Gold").run()
+    assert not at.exception
+    assert len(at.image) > 0  # env-disk preview image
