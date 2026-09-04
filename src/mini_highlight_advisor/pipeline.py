@@ -126,13 +126,17 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 normals: np.ndarray | None = None,
                 shades: bool = False,
                 material: str = "matte",
-                env: np.ndarray | None = None) -> RegionPlan:
+                env: np.ndarray | None = None,
+                nmm_smooth: float = 0.0) -> RegionPlan:
     is_nmm = material == "nmm" and normals is not None and env is not None
     if is_nmm:
         # Metal is a mirror: re-band from the reflection environment, not the
         # caught/relit light. Geometry places the NMM horizon. normals/env absent
         # -> silently stay matte (defense in depth).
-        light = materials.nmm_light(normals, sub_mask, env=env)
+        # Denoise the normals first: the reflection lookup amplifies normal noise
+        # into gold speckle, so smooth before sampling (nmm_smooth in pixels).
+        nrm = materials.smooth_normals(normals, sub_mask, nmm_smooth)
+        light = materials.nmm_light(nrm, sub_mask, env=env)
         # Resample palette to the requested band count (Metal steps UI knob).
         # Keep BOTH endpoints (darkest shadow + lightest glint) so the full
         # dark→light ramp is represented. No-op when k == len(palette).
@@ -204,6 +208,7 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     nmm_light_dir: float = 135.0,
                     nmm_bounce: float = 0.35,
                     nmm_hotspot: float = 0.5,
+                    nmm_smooth: float = 2.0,
                     whole_material: str = "matte") -> MultiRegionResult:
     regions = regions or []
     if normal_field is not None:
@@ -229,7 +234,8 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     env = materials.build_nmm_env(horizon=nmm_horizon, light_dir=nmm_light_dir,
                                   bounce=nmm_bounce, hotspot=nmm_hotspot)
     ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
-               relief_cap=relief_cap, normals=normal_field, shades=shades, env=env)
+               relief_cap=relief_cap, normals=normal_field, shades=shades, env=env,
+               nmm_smooth=nmm_smooth)
 
     gray = _clahe_gray(rgb) if per_region_norm else None
 

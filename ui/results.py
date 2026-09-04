@@ -49,7 +49,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                  "normals — the inverse of edge highlights. PS mode only; reuses "
                  "the edge-sensitivity slider.")
 
-    nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot = 0.5, 135.0, 0.35, 0.5
+    nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, nmm_smooth = 0.5, 135.0, 0.35, 0.5, 2.0
     if normal_field is not None:
         sel = book.selected
         cur = book.material_at(sel)
@@ -75,6 +75,12 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                                   key=keys.NMM_LIGHT_DIR,
                                   help="Azimuth of the reflected light streak/glint "
                                        "(90=top, 135=upper-left).")
+        nmm_smooth = st.slider("Metal smoothing", 0.0, 8.0, 2.0, 0.5,
+                               key=keys.NMM_SMOOTH,
+                               help="Blurs the surface normals before the reflection "
+                                    "lookup. Raw PS normals are noisy and the reflection "
+                                    "amplifies it into gold speckle; 1.5-3 gives coherent "
+                                    "metal zones. 0 = off (raw, speckly).")
         with st.expander("Custom / advanced"):
             nmm_bounce = st.slider("Ground bounce", 0.0, 1.0, knobs["bounce"], 0.05,
                                    key=keys.NMM_BOUNCE)
@@ -134,6 +140,7 @@ def render(rgb, alpha, book, palette, picked, owned_paints, shading,
                             nmm_light_dir=nmm_light_dir,
                             nmm_bounce=nmm_bounce,
                             nmm_hotspot=nmm_hotspot,
+                            nmm_smooth=nmm_smooth,
                             whole_material=book.material_at(0))
     st.image(multi.combined_rgb, caption="Combined painted preview (all regions)",
              use_container_width=True)

@@ -187,3 +187,52 @@ def test_nmm_light_grazing_rays_clamp_to_rim_no_oob():
     m = np.ones((8, 8), bool)
     out = materials.nmm_light(n, m, env=build_nmm_env(size=64))
     assert np.all(np.isfinite(out))
+
+
+# ---------------------------------------------------------------------------
+# smooth_normals — denoise the field before reflection sampling (speckle fix)
+# ---------------------------------------------------------------------------
+from mini_highlight_advisor.materials import smooth_normals, nmm_light  # noqa: E402
+
+
+def _noisy(base_normals, mask, seed=0):
+    """Add pixel-scale noise to a normal field, renormalize, keep off-mask."""
+    rng = np.random.default_rng(seed)
+    n = base_normals + 0.25 * rng.standard_normal(base_normals.shape).astype(np.float32)
+    mag = np.linalg.norm(n, axis=-1, keepdims=True)
+    mag[mag == 0] = 1.0
+    n = (n / mag).astype(np.float32)
+    n[~mask] = base_normals[~mask]
+    return n
+
+
+def test_smooth_normals_sigma_zero_is_identity():
+    n, mask = _dome()
+    out = smooth_normals(n, mask, 0.0)
+    assert np.allclose(out, n)
+
+
+def test_smooth_normals_stay_unit_length_in_mask():
+    n, mask = _blob_with_detail()
+    out = smooth_normals(_noisy(n, mask), mask, 2.0)
+    mag = np.linalg.norm(out[mask], axis=-1)
+    assert np.allclose(mag, 1.0, atol=1e-4)
+
+
+def test_smooth_normals_reduces_nmm_speckle():
+    # The whole point: on a NOISY normal field, smoothing before the reflection
+    # lookup must cut the high-frequency speckle in the sampled NMM light. We
+    # measure speckle as the mean absolute pixel-to-pixel difference (total
+    # variation) of nmm_light across the mask — lower = smoother = usable.
+    n, mask = _blob_with_detail()
+    noisy = _noisy(n, mask)
+    env = build_nmm_env(**NMM_PRESETS["Gold"])
+
+    def total_variation(field):
+        dx = np.abs(np.diff(field, axis=1))[mask[:, 1:]]
+        dy = np.abs(np.diff(field, axis=0))[mask[1:, :]]
+        return float(dx.mean() + dy.mean())
+
+    raw_tv = total_variation(nmm_light(noisy, mask, env=env))
+    smooth_tv = total_variation(nmm_light(smooth_normals(noisy, mask, 2.0), mask, env=env))
+    assert smooth_tv < 0.5 * raw_tv

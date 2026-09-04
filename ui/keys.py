@@ -24,6 +24,7 @@ NMM_HORIZON = "nmm_horizon"      # global NMM horizon slider (PS mode only)
 NMM_LIGHT_DIR = "nmm_light_dir"  # global NMM light-direction slider (deg, PS mode)
 NMM_BOUNCE = "nmm_bounce"        # global NMM ground-bounce slider (PS mode)
 NMM_HOTSPOT = "nmm_hotspot"      # global NMM specular-hotspot slider (PS mode)
+NMM_SMOOTH = "nmm_smooth"        # global NMM normal-smoothing sigma (px, PS mode)
 NMM_PRESET = "nmm_preset"        # Metal-environment preset selectbox
 
 # --- photometric-stereo (PS) mode ---

@@ -14,9 +14,37 @@ numpy in, numpy out; no Streamlit, no torch. A future osl_light() sibling
 """
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 from .surface import reflect
+
+
+def smooth_normals(normals: np.ndarray, mask: np.ndarray, sigma: float) -> np.ndarray:
+    """Masked Gaussian-smooth a normal field, then renormalize to unit length.
+
+    The NMM reflection lookup amplifies normal noise (a small wobble in N throws
+    the reflection vector a larger distance across the env disk), so pixel-scale
+    noise in a photo/PS-derived normal map turns the tight glint into scattered
+    speckle. Blurring the normals BEFORE reflect() collapses that speckle into
+    coherent value zones. sigma is in pixels; sigma<=0 is identity.
+
+    Masked blur (blur N*mask and mask, then divide) so background zeros never
+    bleed across the silhouette edge. Off-mask pixels are returned unchanged.
+    """
+    if sigma <= 0:
+        return normals
+    m = mask.astype(bool)
+    mf = m.astype(np.float32)
+    num = cv2.GaussianBlur(normals * mf[..., None], (0, 0), sigma)
+    den = cv2.GaussianBlur(mf, (0, 0), sigma)[..., None] + 1e-6
+    sm = num / den
+    mag = np.linalg.norm(sm, axis=-1, keepdims=True)
+    mag[mag == 0] = 1.0
+    sm = (sm / mag).astype(np.float32)
+    out = normals.copy()
+    out[m] = sm[m]
+    return out
 
 
 def _smoothstep(a: float, b: float, x: np.ndarray) -> np.ndarray:
