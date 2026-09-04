@@ -13,6 +13,19 @@ from ui import context, keys
 
 
 def _current_settings() -> projects.ProjectSettings:
+    osl: dict | None = None
+    if st.session_state.get(keys.OSL_ON) and st.session_state.get(keys.OSL_POINT):
+        pt = st.session_state[keys.OSL_POINT]
+        osl = {
+            "x": float(pt[0]),
+            "y": float(pt[1]),
+            "height": float(st.session_state.get(keys.OSL_HEIGHT, 40.0)),
+            "reach": float(st.session_state.get(keys.OSL_REACH, 60.0)),
+            "intensity": float(st.session_state.get(keys.OSL_INTENSITY, 1.0)),
+            "layers": int(st.session_state.get(keys.OSL_LAYERS, 3)),
+            "glow": str(st.session_state.get(keys.OSL_GLOW, "#ff9628")),
+            "hot": str(st.session_state.get(keys.OSL_HOT, "#ffe6be")),
+        }
     return projects.ProjectSettings(
         n=st.session_state.get(keys.N, 5),
         edge_hl=st.session_state.get(keys.EDGE_HL, True),
@@ -20,6 +33,7 @@ def _current_settings() -> projects.ProjectSettings:
         edge_sens=st.session_state.get(keys.EDGE_SENS, 0.5),
         relief_cap=st.session_state.get(keys.RELIEF_CAP, True),
         per_region_norm=st.session_state.get(keys.PER_REGION_NORM, False),
+        osl=osl,
     )
 
 
@@ -32,6 +46,24 @@ def seed_editor_from_angle(a) -> None:
     st.session_state[keys.EDGE_SENS] = a.settings.edge_sens
     st.session_state[keys.RELIEF_CAP] = a.settings.relief_cap
     st.session_state[keys.PER_REGION_NORM] = a.settings.per_region_norm
+    # Restore OSL params if the loaded angle carried them.
+    osl = getattr(a.settings, "osl", None)
+    if osl:
+        st.session_state[keys.OSL_ON] = True
+        if "x" in osl and "y" in osl:
+            st.session_state[keys.OSL_POINT] = (osl["x"], osl["y"])
+        if "glow" in osl:
+            st.session_state[keys.OSL_GLOW] = osl["glow"]
+        if "hot" in osl:
+            st.session_state[keys.OSL_HOT] = osl["hot"]
+        if "height" in osl:
+            st.session_state[keys.OSL_HEIGHT] = osl["height"]
+        if "reach" in osl:
+            st.session_state[keys.OSL_REACH] = osl["reach"]
+        if "intensity" in osl:
+            st.session_state[keys.OSL_INTENSITY] = osl["intensity"]
+        if "layers" in osl:
+            st.session_state[keys.OSL_LAYERS] = osl["layers"]
     st.session_state.pop(keys.LOADED_G, None)
     st.session_state.pop(keys.REGION_RADIO, None)
     for k in [k for k in list(st.session_state) if k.startswith(keys.RENAME_PREFIX)]:

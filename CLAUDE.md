@@ -27,6 +27,9 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 - `region_state.py` — `RegionBook`: the editor's live region list (index 0 =
   "Whole mini" leftover region; 1..N = drawn `Region`s), routing palette/coverage
   edits by selected index. Streamlit-free; `app.py` binds widgets to it.
+- `osl.py` — object-source lighting: a clicked coloured point light over the PS
+  normals (N·L × screen falloff) → glow preview + extra "glaze the glow" steps.
+  PS mode only. `pipeline.apply_osl` runs it as a post-process; base plans untouched.
 - `app.py` (repo root) — the Streamlit UI.
 
 ## Core conventions

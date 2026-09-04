@@ -30,6 +30,7 @@ class ProjectSettings:
     edge_sens: float
     relief_cap: bool
     per_region_norm: bool
+    osl: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -103,13 +104,15 @@ def _manifest_path(root: Path, slug: str) -> Path:
 def _settings_to_dict(s: ProjectSettings) -> dict:
     return {"n": s.n, "edge_hl": s.edge_hl, "edge_extreme": s.edge_extreme,
             "edge_sens": s.edge_sens, "relief_cap": s.relief_cap,
-            "per_region_norm": s.per_region_norm}
+            "per_region_norm": s.per_region_norm,
+            "osl": s.osl}
 
 
 def _settings_from_dict(d: dict) -> ProjectSettings:
     return ProjectSettings(n=d["n"], edge_hl=d["edge_hl"], edge_extreme=d["edge_extreme"],
                            edge_sens=d["edge_sens"], relief_cap=d["relief_cap"],
-                           per_region_norm=d["per_region_norm"])
+                           per_region_norm=d["per_region_norm"],
+                           osl=d.get("osl"))
 
 
 @dataclass(frozen=True)
