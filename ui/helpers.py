@@ -8,6 +8,7 @@ from mini_highlight_advisor.masking import load_image
 from mini_highlight_advisor.pipeline import prepare_shading
 from mini_highlight_advisor.palette import default_coverage
 from mini_highlight_advisor.techniques import get_technique
+from mini_highlight_advisor import pipeline
 from ui import keys
 
 
@@ -111,3 +112,24 @@ def run_analysis(rgb, alpha, book, shading,
         whole_material=book.material_at(0),
         whole_blank=book.whole_blank,
     )
+
+
+def build_osl_result(combined_rgb, normals, mask, params, owned=None, catalog=None):
+    """Composite the OSL glow onto combined_rgb and return (preview_rgb, OslResult).
+
+    Streamlit-free so it is unit-testable. `params` is the dict from
+    osl_panel.render, or None when the glow is disabled/unplaced — in which case
+    the input image is returned unchanged and the result is None.
+    """
+    if params is None:
+        return combined_rgb, None
+    src = pipeline.OslSource(
+        x=params["x"], y=params["y"], height=params["height"],
+        glow_rgb=params["glow_rgb"], hot_rgb=params["hot_rgb"],
+    )
+    result = pipeline.apply_osl(
+        combined_rgb, normals, mask, src,
+        reach=params["reach"], intensity=params["intensity"],
+        coverage=params["coverage"], owned=owned or [], catalog=catalog,
+    )
+    return result.preview_rgb, result
