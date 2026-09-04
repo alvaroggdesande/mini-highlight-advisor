@@ -46,6 +46,23 @@ def _rgb_to_hex(rgb: np.ndarray) -> str:
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
+def osl_step_caption(index: int, n_steps: int, paint_name: str | None) -> str:
+    """Glazing guidance for one OSL glow layer.
+
+    Glow bands are strictly nested broad -> tight: index 0 is the broadest,
+    faintest glaze; the final index is the hotspot; anything between tightens.
+    """
+    paint = paint_name or "the glow colour"
+    if index == 0:
+        return (f"Thin glaze of **{paint}** over every surface facing the light — "
+                f"keep it broad and faint, build it up in several watery passes.")
+    if index == n_steps - 1:
+        return (f"Hotspot — near-pure **{paint}** on the single point nearest the "
+                f"source. Leave surfaces turned away from the light dark.")
+    return (f"Tighten **{paint}** onto the surfaces closest and most face-on to the "
+            f"source; a little less thinned than the broad glaze.")
+
+
 def apply_osl(base_preview_rgb: np.ndarray, normals: np.ndarray, mask: np.ndarray,
               source: OslSource, reach: float, intensity: float,
               coverage: list[float], owned=None, catalog=None) -> OslResult:

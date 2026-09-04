@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from mini_highlight_advisor import pipeline, osl, palette
+from mini_highlight_advisor.pipeline import osl_step_caption
 
 _FIX = Path(__file__).parent / "fixtures" / "ps"
 
@@ -44,3 +45,37 @@ def test_apply_osl_dark_when_source_behind():
     res = pipeline.apply_osl(base, n, mask, src, reach=5.0, intensity=1.0,
                              coverage=[1.0, 0.5, 0.2], owned=[], catalog=[])
     assert res.glow[mask].max() < 0.2
+
+
+def test_osl_caption_first_step_is_broad_glaze():
+    cap = osl_step_caption(0, 3, "Moot Green")
+    assert "Moot Green" in cap
+    assert "broad" in cap.lower()
+    assert "glaze" in cap.lower()
+
+
+def test_osl_caption_last_step_is_hotspot():
+    cap = osl_step_caption(2, 3, "Dead White")
+    assert "Dead White" in cap
+    assert "hotspot" in cap.lower()
+    # sells the effect: away-facing surfaces stay dark
+    assert "dark" in cap.lower()
+
+
+def test_osl_caption_middle_step_is_tighten():
+    cap = osl_step_caption(1, 3, "Moot Green")
+    assert "Moot Green" in cap
+    assert "tighten" in cap.lower()
+
+
+def test_osl_caption_two_steps_has_broad_and_hotspot_only():
+    first = osl_step_caption(0, 2, "A")
+    last = osl_step_caption(1, 2, "A")
+    assert "broad" in first.lower()
+    assert "hotspot" in last.lower()
+
+
+def test_osl_caption_handles_missing_paint_name():
+    # label can be None when no catalog match; caption must still be a str
+    cap = osl_step_caption(0, 3, None)
+    assert isinstance(cap, str) and cap
