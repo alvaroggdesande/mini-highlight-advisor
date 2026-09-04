@@ -13,16 +13,58 @@ from .edges import (
     cavity_mask,
 )
 from .overlay import (
-    BandStep, compose_panel, edge_steps, paint_preview, paint_regions,
+    BandStep, compose_panel, edge_steps, osl_preview, paint_preview, paint_regions,
     per_band_images, render_legend, shade_steps,
 )
 from .palette import PaintColor, coverage_pct, default_coverage, role_names
 from .regions import Region, assign_owners
 from .techniques import get_technique
-from . import materials
+from . import materials, osl, matching
 
 WHOLE_MINI = "Whole mini"
 _SHADE_DARKEN = 0.55   # recess shade = darkest palette paint glazed this much darker
+
+
+@dataclass
+class OslSource:
+    x: float
+    y: float
+    height: float
+    glow_rgb: np.ndarray   # float32 (3,) 0-255
+    hot_rgb: np.ndarray    # float32 (3,) 0-255
+
+
+@dataclass
+class OslResult:
+    glow: np.ndarray            # (H,W) float32
+    preview_rgb: np.ndarray     # (H,W,3) uint8
+    steps: list[BandStep]
+
+
+def _rgb_to_hex(rgb: np.ndarray) -> str:
+    r, g, b = (int(np.clip(v, 0, 255)) for v in rgb)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def apply_osl(base_preview_rgb: np.ndarray, normals: np.ndarray, mask: np.ndarray,
+              source: OslSource, reach: float, intensity: float,
+              coverage: list[float], owned=None, catalog=None) -> OslResult:
+    """Compute the OSL glow, a screen-composited preview, and nested glow steps.
+    Leaves base_preview_rgb unmodified; returns steps with kind='osl' and, when a
+    catalog is provided, label = the nearest named paint."""
+    glow = osl.osl_field(normals, mask, source.x, source.y, source.height, reach, intensity)
+    contribution = osl.osl_ramp(glow, source.glow_rgb, source.hot_rgb)
+    preview = osl_preview(base_preview_rgb, contribution)
+    bands = osl.osl_bands(glow, mask, coverage)
+    colors = osl.osl_colors(source.glow_rgb, source.hot_rgb, len(coverage))
+    steps = per_band_images(base_preview_rgb, bands, mask, colors)
+    for s, color in zip(steps, colors):
+        s.kind = "osl"
+        if catalog:
+            m = matching.match(matching.target_from_hex(_rgb_to_hex(color)),
+                               owned or [], catalog)
+            s.label = getattr(m, "name", None) or getattr(m, "phrase", None)
+    return OslResult(glow=glow, preview_rgb=preview, steps=steps)
 
 
 @dataclass
