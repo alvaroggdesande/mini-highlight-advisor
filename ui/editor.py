@@ -45,7 +45,13 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
     # so the glow shows in the MAIN preview, not a duplicate image below.
     osl_preview_rgb = multi.combined_rgb
     osl_result = None
-    has_normals = normal_field is not None
+    # Shape-gate: normals must exist AND match the current image's spatial dims.
+    # Without the shape check, a stale PS-import normal_field (different size)
+    # would cause a shape-mismatch crash and show the Glow tab in photo mode.
+    has_normals = (
+        normal_field is not None
+        and normal_field.shape[:2] == rgb.shape[:2]
+    )
     if has_normals and st.session_state.get(keys.OSL_ON):
         _params = osl_panel.params_from_session(mask_shape=shading.mask.shape)
         osl_preview_rgb, osl_result = helpers.build_osl_result(

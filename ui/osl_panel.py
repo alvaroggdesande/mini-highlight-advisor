@@ -91,9 +91,4 @@ def render(mask_shape, background_rgb) -> dict | None:
         return None
     st.session_state[keys.OSL_POINT] = click
 
-    x, y = float(click[0]), float(click[1])
-    return {
-        "x": x, "y": y, "height": float(height), "reach": float(reach),
-        "intensity": float(intensity), "coverage": palette.default_coverage(int(n_layers)),
-        "glow_rgb": _hex_to_rgb(glow_hex), "hot_rgb": _hex_to_rgb(hot_hex),
-    }
+    return params_from_session(mask_shape)
