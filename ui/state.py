@@ -46,7 +46,8 @@ def seed_editor_from_angle(a) -> None:
     st.session_state[keys.EDGE_SENS] = a.settings.edge_sens
     st.session_state[keys.RELIEF_CAP] = a.settings.relief_cap
     st.session_state[keys.PER_REGION_NORM] = a.settings.per_region_norm
-    # Restore OSL params if the loaded angle carried them.
+    # Restore OSL params if the loaded angle carried them; clear them otherwise
+    # so stale glow from a previous angle does not bleed onto one without OSL.
     osl = getattr(a.settings, "osl", None)
     if osl:
         st.session_state[keys.OSL_ON] = True
@@ -64,6 +65,10 @@ def seed_editor_from_angle(a) -> None:
             st.session_state[keys.OSL_INTENSITY] = osl["intensity"]
         if "layers" in osl:
             st.session_state[keys.OSL_LAYERS] = osl["layers"]
+    else:
+        # Angle has no OSL — reset to off so no stale glow leaks across angles.
+        st.session_state[keys.OSL_ON] = False
+        st.session_state.pop(keys.OSL_POINT, None)
     st.session_state.pop(keys.LOADED_G, None)
     st.session_state.pop(keys.REGION_RADIO, None)
     for k in [k for k in list(st.session_state) if k.startswith(keys.RENAME_PREFIX)]:
