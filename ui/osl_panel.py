@@ -30,6 +30,30 @@ def _rescale_click(click, disp_w, disp_h, src_w, src_h) -> tuple[float, float]:
     return float(click[0]) * sx, float(click[1]) * sy
 
 
+def params_from_session(mask_shape) -> dict | None:
+    """Assemble OSL params from session_state without drawing widgets.
+
+    Returns None unless the glow is enabled AND a source point is placed.
+    Mirrors the dict render() returns, reading the same keys the widgets write.
+    """
+    if not st.session_state.get(keys.OSL_ON):
+        return None
+    click = st.session_state.get(keys.OSL_POINT)
+    if click is None:
+        return None
+    glow_hex = st.session_state.get(keys.OSL_GLOW) or '#%02x%02x%02x' % PRESETS["Torch"][0]
+    hot_hex = st.session_state.get(keys.OSL_HOT) or '#%02x%02x%02x' % PRESETS["Torch"][1]
+    n_layers = int(st.session_state.get(keys.OSL_LAYERS, 3))
+    return {
+        "x": float(click[0]), "y": float(click[1]),
+        "height": float(st.session_state.get(keys.OSL_HEIGHT, 40.0)),
+        "reach": float(st.session_state.get(keys.OSL_REACH, 60.0)),
+        "intensity": float(st.session_state.get(keys.OSL_INTENSITY, 1.0)),
+        "coverage": palette.default_coverage(n_layers),
+        "glow_rgb": _hex_to_rgb(glow_hex), "hot_rgb": _hex_to_rgb(hot_hex),
+    }
+
+
 def render(mask_shape, background_rgb) -> dict | None:
     st.markdown("**Object-source glow** (OSL) — click where the light lives, pick a colour.")
     enabled = st.checkbox("Enable glow", value=st.session_state.get(keys.OSL_ON, False),

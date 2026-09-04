@@ -13,7 +13,7 @@ is that shared middle.
 """
 import streamlit as st
 
-from ui import colour_panel, geometry, helpers, keys, regions_panel, results, state
+from ui import colour_panel, context, geometry, helpers, keys, osl_panel, regions_panel, results, state
 
 
 def render(rgb, alpha, book, shading, *, light_field, normal_field,
@@ -40,10 +40,23 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
     st.session_state[keys.LAST_MULTI] = multi
     st.session_state[keys.LAST_RGB] = rgb
 
+    # OSL is a PS-mode glow layer. Read its params from session_state BEFORE the
+    # preview draws (same one-rerun-ahead pattern as the visibility toggles above)
+    # so the glow shows in the MAIN preview, not a duplicate image below.
+    osl_preview_rgb = multi.combined_rgb
+    osl_result = None
+    has_normals = normal_field is not None
+    if has_normals and st.session_state.get(keys.OSL_ON):
+        _params = osl_panel.params_from_session(mask_shape=shading.mask.shape)
+        osl_preview_rgb, osl_result = helpers.build_osl_result(
+            multi.combined_rgb, normal_field, shading.mask, _params,
+            owned=owned_paints, catalog=context.CATALOG)
+    st.session_state[keys.OSL_RESULT] = osl_result
+
     col_render, col_controls = st.columns([1, 1])
 
     with col_render:
-        st.image(multi.combined_rgb,
+        st.image(osl_preview_rgb,
                  caption="Painted preview (all regions)",
                  use_container_width=True)
         # Photo-quality checks only make sense for a real photo; PS supplies a
@@ -81,8 +94,11 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
         state.rehydrate_editor_widgets(book, sel)
         book.selected = sel
 
-        has_normals = normal_field is not None
-        subtab_m, subtab_c, subtab_t = st.tabs(["🗺 Manage", "🎨 Colour", "🖌 Technique"])
+        tab_labels = ["🗺 Manage", "🎨 Colour", "🖌 Technique"]
+        if has_normals:
+            tab_labels.append("✨ Glow")
+        subtabs = st.tabs(tab_labels)
+        subtab_m, subtab_c, subtab_t = subtabs[0], subtabs[1], subtabs[2]
 
         with subtab_m:
             regions_panel.render_management(book, rgb, shading, src_w, src_h, sel)
@@ -92,5 +108,9 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
 
         with subtab_t:
             results.render_technique_controls(book, sel, has_normals=has_normals)
+
+        if has_normals:
+            with subtabs[3]:
+                osl_panel.render(shading.mask.shape, multi.combined_rgb)
 
     return multi
