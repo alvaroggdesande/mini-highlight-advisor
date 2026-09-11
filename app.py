@@ -41,46 +41,51 @@ with tab_studio:
         horizontal=True, key="input_mode",
         help="Photo = primed mini under a raking light (luminance). PS = import a "
              "recovered normal map for dark/primed minis; drag a virtual light.")
+    # NOTE: do NOT st.stop() here. st.tabs bodies all run in one script pass in
+    # code order, and st.stop() halts the WHOLE run — it would kill the later
+    # 🪜 Paint / 🖼️ All angles / 📷 Capture tab bodies. Skip only the photo-mode
+    # block instead, so execution continues to those tabs. (PS mode still writes
+    # keys.LAST_MULTI / keys.OSL_RESULT for the Paint tab via editor.render.)
     if input_mode.startswith("Import"):
         ps_mode.render(picked, owned_paints)
-        st.stop()
+    else:
+        angles = st.session_state[keys.ANGLES]
 
-    angles = st.session_state[keys.ANGLES]
+        if not angles:
+            uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
+            if uploaded is None:
+                st.info("Upload a photo of a primed miniature to begin, or load a saved project above.")
+            else:
+                a = projects.AngleData(label="angle 1", photo_bytes=uploaded.getvalue(),
+                                       photo_suffix=os.path.splitext(uploaded.name)[1],
+                                       book=new_book(5), settings=state._current_settings())
+                st.session_state[keys.ANGLES] = [a]
+                state.set_active_angle(0)
+                state.seed_editor_from_angle(a)
+                st.rerun()
 
-    if not angles:
-        uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
-        if uploaded is None:
-            st.info("Upload a photo of a primed miniature to begin, or load a saved project above.")
-            st.stop()
-        a = projects.AngleData(label="angle 1", photo_bytes=uploaded.getvalue(),
-                               photo_suffix=os.path.splitext(uploaded.name)[1],
-                               book=new_book(5), settings=state._current_settings())
-        st.session_state[keys.ANGLES] = [a]
-        state.set_active_angle(0)
-        state.seed_editor_from_angle(a)
-        st.rerun()
+        if st.session_state[keys.ANGLES]:
+            active_idx = angles_panel.render()
+            active = st.session_state[keys.ANGLES][active_idx]
+            book = st.session_state[keys.BOOK]
+            photo_bytes, photo_suffix = active.photo_bytes, active.photo_suffix
 
-    active_idx = angles_panel.render()
-    active = st.session_state[keys.ANGLES][active_idx]
-    book = st.session_state[keys.BOOK]
-    photo_bytes, photo_suffix = active.photo_bytes, active.photo_suffix
+            try:
+                with st.spinner("Preparing shading…"):
+                    rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
 
-    try:
-        with st.spinner("Preparing shading…"):
-            rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
+                normal_field = st.session_state.get(keys.NORMALS)
+                light_field = None  # photo mode; PS mode takes a different branch above
 
-        normal_field = st.session_state.get(keys.NORMALS)
-        light_field = None  # photo mode; PS mode takes a different branch above
+                editor.render(rgb, alpha, book, shading,
+                              light_field=light_field, normal_field=normal_field,
+                              picked=picked, owned_paints=owned_paints)
 
-        editor.render(rgb, alpha, book, shading,
-                      light_field=light_field, normal_field=normal_field,
-                      picked=picked, owned_paints=owned_paints)
+                projects_panel.render_save()
 
-        projects_panel.render_save()
-
-    except Exception as e:
-        st.error("Error processing image — see traceback below.")
-        st.exception(e)
+            except Exception as e:
+                st.error("Error processing image — see traceback below.")
+                st.exception(e)
 
 # --- 🪜 Paint: paint-along steps ---
 with tab_paint:
