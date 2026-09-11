@@ -60,8 +60,12 @@ def _import_gate() -> bool:
 
 
 def render(picked, owned_paints) -> None:
+    # Return (don't st.stop) so app.py's script pass continues to the later
+    # 🪜 Paint / 🖼️ All angles / 📷 Capture tab bodies. Before a bundle is
+    # imported there's nothing to paint, but the Capture & help tab (holding the
+    # PS capture guide) must still render.
     if not _import_gate():
-        st.stop()
+        return
 
     normals = st.session_state[keys.NORMALS]
     mask = st.session_state[keys.PS_MASK]
