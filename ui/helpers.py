@@ -96,16 +96,16 @@ def _analysis_signature(rgb, alpha, book, settings, light_field, normal_field) -
 
     Masks are never mutated in place (regions are immutable once drawn), so their
     object id is a cheap, exact fingerprint; palette/coverage/material ARE mutated,
-    so those go in by value. rgb comes from the cached `shading()` so its object is
-    stable per photo — id + shape + pixel-sum makes an accidental collision on a
-    changed photo effectively impossible."""
+    so those go in by value. rgb must be fingerprinted by CONTENT, not id():
+    `shading()` is @st.cache_data, which returns a fresh COPY every call, so
+    id(rgb) changes on every rerun — using it would make this memo never hit."""
     wp, wcov, drawn = book.analyze_args()
     regions = tuple(
         (id(r.mask), tuple(p.hex for p in r.palette), tuple(r.coverage), r.material)
         for r in drawn
     )
     return (
-        id(rgb), rgb.shape, int(rgb.sum()),
+        rgb.shape, hash(rgb.tobytes()),
         tuple(p.hex for p in wp), tuple(wcov),
         book.material_at(0), book.whole_blank,
         regions,
