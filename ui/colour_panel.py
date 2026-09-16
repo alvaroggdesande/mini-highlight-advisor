@@ -217,7 +217,13 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
             unique = name_counts.get(p.name) == 1
             st.session_state[keys.slot_code(i)] = _found.code if (_found and unique) else context.CUSTOM
             st.session_state[keys.slot_hex(i)] = p.hex
-        st.rerun()
+        # Defer the rerun instead of firing it here: an immediate st.rerun() aborts
+        # this pass BEFORE render() commits the new slots to the book (set_palette_at),
+        # so the next pass's analysis would still read the OLD palette and the preview
+        # would lag one interaction. Falling through lets the slot widgets below pick
+        # up these values and render() write them to the book; the deferred rerun at
+        # the end of render() then repaints the preview from the updated book.
+        st.session_state["_recipe_loaded"] = True
 
     st.session_state.setdefault(keys.N, 5)
     n = st.slider("Number of layers", 3, 7, key=keys.N)
@@ -330,7 +336,9 @@ def render(book, sel: int, picked, owned_paints, rgb=None) -> None:
     cov = coverage_editor.render(n)
     book.set_coverage_at(sel, cov)
 
-    # Deferred rerun after Apply Ramp so Level 3 has already updated the book
-    # palette before the analysis re-runs — one click = one visible update.
-    if st.session_state.pop("_ramp_applied", False):
+    # Deferred rerun after Apply Ramp / Load recipe so Level 3 has already updated
+    # the book palette before the analysis re-runs — one click = one visible update.
+    _deferred = st.session_state.pop("_ramp_applied", False)
+    _deferred = st.session_state.pop("_recipe_loaded", False) or _deferred
+    if _deferred:
         st.rerun()

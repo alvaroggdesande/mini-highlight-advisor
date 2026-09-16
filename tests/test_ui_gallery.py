@@ -80,6 +80,17 @@ def test_signature_changes_when_region_mask_changes():
         gallery_panel.angle_signature(_angle(photo=photo, book=b2))
 
 
+def test_signature_changes_when_whole_mini_blanked():
+    """Toggling the 'Whole mini' region off must invalidate the gallery cache, or
+    the all-angles preview stays stale (region 0 has no mask in analyze_args)."""
+    photo = _png_bytes()
+    a = _angle(photo=photo)
+    book2 = RegionBook(default_ramp(5), default_coverage(5))
+    book2.whole_blank = True
+    b = _angle(photo=photo, book=book2)
+    assert gallery_panel.angle_signature(a) != gallery_panel.angle_signature(b)
+
+
 def test_signature_is_hashable():
     hash(gallery_panel.angle_signature(_angle()))
 

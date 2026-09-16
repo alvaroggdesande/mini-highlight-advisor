@@ -32,6 +32,10 @@ def angle_signature(angle) -> tuple:
         angle.photo_bytes, angle.photo_suffix,
         (s.n, s.edge_hl, s.edge_extreme, s.edge_sens, s.relief_cap, s.per_region_norm),
         tuple(p.hex for p in wp), tuple(wcov),
+        # Whole-mini visibility/material aren't in analyze_args (region 0 has no mask
+        # here), so fold them in explicitly or toggling the "Whole mini" region off
+        # would leave the cached gallery preview stale.
+        angle.book.whole_blank, angle.book.material_at(0),
         regions,
     )
 
@@ -56,6 +60,7 @@ def angle_preview(angle) -> np.ndarray:
         rgb, alpha, wp, wcov, drawn,
         edges=s.edge_hl, extreme_edge=s.edge_extreme, edge_sensitivity=s.edge_sens,
         relief_cap=s.relief_cap, per_region_norm=s.per_region_norm,
+        whole_material=angle.book.material_at(0), whole_blank=angle.book.whole_blank,
     )
     return res.combined_rgb
 

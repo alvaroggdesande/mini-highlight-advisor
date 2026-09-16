@@ -8,7 +8,8 @@ def test_key_builders_match_legacy_strings():
     assert keys.cov_pct(4) == "cov_pct_4"
     assert keys.blend(1) == "blend_1"
     assert keys.rename(2) == "rename_2"
-    assert keys.canvas(0) == "canvas_0"
+    assert keys.canvas(0, 0) == "canvas_0_0"
+    assert keys.canvas(2, 3) == "canvas_2_3"
 
 
 def test_key_constants_match_legacy_strings():

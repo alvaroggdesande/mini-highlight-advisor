@@ -73,29 +73,73 @@ def render_region_steps(steps, roles, names, coverage, technique: str = "smooth"
                      use_container_width=True)
 
 
+def _analysis_settings() -> tuple:
+    """All session-state control values that feed analyze_regions, as a hashable
+    tuple. Used both to pass the values and to build the memo signature."""
+    return (
+        st.session_state.get(keys.EDGE_HL, True),
+        st.session_state.get(keys.EDGE_EXTREME, False),
+        st.session_state.get(keys.EDGE_SENS, 0.5),
+        st.session_state.get(keys.RELIEF_CAP, True),
+        st.session_state.get(keys.PER_REGION_NORM, False),
+        st.session_state.get(keys.SHADES, False),
+        st.session_state.get(keys.NMM_HORIZON, 0.5),
+        st.session_state.get(keys.NMM_LIGHT_DIR, 135.0),
+        st.session_state.get(keys.NMM_BOUNCE, 0.35),
+        st.session_state.get(keys.NMM_HOTSPOT, 0.5),
+        st.session_state.get(keys.NMM_SMOOTH, 2.0),
+    )
+
+
+def _analysis_signature(rgb, alpha, book, settings, light_field, normal_field) -> tuple:
+    """A hashable identity that changes iff the analysis result would change.
+
+    Masks are never mutated in place (regions are immutable once drawn), so their
+    object id is a cheap, exact fingerprint; palette/coverage/material ARE mutated,
+    so those go in by value. rgb comes from the cached `shading()` so its object is
+    stable per photo — id + shape + pixel-sum makes an accidental collision on a
+    changed photo effectively impossible."""
+    wp, wcov, drawn = book.analyze_args()
+    regions = tuple(
+        (id(r.mask), tuple(p.hex for p in r.palette), tuple(r.coverage), r.material)
+        for r in drawn
+    )
+    return (
+        id(rgb), rgb.shape, int(rgb.sum()),
+        tuple(p.hex for p in wp), tuple(wcov),
+        book.material_at(0), book.whole_blank,
+        regions,
+        id(light_field) if light_field is not None else None,
+        id(normal_field) if normal_field is not None else None,
+        settings,
+    )
+
+
 def run_analysis(rgb, alpha, book, shading,
                  light_field=None, normal_field=None):
     """Run analyze_regions reading all control values from session_state.
 
     Call this BEFORE rendering columns so the result is available for the
     left-column render in the same Streamlit pass.
+
+    Memoized against a one-entry session cache keyed by an input signature: the
+    Studio tab re-runs this on every Streamlit rerun (each lasso stroke, tab
+    switch, or unrelated widget change), and the full banding/edge/relief pipeline
+    is the dominant per-rerun cost. Unchanged inputs now return the cached result
+    instead of recomputing.
     """
     from mini_highlight_advisor.pipeline import analyze_regions
 
-    edges = st.session_state.get(keys.EDGE_HL, True)
-    extreme_edge = st.session_state.get(keys.EDGE_EXTREME, False)
-    edge_sensitivity = st.session_state.get(keys.EDGE_SENS, 0.5)
-    relief_cap = st.session_state.get(keys.RELIEF_CAP, True)
-    per_region_norm = st.session_state.get(keys.PER_REGION_NORM, False)
-    shades = st.session_state.get(keys.SHADES, False)
-    nmm_horizon = st.session_state.get(keys.NMM_HORIZON, 0.5)
-    nmm_light_dir = st.session_state.get(keys.NMM_LIGHT_DIR, 135.0)
-    nmm_bounce = st.session_state.get(keys.NMM_BOUNCE, 0.35)
-    nmm_hotspot = st.session_state.get(keys.NMM_HOTSPOT, 0.5)
-    nmm_smooth = st.session_state.get(keys.NMM_SMOOTH, 2.0)
+    settings = _analysis_settings()
+    sig = _analysis_signature(rgb, alpha, book, settings, light_field, normal_field)
+    if st.session_state.get("_analysis_sig") == sig:
+        return st.session_state.get("_analysis_result")
+
+    (edges, extreme_edge, edge_sensitivity, relief_cap, per_region_norm, shades,
+     nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, nmm_smooth) = settings
 
     wp, wcov, drawn = book.analyze_args()
-    return analyze_regions(
+    result = analyze_regions(
         rgb, alpha, wp, wcov, drawn,
         edges=edges, extreme_edge=extreme_edge,
         edge_sensitivity=edge_sensitivity,
@@ -112,6 +156,9 @@ def run_analysis(rgb, alpha, book, shading,
         whole_material=book.material_at(0),
         whole_blank=book.whole_blank,
     )
+    st.session_state["_analysis_sig"] = sig
+    st.session_state["_analysis_result"] = result
+    return result
 
 
 def build_osl_result(combined_rgb, normals, mask, params, owned=None, catalog=None):
