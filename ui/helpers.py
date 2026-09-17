@@ -12,7 +12,13 @@ from mini_highlight_advisor import pipeline
 from ui import keys
 
 
-@st.cache_data(show_spinner=False)
+# cache_resource (not cache_data): the decoded rgb/alpha and the ShadingResult are
+# treated as read-only inputs everywhere downstream (analyze_regions builds fresh
+# arrays; nothing writes back into these). cache_data deep-COPIES its return value
+# on every call — a full multi-megapixel copy of rgb + alpha + mask + light on each
+# rerun, cache hit or not. cache_resource hands back the same objects, so an
+# unchanged photo costs nothing to re-serve.
+@st.cache_resource(show_spinner=False)
 def shading(image_bytes: bytes, suffix: str):
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(image_bytes)
@@ -73,45 +79,100 @@ def render_region_steps(steps, roles, names, coverage, technique: str = "smooth"
                      use_container_width=True)
 
 
+def _analysis_settings() -> tuple:
+    """All session-state control values that feed analyze_regions, as a hashable
+    tuple. Used both to pass the values and to build the memo signature."""
+    return (
+        st.session_state.get(keys.EDGE_HL, True),
+        st.session_state.get(keys.EDGE_EXTREME, False),
+        st.session_state.get(keys.EDGE_SENS, 0.5),
+        st.session_state.get(keys.RELIEF_CAP, True),
+        st.session_state.get(keys.PER_REGION_NORM, False),
+        st.session_state.get(keys.SHADES, False),
+        st.session_state.get(keys.NMM_HORIZON, 0.5),
+        st.session_state.get(keys.NMM_LIGHT_DIR, 135.0),
+        st.session_state.get(keys.NMM_BOUNCE, 0.35),
+        st.session_state.get(keys.NMM_HOTSPOT, 0.5),
+        st.session_state.get(keys.NMM_SMOOTH, 2.0),
+    )
+
+
+def _analysis_signature(rgb, alpha, book, settings, light_field, normal_field) -> tuple:
+    """A hashable identity that changes iff the analysis result would change.
+
+    Masks are never mutated in place (regions are immutable once drawn), so their
+    object id is a cheap, exact fingerprint; palette/coverage/material ARE mutated,
+    so those go in by value. rgb must be fingerprinted by CONTENT, not id():
+    PS mode passes a freshly-relit rgb (a new array with identical content) on
+    every rerun, so id(rgb) changes each rerun — content-keying is what lets the
+    memo hit. (Photo-mode rgb is stable now that shading() is @st.cache_resource,
+    but the content key stays correct there too.)"""
+    wp, wcov, drawn = book.analyze_args()
+    regions = tuple(
+        (id(r.mask), tuple(p.hex for p in r.palette), tuple(r.coverage), r.material)
+        for r in drawn
+    )
+    return (
+        rgb.shape, hash(rgb.tobytes()),
+        tuple(p.hex for p in wp), tuple(wcov),
+        book.material_at(0), book.whole_blank,
+        regions,
+        id(light_field) if light_field is not None else None,
+        id(normal_field) if normal_field is not None else None,
+        settings,
+    )
+
+
 def run_analysis(rgb, alpha, book, shading,
                  light_field=None, normal_field=None):
     """Run analyze_regions reading all control values from session_state.
 
     Call this BEFORE rendering columns so the result is available for the
     left-column render in the same Streamlit pass.
+
+    Memoized against a one-entry session cache keyed by an input signature: the
+    Studio tab re-runs this on every Streamlit rerun (each lasso stroke, tab
+    switch, or unrelated widget change), and the full banding/edge/relief pipeline
+    is the dominant per-rerun cost. Unchanged inputs now return the cached result
+    instead of recomputing.
     """
     from mini_highlight_advisor.pipeline import analyze_regions
+    from ui import _profile
 
-    edges = st.session_state.get(keys.EDGE_HL, True)
-    extreme_edge = st.session_state.get(keys.EDGE_EXTREME, False)
-    edge_sensitivity = st.session_state.get(keys.EDGE_SENS, 0.5)
-    relief_cap = st.session_state.get(keys.RELIEF_CAP, True)
-    per_region_norm = st.session_state.get(keys.PER_REGION_NORM, False)
-    shades = st.session_state.get(keys.SHADES, False)
-    nmm_horizon = st.session_state.get(keys.NMM_HORIZON, 0.5)
-    nmm_light_dir = st.session_state.get(keys.NMM_LIGHT_DIR, 135.0)
-    nmm_bounce = st.session_state.get(keys.NMM_BOUNCE, 0.35)
-    nmm_hotspot = st.session_state.get(keys.NMM_HOTSPOT, 0.5)
-    nmm_smooth = st.session_state.get(keys.NMM_SMOOTH, 2.0)
+    settings = _analysis_settings()
+    with _profile.prof("run_analysis: signature"):
+        sig = _analysis_signature(rgb, alpha, book, settings, light_field, normal_field)
+    if st.session_state.get("_analysis_sig") == sig:
+        _profile.mark("run_analysis: HIT (skipped analyze_regions)")
+        return st.session_state.get("_analysis_result")
+    _profile.mark("run_analysis: MISS -> running analyze_regions")
+
+    (edges, extreme_edge, edge_sensitivity, relief_cap, per_region_norm, shades,
+     nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, nmm_smooth) = settings
 
     wp, wcov, drawn = book.analyze_args()
-    return analyze_regions(
-        rgb, alpha, wp, wcov, drawn,
-        edges=edges, extreme_edge=extreme_edge,
-        edge_sensitivity=edge_sensitivity,
-        relief_cap=relief_cap,
-        per_region_norm=per_region_norm,
-        light_field=light_field,
-        normal_field=normal_field,
-        shades=shades,
-        nmm_horizon=nmm_horizon,
-        nmm_light_dir=nmm_light_dir,
-        nmm_bounce=nmm_bounce,
-        nmm_hotspot=nmm_hotspot,
-        nmm_smooth=nmm_smooth,
-        whole_material=book.material_at(0),
-        whole_blank=book.whole_blank,
-    )
+    with _profile.prof("run_analysis: analyze_regions"):
+        result = analyze_regions(
+            rgb, alpha, wp, wcov, drawn,
+            edges=edges, extreme_edge=extreme_edge,
+            edge_sensitivity=edge_sensitivity,
+            relief_cap=relief_cap,
+            per_region_norm=per_region_norm,
+            light_field=light_field,
+            normal_field=normal_field,
+            shades=shades,
+            nmm_horizon=nmm_horizon,
+            nmm_light_dir=nmm_light_dir,
+            nmm_bounce=nmm_bounce,
+            nmm_hotspot=nmm_hotspot,
+            nmm_smooth=nmm_smooth,
+            whole_material=book.material_at(0),
+            whole_blank=book.whole_blank,
+            shading=shading,
+        )
+    st.session_state["_analysis_sig"] = sig
+    st.session_state["_analysis_result"] = result
+    return result
 
 
 def build_osl_result(combined_rgb, normals, mask, params, owned=None, catalog=None):

@@ -7,9 +7,10 @@ from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
     angles_panel, editor, gallery_panel, helpers, keys,
-    paints_tab, projects_panel, ps_mode, results, state,
+    paints_tab, projects_panel, ps_mode, results, state, _profile,
 )
 
+_profile.rerun_start()
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
 st.title("Mini Highlight Advisor")
 st.caption(
@@ -114,3 +115,5 @@ with tab_capture:
         st.markdown(ps_guide.read_text(encoding="utf-8"))
     else:
         st.caption("PS capture guide not found.")
+
+_profile.rerun_end()

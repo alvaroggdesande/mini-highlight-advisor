@@ -273,7 +273,11 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     nmm_hotspot: float = 0.5,
                     nmm_smooth: float = 2.0,
                     whole_material: str = "matte",
-                    whole_blank: bool = False) -> MultiRegionResult:
+                    whole_blank: bool = False,
+                    shading: "ShadingResult | None" = None) -> MultiRegionResult:
+    # `shading` lets callers pass an already-computed mask+light so the (often
+    # expensive, e.g. GrabCut) mask computation runs once per photo instead of on
+    # every call. When None we compute it here as before.
     regions = regions or []
     if normal_field is not None:
         if (normal_field.ndim != 3 or normal_field.shape[2] != 3
@@ -286,11 +290,12 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
     if light_field is not None:
         # PS mode: mask from the provided (authoritative) alpha; light = injected
         # field. The field is global, so per-region luminance norm is bypassed.
-        mask = compute_mask(rgb, alpha)
+        mask = shading.mask if shading is not None else compute_mask(rgb, alpha)
         light = light_field
         per_region_norm = False
     else:
-        shading = prepare_shading(rgb, alpha)
+        if shading is None:
+            shading = prepare_shading(rgb, alpha)
         mask, light = shading.mask, shading.light
     owner = assign_owners(mask, [r.mask for r in regions])
     plans: list[RegionPlan] = []

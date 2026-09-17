@@ -120,6 +120,12 @@ def render_steps(multi) -> None:
     if multi is None:
         st.info("Set your colours in Studio first, then come here to paint.")
         return
+    from ui import _profile
+    with _profile.prof("PAINT tab: render_steps (all images)"):
+        _render_steps_body(multi)
+
+
+def _render_steps_body(multi) -> None:
     board_img = swatch_board([(p.name, p.colors) for p in multi.plans])
     st.image(board_img, caption="Colour schemes - all regions")
     buf = io.BytesIO()
