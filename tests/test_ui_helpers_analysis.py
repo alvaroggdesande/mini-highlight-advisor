@@ -97,17 +97,19 @@ def test_run_analysis_memo_hits_across_distinct_but_equal_rgb():
     import streamlit as st
     from unittest.mock import patch
     from ui import helpers
+    from mini_highlight_advisor.pipeline import prepare_shading
 
     base = np.zeros((32, 32, 3), np.uint8)
     base[:, :, 0] = np.linspace(0, 255, 32, dtype=np.uint8)[None, :]
     a = np.zeros((32, 32), np.uint8); a[4:28, 4:28] = 255
     book = new_book(3)
+    shading = prepare_shading(base, a)  # mask+light consistent with `base`
 
     r1_rgb, r2_rgb = base.copy(), base.copy()  # distinct objects, equal content
     fake_state = {}
     with patch.object(st, "session_state", fake_state):
-        res1 = helpers.run_analysis(r1_rgb, a, book, _FakeShading(a > 127))
-        res2 = helpers.run_analysis(r2_rgb, a, book, _FakeShading(a > 127))
+        res1 = helpers.run_analysis(r1_rgb, a, book, shading)
+        res2 = helpers.run_analysis(r2_rgb, a, book, shading)
 
     assert r1_rgb is not r2_rgb  # distinct arrays (as PS relight hands back)
     assert res1 is res2          # ...but the memo still hit on content

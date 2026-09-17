@@ -137,33 +137,39 @@ def run_analysis(rgb, alpha, book, shading,
     instead of recomputing.
     """
     from mini_highlight_advisor.pipeline import analyze_regions
+    from ui import _profile
 
     settings = _analysis_settings()
-    sig = _analysis_signature(rgb, alpha, book, settings, light_field, normal_field)
+    with _profile.prof("run_analysis: signature"):
+        sig = _analysis_signature(rgb, alpha, book, settings, light_field, normal_field)
     if st.session_state.get("_analysis_sig") == sig:
+        _profile.mark("run_analysis: HIT (skipped analyze_regions)")
         return st.session_state.get("_analysis_result")
+    _profile.mark("run_analysis: MISS -> running analyze_regions")
 
     (edges, extreme_edge, edge_sensitivity, relief_cap, per_region_norm, shades,
      nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, nmm_smooth) = settings
 
     wp, wcov, drawn = book.analyze_args()
-    result = analyze_regions(
-        rgb, alpha, wp, wcov, drawn,
-        edges=edges, extreme_edge=extreme_edge,
-        edge_sensitivity=edge_sensitivity,
-        relief_cap=relief_cap,
-        per_region_norm=per_region_norm,
-        light_field=light_field,
-        normal_field=normal_field,
-        shades=shades,
-        nmm_horizon=nmm_horizon,
-        nmm_light_dir=nmm_light_dir,
-        nmm_bounce=nmm_bounce,
-        nmm_hotspot=nmm_hotspot,
-        nmm_smooth=nmm_smooth,
-        whole_material=book.material_at(0),
-        whole_blank=book.whole_blank,
-    )
+    with _profile.prof("run_analysis: analyze_regions"):
+        result = analyze_regions(
+            rgb, alpha, wp, wcov, drawn,
+            edges=edges, extreme_edge=extreme_edge,
+            edge_sensitivity=edge_sensitivity,
+            relief_cap=relief_cap,
+            per_region_norm=per_region_norm,
+            light_field=light_field,
+            normal_field=normal_field,
+            shades=shades,
+            nmm_horizon=nmm_horizon,
+            nmm_light_dir=nmm_light_dir,
+            nmm_bounce=nmm_bounce,
+            nmm_hotspot=nmm_hotspot,
+            nmm_smooth=nmm_smooth,
+            whole_material=book.material_at(0),
+            whole_blank=book.whole_blank,
+            shading=shading,
+        )
     st.session_state["_analysis_sig"] = sig
     st.session_state["_analysis_result"] = result
     return result
