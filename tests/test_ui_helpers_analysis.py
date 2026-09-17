@@ -89,32 +89,28 @@ def test_run_analysis_recomputes_when_setting_changes():
     assert r1 is not r2
 
 
-def test_run_analysis_memo_hits_across_cache_data_copies():
-    """The real-app scenario: rgb comes from helpers.shading (@st.cache_data),
-    which returns a fresh COPY each call. The memo must key on rgb CONTENT, not
-    id() — otherwise it never hits and the editor recomputes every rerun."""
-    import io
+def test_run_analysis_memo_hits_across_distinct_but_equal_rgb():
+    """The real-app scenario: PS mode recomputes a relit rgb on every rerun — a
+    fresh array object with identical content when the light is unchanged. The
+    memo must key on rgb CONTENT, not id() — otherwise it never hits and the
+    editor recomputes the full pipeline every rerun."""
     import streamlit as st
     from unittest.mock import patch
-    from PIL import Image
     from ui import helpers
 
-    rgb = np.zeros((32, 32, 3), np.uint8)
-    rgb[:, :, 0] = np.linspace(0, 255, 32, dtype=np.uint8)[None, :]
+    base = np.zeros((32, 32, 3), np.uint8)
+    base[:, :, 0] = np.linspace(0, 255, 32, dtype=np.uint8)[None, :]
     a = np.zeros((32, 32), np.uint8); a[4:28, 4:28] = 255
-    buf = io.BytesIO(); Image.fromarray(np.dstack([rgb, a]), "RGBA").save(buf, "PNG")
-    pb = buf.getvalue()
     book = new_book(3)
 
+    r1_rgb, r2_rgb = base.copy(), base.copy()  # distinct objects, equal content
     fake_state = {}
     with patch.object(st, "session_state", fake_state):
-        r1_rgb, r1_a, _ = helpers.shading(pb, ".png")
-        res1 = helpers.run_analysis(r1_rgb, r1_a, book, _FakeShading(r1_a > 127))
-        r2_rgb, r2_a, _ = helpers.shading(pb, ".png")
-        res2 = helpers.run_analysis(r2_rgb, r2_a, book, _FakeShading(r2_a > 127))
+        res1 = helpers.run_analysis(r1_rgb, a, book, _FakeShading(a > 127))
+        res2 = helpers.run_analysis(r2_rgb, a, book, _FakeShading(a > 127))
 
-    assert r1_rgb is not r2_rgb  # cache_data handed back a distinct copy
-    assert res1 is res2          # ...but the memo still hit
+    assert r1_rgb is not r2_rgb  # distinct arrays (as PS relight hands back)
+    assert res1 is res2          # ...but the memo still hit on content
 
 
 def test_run_analysis_recomputes_when_palette_changes():

@@ -12,7 +12,13 @@ from mini_highlight_advisor import pipeline
 from ui import keys
 
 
-@st.cache_data(show_spinner=False)
+# cache_resource (not cache_data): the decoded rgb/alpha and the ShadingResult are
+# treated as read-only inputs everywhere downstream (analyze_regions builds fresh
+# arrays; nothing writes back into these). cache_data deep-COPIES its return value
+# on every call — a full multi-megapixel copy of rgb + alpha + mask + light on each
+# rerun, cache hit or not. cache_resource hands back the same objects, so an
+# unchanged photo costs nothing to re-serve.
+@st.cache_resource(show_spinner=False)
 def shading(image_bytes: bytes, suffix: str):
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(image_bytes)
@@ -97,8 +103,10 @@ def _analysis_signature(rgb, alpha, book, settings, light_field, normal_field) -
     Masks are never mutated in place (regions are immutable once drawn), so their
     object id is a cheap, exact fingerprint; palette/coverage/material ARE mutated,
     so those go in by value. rgb must be fingerprinted by CONTENT, not id():
-    `shading()` is @st.cache_data, which returns a fresh COPY every call, so
-    id(rgb) changes on every rerun — using it would make this memo never hit."""
+    PS mode passes a freshly-relit rgb (a new array with identical content) on
+    every rerun, so id(rgb) changes each rerun — content-keying is what lets the
+    memo hit. (Photo-mode rgb is stable now that shading() is @st.cache_resource,
+    but the content key stays correct there too.)"""
     wp, wcov, drawn = book.analyze_args()
     regions = tuple(
         (id(r.mask), tuple(p.hex for p in r.palette), tuple(r.coverage), r.material)

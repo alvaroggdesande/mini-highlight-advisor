@@ -7,6 +7,7 @@ even though st.tabs runs every tab body on every rerun.
 """
 import os
 import tempfile
+import weakref
 
 import numpy as np
 import streamlit as st
@@ -17,6 +18,32 @@ from ui import keys, state
 
 _PER_ROW = 3
 
+# Content fingerprint per mask array, so angle_signature (which runs for every
+# angle on every rerun, because st.tabs bodies all execute each pass) hashes a
+# multi-megapixel mask only ONCE per array object instead of on every rerun.
+# Region masks are immutable once drawn, so keying the cache by object identity is
+# exact; the weakref callback drops the entry the moment a mask is GC'd, so a
+# recycled id() can never hand back a stale fingerprint. The VALUE is content-based
+# (shape + tobytes hash), so two distinct-but-equal masks still compare equal.
+_MASK_FP: dict[int, tuple] = {}
+_MASK_KEEP: dict[int, "weakref.ref"] = {}
+
+
+def _mask_fingerprint(mask) -> tuple:
+    k = id(mask)
+    fp = _MASK_FP.get(k)
+    if fp is not None:
+        return fp
+    m = np.asarray(mask, dtype=bool)
+    fp = (m.shape, hash(m.tobytes()))
+    try:
+        _MASK_KEEP[k] = weakref.ref(mask, lambda _r, k=k: (
+            _MASK_FP.pop(k, None), _MASK_KEEP.pop(k, None)))
+    except TypeError:
+        return fp  # non-weakreffable: don't cache under a reusable id, recompute
+    _MASK_FP[k] = fp
+    return fp
+
 
 def angle_signature(angle) -> tuple:
     """A hashable identity that changes iff the painted preview would change
@@ -24,8 +51,7 @@ def angle_signature(angle) -> tuple:
     s = angle.settings
     wp, wcov, drawn = angle.book.analyze_args()
     regions = tuple(
-        (tuple(p.hex for p in r.palette), tuple(r.coverage),
-         r.mask.shape, np.asarray(r.mask, dtype=bool).tobytes())
+        (tuple(p.hex for p in r.palette), tuple(r.coverage), _mask_fingerprint(r.mask))
         for r in drawn
     )
     return (
