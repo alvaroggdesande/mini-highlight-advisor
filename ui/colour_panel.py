@@ -13,7 +13,7 @@ from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.matching import match, Target
-from ui import context, coverage_editor, geometry, helpers, keys
+from ui import context, coverage_editor, helpers, keys
 
 
 def _reseed_editor_widgets() -> None:
