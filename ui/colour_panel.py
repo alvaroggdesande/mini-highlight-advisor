@@ -193,6 +193,31 @@ def _blend_neighbours(i: int, n: int) -> None:
     st.session_state[keys.slot_code(i)] = context.CUSTOM
 
 
+def _remove_last_band(n: int) -> None:
+    """Shrink band count by 1 and clear the removed slot's session keys. No-op if n <= 3."""
+    if n <= 3:
+        return
+    i = n - 1
+    st.session_state.pop(keys.slot_code(i), None)
+    st.session_state.pop(keys.slot_hex(i), None)
+    st.session_state.pop(keys.slot_hexinput(i), None)
+    st.session_state[keys.N] = n - 1
+
+
+def _add_band(n: int) -> None:
+    """Grow band count by 1 and seed the new slot with a default colour. No-op if n >= 7."""
+    if n >= 7:
+        return
+    new_idx = n  # new band's 0-based index (becomes the new lightest)
+    if keys.slot_code(new_idx) not in st.session_state:
+        default = (DEFAULT_PALETTE[new_idx]
+                   if new_idx < len(DEFAULT_PALETTE)
+                   else PaintColor(f"Grey {new_idx + 1}", ramp_hex(new_idx, n + 1)))
+        st.session_state[keys.slot_code(new_idx)] = default.code
+        st.session_state[keys.slot_hex(new_idx)] = default.hex
+    st.session_state[keys.N] = n + 1
+
+
 def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
     """Level 3 — bands: palette slots dark→light with inline owned-first match.
 
@@ -222,7 +247,15 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
         st.session_state["_recipe_loaded"] = True
 
     st.session_state.setdefault(keys.N, 5)
-    n = st.slider("Number of layers", 3, 7, key=keys.N)
+    n = st.session_state[keys.N]
+    c_minus, c_label, c_plus = st.columns([1, 2, 1])
+    if c_minus.button("– band", disabled=n <= 3, key="band_remove"):
+        _remove_last_band(n)
+        st.rerun()
+    c_label.markdown(f"**{n} bands**")
+    if c_plus.button("+ band", disabled=n >= 7, key="band_add"):
+        _add_band(n)
+        st.rerun()
 
     st.markdown("**Bands (dark → light)**")
     palette = []

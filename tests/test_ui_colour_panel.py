@@ -255,3 +255,73 @@ def test_level3_finish_is_matte_for_smooth():
     sel = 0
     finish = "metallic" if book.material_at(sel) == "nmm" else "matte"
     assert finish == "matte"
+
+
+def _make_session():
+    """Minimal stand-in for st.session_state (plain dict)."""
+    return {}
+
+
+def test_remove_last_band_decrements_count():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 5
+    from ui.colour_panel import _remove_last_band
+    _remove_last_band(5)
+    assert st.session_state[keys.N] == 4
+
+
+def test_remove_last_band_clears_slot_keys():
+    from ui import keys
+    import streamlit as st
+    n = 5
+    st.session_state[keys.N] = n
+    st.session_state[keys.slot_code(n - 1)] = "ABC"
+    st.session_state[keys.slot_hex(n - 1)] = "#aabbcc"
+    st.session_state[keys.slot_hexinput(n - 1)] = "#aabbcc"
+    from ui.colour_panel import _remove_last_band
+    _remove_last_band(n)
+    assert keys.slot_code(n - 1) not in st.session_state
+    assert keys.slot_hex(n - 1) not in st.session_state
+    assert keys.slot_hexinput(n - 1) not in st.session_state
+
+
+def test_remove_last_band_noop_at_minimum():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 3
+    from ui.colour_panel import _remove_last_band
+    _remove_last_band(3)
+    assert st.session_state[keys.N] == 3
+
+
+def test_add_band_increments_count():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 4
+    from ui.colour_panel import _add_band
+    _add_band(4)
+    assert st.session_state[keys.N] == 5
+
+
+def test_add_band_seeds_new_slot_keys():
+    from ui import keys
+    import streamlit as st
+    n = 4
+    st.session_state[keys.N] = n
+    # Ensure slot at index n doesn't pre-exist
+    st.session_state.pop(keys.slot_code(n), None)
+    st.session_state.pop(keys.slot_hex(n), None)
+    from ui.colour_panel import _add_band
+    _add_band(n)
+    assert keys.slot_hex(n) in st.session_state
+    assert st.session_state[keys.slot_hex(n)]  # non-empty hex
+
+
+def test_add_band_noop_at_maximum():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 7
+    from ui.colour_panel import _add_band
+    _add_band(7)
+    assert st.session_state[keys.N] == 7
