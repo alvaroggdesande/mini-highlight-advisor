@@ -162,16 +162,23 @@ def test_level2_writeback_sets_ramp_decision():
     assert book.drawn[0].ramp_variant == "complementary"
 
 
-def test_level2_writeback_skips_whole_mini():
-    """sel == 0 (whole-mini) does not attempt to write to drawn list (would IndexError)."""
+def test_level2_writeback_whole_mini_uses_book_fields():
+    """sel == 0 (whole-mini) writes ramp decisions to book.whole_ramp_midtone/variant."""
     from mini_highlight_advisor.region_state import new_book
     book = new_book(5)
     sel = 0
-    # Write-back guard: only write when sel > 0
+    mid_hex = "#c02030"
+    variant = "complementary"
+    # Simulate what the Apply button click now does for sel == 0:
     if sel > 0:
-        book.drawn[sel - 1].ramp_midtone = "#c02030"
-    # No error, nothing written
+        book.drawn[sel - 1].ramp_midtone = mid_hex
+        book.drawn[sel - 1].ramp_variant = variant
+    else:
+        book.whole_ramp_midtone = mid_hex
+        book.whole_ramp_variant = variant
     assert book.drawn == []
+    assert book.whole_ramp_midtone == "#c02030"
+    assert book.whole_ramp_variant == "complementary"
 
 
 def test_level2_complement_shortcut_hex():

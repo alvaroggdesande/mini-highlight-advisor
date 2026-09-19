@@ -120,16 +120,17 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     st.divider()
     st.markdown(f"**Ramp for: {book.names()[sel]}**")
 
+    # Resolve ramp decisions for whichever region is selected.
+    _ramp_midtone = book.drawn[sel - 1].ramp_midtone if sel > 0 else book.whole_ramp_midtone
+    _ramp_variant = book.drawn[sel - 1].ramp_variant if sel > 0 else book.whole_ramp_variant
+
     # Pre-fill midtone picker from stored ramp decision (only when session key absent)
-    if sel > 0:
-        _region = book.drawn[sel - 1]
-        if _region.ramp_midtone is not None and keys.midtone_hex(sel) not in st.session_state:
-            st.session_state[keys.midtone_hex(sel)] = _region.ramp_midtone
+    if _ramp_midtone is not None and keys.midtone_hex(sel) not in st.session_state:
+        st.session_state[keys.midtone_hex(sel)] = _ramp_midtone
 
     # Last-applied indicator
-    if sel > 0 and book.drawn[sel - 1].ramp_variant is not None:
-        _applied_label = {v: k for k, v in _VARIANT_MAP.items()}.get(
-            book.drawn[sel - 1].ramp_variant, book.drawn[sel - 1].ramp_variant)
+    if _ramp_variant is not None:
+        _applied_label = {v: k for k, v in _VARIANT_MAP.items()}.get(_ramp_variant, _ramp_variant)
         st.caption(f"✓ Last applied: {_applied_label}")
 
     # Scheme shortcut: seed the midtone picker with the midtone of this region's
@@ -156,6 +157,9 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
         "Cool (−30°)":   ramp_from_midtone(hue_rotate(mid_hex, -30), n),
     }
 
+    recipe_name = st.text_input("Recipe name (for saving)", key=f"recipe_name_{sel}",
+                                placeholder="e.g. Dark armour scheme")
+
     for label, hexes in ramps.items():
         paints = [
             collection.nearest_paint(PaintColor(f"r{i}", h).rgb, context.CATALOG)
@@ -174,13 +178,17 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
             if sel > 0:
                 book.drawn[sel - 1].ramp_midtone = mid_hex
                 book.drawn[sel - 1].ramp_variant = _VARIANT_MAP[label]
+            else:
+                book.whole_ramp_midtone = mid_hex
+                book.whole_ramp_variant = _VARIANT_MAP[label]
         if save_col.button(f"💾 Save", key=f"save_ramp_{label}"):
             steps = [
                 RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))
                 for r, h, p in zip(role_names(n), hexes, paints)
             ]
-            save_user(Recipe(f"{label} ({mid_hex})", steps))
-            st.toast(f"Saved '{label} ({mid_hex})'")
+            _rname = recipe_name.strip() or f"{label} ({mid_hex})"
+            save_user(Recipe(_rname, steps))
+            st.toast(f"Saved '{_rname}'")
 
 
 def _apply_paste_hex(i: int) -> None:
