@@ -82,10 +82,19 @@ def flush_editor_into_angle(a):
 
 
 def set_active_angle(idx: int) -> None:
-    """Set the active-angle index and reset the angle-bar radio so it re-seeds
-    from index= on the next render (avoids the stale-selected-value bounce)."""
+    """Set the active-angle index and queue the radio to sync on the next render.
+
+    Streamlit forbids writing a widget's key after that widget has been
+    instantiated in the current run, so we cannot set ANGLE_SELECT here when
+    called from a button/upload handler that fires after st.radio() has mounted.
+    Instead: pop the key (deletion is allowed post-instantiation) and record the
+    target in _angle_select_target. angles_panel.render() reads and applies it
+    BEFORE the radio mounts on the next rerun, so the radio initialises at the
+    correct value and the frontend never gets a chance to replay the stale one.
+    """
     st.session_state[keys.ACTIVE_ANGLE] = idx
     st.session_state.pop(keys.ANGLE_SELECT, None)
+    st.session_state["_angle_select_target"] = idx
 
 
 def load_angle_into_editor(idx: int) -> None:
