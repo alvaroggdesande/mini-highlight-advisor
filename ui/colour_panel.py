@@ -157,9 +157,6 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
         "Cool (−30°)":   ramp_from_midtone(hue_rotate(mid_hex, -30), n),
     }
 
-    recipe_name = st.text_input("Recipe name (for saving)", key=f"recipe_name_{sel}",
-                                placeholder="e.g. Dark armour scheme")
-
     for label, hexes in ramps.items():
         paints = [
             collection.nearest_paint(PaintColor(f"r{i}", h).rgb, context.CATALOG)
@@ -172,8 +169,7 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
             if p:
                 row_cols[i + 1].caption(p.name[:10])
 
-        apply_col, save_col = st.columns(2)
-        if apply_col.button(f"Apply {label}", key=f"apply_ramp_{label}"):
+        if st.button(f"Apply {label}", key=f"apply_ramp_{label}"):
             _apply_ramp(hexes, n)
             if sel > 0:
                 book.drawn[sel - 1].ramp_midtone = mid_hex
@@ -181,14 +177,6 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
             else:
                 book.whole_ramp_midtone = mid_hex
                 book.whole_ramp_variant = _VARIANT_MAP[label]
-        if save_col.button(f"💾 Save", key=f"save_ramp_{label}"):
-            steps = [
-                RecipeStep(label=r, hex=h, paint_ref=(p.name if p else None))
-                for r, h, p in zip(role_names(n), hexes, paints)
-            ]
-            _rname = recipe_name.strip() or f"{label} ({mid_hex})"
-            save_user(Recipe(_rname, steps))
-            st.toast(f"Saved '{_rname}'")
 
 
 def _apply_paste_hex(i: int) -> None:
@@ -278,6 +266,22 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
         if 0 < i < n - 1:
             c1.button("↕ blend", key=keys.blend(i),
                       on_click=_blend_neighbours, args=(i, n))
+
+    c_name, c_btn = st.columns([3, 1])
+    save_name = c_name.text_input("Save bands as recipe", key=f"band_recipe_name_{sel}",
+                                   placeholder="e.g. Dark armour scheme",
+                                   label_visibility="collapsed")
+    c_name.caption("Save current bands as a recipe (name it, then Save)")
+    if c_btn.button("Save recipe", key=f"band_recipe_save_{sel}"):
+        clean = save_name.strip()
+        if not clean:
+            st.warning("Give the recipe a name.")
+        else:
+            steps = [RecipeStep(label=role_names(n)[i], hex=p.hex,
+                                paint_ref=p.name if p.code else None)
+                     for i, p in enumerate(palette)]
+            save_user(Recipe(clean, steps))
+            st.toast(f"Saved recipe '{clean}'")
 
     return palette, n
 
