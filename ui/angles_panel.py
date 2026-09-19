@@ -24,6 +24,19 @@ def render() -> int:
     angles = st.session_state[keys.ANGLES]
     active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
 
+    # Apply any queued radio sync BEFORE the widget is instantiated.
+    # set_active_angle() cannot write ANGLE_SELECT after the radio has mounted
+    # (Streamlit raises), so it pops the key and leaves _angle_select_target here
+    # for us to apply. This also prevents the frontend-desync bounce where popping
+    # alone would let the frontend replay its stale value on the first interaction.
+    target = st.session_state.pop("_angle_select_target", None)
+    if target is not None:
+        st.session_state[keys.ANGLE_SELECT] = target
+
+    msg = st.session_state.pop("_angle_added_msg", None)
+    if msg:
+        st.success(msg)
+
     st.markdown("**Angles**")
     labels = [a.label for a in angles]
     picked = st.radio("Active angle", list(range(len(angles))),
@@ -72,6 +85,9 @@ def render() -> int:
             angles.append(a)
             state.set_active_angle(len(angles) - 1)
             st.session_state["_add_angle_nonce"] = nonce + 1
+            st.session_state["_angle_added_msg"] = (
+                f"'{a.label}' added — it's now the active angle for editing."
+            )
             _clear_angle_label_keys()
             state.seed_editor_from_angle(a)
             st.rerun()

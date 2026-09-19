@@ -90,9 +90,23 @@ with tab_studio:
 
 # --- 🪜 Paint: paint-along steps ---
 with tab_paint:
-    multi = st.session_state.get(keys.LAST_MULTI)
-    results.render_steps(multi)
-    results.render_osl_steps(st.session_state.get(keys.OSL_RESULT))
+    _paint_angles = st.session_state.get(keys.ANGLES, [])
+    _paint_active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
+    if len(_paint_angles) <= 1:
+        results.render_steps(st.session_state.get(keys.LAST_MULTI))
+        results.render_osl_steps(st.session_state.get(keys.OSL_RESULT))
+    else:
+        _paint_tabs = st.tabs([a.label for a in _paint_angles])
+        for _pi, (_ptab, _pangle) in enumerate(zip(_paint_tabs, _paint_angles)):
+            with _ptab:
+                if _pi == _paint_active:
+                    # Active angle: LAST_MULTI is live (set by Studio tab above)
+                    results.render_steps(st.session_state.get(keys.LAST_MULTI),
+                                         key=f"dl_swatch_{_pi}")
+                    results.render_osl_steps(st.session_state.get(keys.OSL_RESULT))
+                else:
+                    results.render_steps(gallery_panel.angle_multi_result(_pangle),
+                                         key=f"dl_swatch_{_pi}")
 
 # --- 🖼️ All angles: read-only gallery ---
 with tab_angles:

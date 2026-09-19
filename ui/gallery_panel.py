@@ -1,4 +1,4 @@
-"""🖼️ All-angles gallery — a read-only grid of every angle's combined painted
+﻿"""🖼️ All-angles gallery — a read-only grid of every angle's combined painted
 preview, so you can see the same paints across every face at once.
 
 Streamlit glue on top of the same analyze path the editor uses. Per-angle
@@ -11,7 +11,7 @@ import numpy as np
 import streamlit as st
 
 from mini_highlight_advisor.pipeline import analyze_regions
-from ui import keys, state, _profile
+from ui import keys, _profile
 
 _PER_ROW = 3
 
@@ -63,6 +63,34 @@ def angle_signature(angle) -> tuple:
     )
 
 
+def angle_multi_result(angle):
+    """Full MultiRegionResult for any AngleData, memoised in session state.
+
+    Used by the Paint tab to show paint-along steps for non-active angles without
+    re-running the full analysis pipeline on every Streamlit rerun. Keyed by the
+    same angle_signature as the gallery preview cache so a single compute populates
+    both caches when needed.
+    """
+    from mini_highlight_advisor.pipeline import analyze_regions
+    from ui import helpers
+    cache = st.session_state.setdefault("_paint_cache", {})
+    sig = angle_signature(angle)
+    if sig not in cache:
+        _profile.mark(f"Paint tab: MISS -> analyze angle '{getattr(angle, 'label', '?')}'")
+        with _profile.prof("Paint tab: analyze_regions"):
+            rgb, alpha, shd = helpers.shading(angle.photo_bytes, angle.photo_suffix)
+            wp, wcov, drawn = angle.book.analyze_args()
+            s = angle.settings
+            cache[sig] = analyze_regions(
+                rgb, alpha, wp, wcov, drawn,
+                edges=s.edge_hl, extreme_edge=s.edge_extreme, edge_sensitivity=s.edge_sens,
+                relief_cap=s.relief_cap, per_region_norm=s.per_region_norm,
+                whole_material=angle.book.material_at(0), whole_blank=angle.book.whole_blank,
+                shading=shd,
+            )
+    return cache[sig]
+
+
 def angle_preview(angle) -> np.ndarray:
     """Decode the angle's photo and return its combined painted preview (uint8
     RGB, same H×W as the source).
@@ -108,7 +136,7 @@ def render(angles, active_idx: int) -> None:
     _profile.mark(f"ALL-ANGLES tab: rendering {len(angles)} angle(s)")
 
     st.subheader("All angles")
-    st.caption("Same paints, every face. Switch to the 🖌️ Miniature tab to edit "
+    st.caption("Same paints, every face. Switch to the 🖌️ Studio tab to edit "
                "the active angle.")
 
     for start in range(0, len(angles), _PER_ROW):
@@ -120,12 +148,8 @@ def render(angles, active_idx: int) -> None:
                     st.image(_cached_preview(angle), caption=angle.label,
                              use_container_width=True)
                 except Exception:  # one bad angle must not blank the whole grid
-                    st.warning(f"“{angle.label}” — couldn't render this photo.")
-                if st.button("Edit", key=f"gallery_edit_{i}"):
-                    # Must go through the proper switch (flush + seed + pop the
-                    # angle-radio key). Setting ACTIVE_ANGLE alone desyncs the
-                    # studio angle radio: it keeps its old value and bounces the
-                    # active angle straight back on the next rerun.
-                    state.load_angle_into_editor(i)
+                    st.warning(f'"{angle.label}" — couldn\'t render this photo.')
                 if i == active_idx:
-                    st.caption("Active — open the 🖌️ Miniature tab to edit.")
+                    st.caption("✓ Active — go to the 🖌️ Studio tab to edit.")
+                else:
+                    st.caption("Go to 🖌️ Studio to activate this angle.")

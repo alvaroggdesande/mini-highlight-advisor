@@ -111,27 +111,30 @@ def render_osl_steps(osl_result) -> None:
                       use_container_width=True)
 
 
-def render_steps(multi) -> None:
+def render_steps(multi, key: str = "dl_swatch") -> None:
     """Paint tab: swatch board + per-region paint-along steps.
 
     Call this from the Paint tab, reading keys.LAST_MULTI from session state.
     `multi` is None before the first analysis run; shows a placeholder then.
+    Pass a unique `key` when rendering multiple angles in the same script pass
+    (e.g. inside st.tabs) to avoid duplicate-element-ID errors.
     """
     if multi is None:
         st.info("Set your colours in Studio first, then come here to paint.")
         return
     from ui import _profile
     with _profile.prof("PAINT tab: render_steps (all images)"):
-        _render_steps_body(multi)
+        _render_steps_body(multi, key)
 
 
-def _render_steps_body(multi) -> None:
+def _render_steps_body(multi, key: str = "dl_swatch") -> None:
     board_img = swatch_board([(p.name, p.colors) for p in multi.plans])
     st.image(board_img, caption="Colour schemes - all regions")
     buf = io.BytesIO()
     board_img.save(buf, format="PNG")
     st.download_button("⬇ Download swatch board", buf.getvalue(),
-                       file_name="swatch_board.png", mime="image/png")
+                       file_name="swatch_board.png", mime="image/png",
+                       key=key)
     st.subheader("Paint-along steps by region")
     st.caption("Work dark to light within each region.")
     for plan in multi.plans:
