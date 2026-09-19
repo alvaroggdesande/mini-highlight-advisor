@@ -13,7 +13,6 @@ from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.matching import match, Target
-from mini_highlight_advisor import collection
 from ui import context, coverage_editor, geometry, helpers, keys
 
 
@@ -108,6 +107,16 @@ def _apply_ramp(hexes: list[str], n: int) -> None:
     st.session_state["_ramp_applied"] = True
 
 
+def _write_ramp_decision(book, sel: int, mid_hex: str, variant: str) -> None:
+    """Persist the ramp decision (midtone hex + variant key) on the book."""
+    if sel > 0:
+        book.drawn[sel - 1].ramp_midtone = mid_hex
+        book.drawn[sel - 1].ramp_variant = variant
+    else:
+        book.whole_ramp_midtone = mid_hex
+        book.whole_ramp_variant = variant
+
+
 def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     """Level 2 — region ramp: midtone → ramp + harmony variants.
 
@@ -151,32 +160,17 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
 
     ramps = {
-        "Ramp": ramp_from_midtone(mid_hex, n),
-        "Complementary": ramp_from_midtone(hue_rotate(mid_hex, 180), n),
-        "Warm (+30°)":   ramp_from_midtone(hue_rotate(mid_hex, 30), n),
-        "Cool (−30°)":   ramp_from_midtone(hue_rotate(mid_hex, -30), n),
+        "Ramp": ("standard", ramp_from_midtone(mid_hex, n)),
+        "Complementary": ("complementary", ramp_from_midtone(hue_rotate(mid_hex, 180), n)),
+        "Warm (+30°)":   ("warm",          ramp_from_midtone(hue_rotate(mid_hex, 30), n)),
+        "Cool (−30°)":   ("cool",          ramp_from_midtone(hue_rotate(mid_hex, -30), n)),
     }
 
-    for label, hexes in ramps.items():
-        paints = [
-            collection.nearest_paint(PaintColor(f"r{i}", h).rgb, context.CATALOG)
-            for i, h in enumerate(hexes)
-        ]
-        row_cols = st.columns([2] + [1] * n)
-        row_cols[0].markdown(f"**{label}**")
-        for i, (h, p) in enumerate(zip(hexes, paints)):
-            row_cols[i + 1].markdown(helpers.swatch(h, size="1.8em"), unsafe_allow_html=True)
-            if p:
-                row_cols[i + 1].caption(p.name[:10])
-
-        if st.button(f"Apply {label}", key=f"apply_ramp_{label}"):
+    btn_cols = st.columns(len(ramps))
+    for col, (label, (variant_key, hexes)) in zip(btn_cols, ramps.items()):
+        if col.button(label, key=f"apply_ramp_{label}", width="stretch"):
             _apply_ramp(hexes, n)
-            if sel > 0:
-                book.drawn[sel - 1].ramp_midtone = mid_hex
-                book.drawn[sel - 1].ramp_variant = _VARIANT_MAP[label]
-            else:
-                book.whole_ramp_midtone = mid_hex
-                book.whole_ramp_variant = _VARIANT_MAP[label]
+            _write_ramp_decision(book, sel, mid_hex, variant_key)
 
 
 def _apply_paste_hex(i: int) -> None:

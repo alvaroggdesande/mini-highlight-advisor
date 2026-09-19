@@ -325,3 +325,31 @@ def test_add_band_noop_at_maximum():
     from ui.colour_panel import _add_band
     _add_band(7)
     assert st.session_state[keys.N] == 7
+
+
+def test_write_ramp_decision_drawn_region():
+    """_write_ramp_decision writes midtone + variant back to the correct drawn region."""
+    from mini_highlight_advisor.region_state import new_book
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    import numpy as np
+    book = new_book(5)
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+
+    from ui.colour_panel import _write_ramp_decision
+    _write_ramp_decision(book, sel=1, mid_hex="#a03020", variant="complementary")
+
+    assert book.drawn[0].ramp_midtone == "#a03020"
+    assert book.drawn[0].ramp_variant == "complementary"
+
+
+def test_write_ramp_decision_whole_mini():
+    """_write_ramp_decision at sel==0 writes to book.whole_ramp_midtone/variant."""
+    from mini_highlight_advisor.region_state import new_book
+    book = new_book(5)
+
+    from ui.colour_panel import _write_ramp_decision
+    _write_ramp_decision(book, sel=0, mid_hex="#c02030", variant="standard")
+
+    assert book.whole_ramp_midtone == "#c02030"
+    assert book.whole_ramp_variant == "standard"
