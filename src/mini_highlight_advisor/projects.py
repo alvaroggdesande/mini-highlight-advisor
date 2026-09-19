@@ -148,7 +148,9 @@ def _write_angle(project_dir: Path, idx: int, a: AngleData) -> dict:
                            "surface": a.book.whole_surface,
                            "tone": a.book.whole_tone},
                  "drawn": drawn, "selected": a.book.selected,
-                 "colour_context": {"hero_hex": a.book.hero_hex, "mood": a.book.mood}},
+                 "colour_context": {"hero_hex": a.book.hero_hex, "mood": a.book.mood,
+                                   "whole_ramp_midtone": a.book.whole_ramp_midtone,
+                                   "whole_ramp_variant": a.book.whole_ramp_variant}},
     }
 
 
@@ -173,7 +175,9 @@ def _read_angle(project_dir: Path, idx: int, entry: dict) -> AngleData:
                       whole_tone=b["whole"].get("tone"),
                       drawn=drawn, selected=b["selected"],
                       hero_hex=colour_context.get("hero_hex"),
-                      mood=colour_context.get("mood"))
+                      mood=colour_context.get("mood"),
+                      whole_ramp_midtone=colour_context.get("whole_ramp_midtone"),
+                      whole_ramp_variant=colour_context.get("whole_ramp_variant"))
     return AngleData(label=entry["label"], photo_bytes=photo_bytes,
                      photo_suffix=photo_suffix, book=book,
                      settings=_settings_from_dict(entry["settings"]))

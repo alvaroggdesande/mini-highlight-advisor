@@ -26,6 +26,8 @@ class RegionBook:
     whole_blank: bool = False
     hero_hex: str | None = None   # L1 hero colour
     mood: str | None = None       # L1 mood variant name
+    whole_ramp_midtone: str | None = None   # L2 ramp midtone for the whole-mini region
+    whole_ramp_variant: str | None = None   # L2 ramp variant for the whole-mini region
 
     def names(self) -> list[str]:
         return [WHOLE_MINI] + [r.name for r in self.drawn]

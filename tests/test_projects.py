@@ -294,6 +294,50 @@ def test_colour_decisions_round_trip(tmp_path):
     assert loaded_book.drawn[0].ramp_variant == "complementary"
 
 
+def test_whole_ramp_decisions_round_trip(tmp_path):
+    """whole_ramp_midtone and whole_ramp_variant survive save/load."""
+    from mini_highlight_advisor.region_state import RegionBook
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    book = RegionBook(default_ramp(5), default_coverage(5),
+                      whole_ramp_midtone="#506070", whole_ramp_variant="warm")
+    angle = projects.AngleData("front", b"IMG", ".png", book, _settings())
+    slug = projects.save_project("WholeMiniRamp", [], 0, [angle], root=tmp_path)
+    lp = projects.load_project(slug, root=tmp_path)
+    loaded = lp.angles[0].book
+    assert loaded.whole_ramp_midtone == "#506070"
+    assert loaded.whole_ramp_variant == "warm"
+
+
+def test_whole_ramp_decisions_default_none_from_old_manifest(tmp_path):
+    """Manifests without whole_ramp_* in colour_context load with None defaults."""
+    import json
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    project_dir = tmp_path / "old2"
+    project_dir.mkdir()
+    (project_dir / "angle_00").mkdir()
+    (project_dir / "angle_00" / "photo.png").write_bytes(b"IMG")
+    pal = projects._palette_to_dicts(default_ramp(5))
+    cov = list(default_coverage(5))
+    manifest = {
+        "schema_version": 5, "name": "Old2", "slug": "old2",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+        "paints_pool": [], "active_angle": 0,
+        "angles": [{"label": "front", "photo_file": "photo.png",
+                    "settings": {"n": 5, "edge_hl": True, "edge_extreme": False,
+                                 "edge_sens": 0.5, "relief_cap": False, "per_region_norm": False},
+                    "book": {"whole": {"palette": pal, "coverage": cov,
+                                       "material": "matte", "surface": "other", "tone": None},
+                             "drawn": [], "selected": 0,
+                             "colour_context": {"hero_hex": None, "mood": None}}}],
+        "schemes": [],
+    }
+    (project_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    lp = projects.load_project("old2", root=tmp_path)
+    assert lp.angles[0].book.whole_ramp_midtone is None
+    assert lp.angles[0].book.whole_ramp_variant is None
+
+
 def test_colour_decisions_none_round_trip(tmp_path):
     """None values serialise as null and deserialise back to None."""
     book = _whole_book()  # hero_hex=None, mood=None by default
@@ -347,3 +391,5 @@ def test_v4_manifest_loads_with_none_decision_defaults(tmp_path):
     assert lp.angles[0].book.mood is None
     assert lp.angles[0].book.drawn[0].ramp_midtone is None
     assert lp.angles[0].book.drawn[0].ramp_variant is None
+    assert lp.angles[0].book.whole_ramp_midtone is None
+    assert lp.angles[0].book.whole_ramp_variant is None
