@@ -353,27 +353,29 @@ def _render_scheme_save(book) -> None:
 
 
 def render(book, sel: int, picked, owned_paints, rgb=None) -> None:
-    """Render the three-level colour panel for the selected region."""
+    """Render the three-level colour panel for the selected region.
+
+    Order: Bands (primary) → Coverage → Ramp → Scheme → Save.
+    """
     st.markdown(f"**Editing:** {book.names()[sel]}")
-    if rgb is not None and book.drawn and sel >= 1:
-        thumb = geometry.highlight_region_image(rgb, book, sel)
-        st.image(thumb, width=220)
 
-    _render_level1(book, owned_paints)
-
-    # Level 2 needs n (band count); read from session_state (set by Level 3 slider).
-    n = st.session_state.get(keys.N, 5)
-    _render_level2(book, sel, n, owned_paints)
-
+    # Level 3 first: bands are the primary interaction.
     palette, n = _render_level3(book, sel, picked)
     book.set_palette_at(sel, palette)
 
-    _render_scheme_save(book)
-
-    # Coverage sliders live here so colour + coverage are always visible together.
+    # Coverage lives next to bands (both are about 'how many layers and how wide').
     st.divider()
     cov = coverage_editor.render(n)
     book.set_coverage_at(sel, cov)
+
+    # Level 2: ramp quick-apply to seed the bands.
+    _render_level2(book, sel, n, owned_paints)
+
+    # Level 1: whole-mini scheme — collapsed once generated.
+    _render_level1(book, owned_paints)
+
+    # Scheme save / swap at the bottom.
+    _render_scheme_save(book)
 
     # Deferred rerun after Apply Ramp / Load recipe so Level 3 has already updated
     # the book palette before the analysis re-runs — one click = one visible update.

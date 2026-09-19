@@ -353,3 +353,27 @@ def test_write_ramp_decision_whole_mini():
 
     assert book.whole_ramp_midtone == "#c02030"
     assert book.whole_ramp_variant == "standard"
+
+
+def test_render_function_still_exposes_expected_signature():
+    """render() must accept (book, sel, picked, owned_paints, rgb=None)."""
+    import inspect
+    from ui import colour_panel
+    sig = inspect.signature(colour_panel.render)
+    params = list(sig.parameters)
+    assert params == ["book", "sel", "picked", "owned_paints", "rgb"]
+
+
+def test_level3_runs_before_level2_dependency():
+    """n (band count) flows from _render_level3 return value — verify n is returned."""
+    import inspect, ui.colour_panel as cp
+    # _render_level3 must return (palette, n)
+    src = inspect.getsource(cp._render_level3)
+    assert "return palette, n" in src
+
+
+def test_thumbnail_removed_from_render():
+    """The per-region thumbnail (highlight_region_image) is no longer called from render()."""
+    import inspect, ui.colour_panel as cp
+    src = inspect.getsource(cp.render)
+    assert "highlight_region_image" not in src
