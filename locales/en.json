@@ -139,7 +139,12 @@
     "multiselect_label": "Paints you own",
     "owned_heading": "**Owned paints**",
     "no_paints_caption": "No paints selected yet — tick the paints you own above.",
-    "catalogue_caption": "Catalogue: {count} paints (Vallejo Model Color + Game Color)"
+    "catalogue_caption": "Catalogue: {count} paints (Vallejo Model Color + Game Color)",
+    "manage_collection_expander": "Back up / restore",
+    "download_collection_btn": "⬇ Download my_paints.json",
+    "import_collection_label": "Import collection (.json)",
+    "collection_imported_toast": "Imported {count} paint(s)",
+    "import_collection_error": "Import failed: {err}"
   },
   "projects": {
     "load_expander": "📂 Load a saved project",

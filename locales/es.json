@@ -139,7 +139,12 @@
     "multiselect_label": "Pinturas que tienes",
     "owned_heading": "**Pinturas propias**",
     "no_paints_caption": "Aún no hay pinturas seleccionadas — marca las que tienes arriba.",
-    "catalogue_caption": "Catálogo: {count} pinturas (Vallejo Model Color + Game Color)"
+    "catalogue_caption": "Catálogo: {count} pinturas (Vallejo Model Color + Game Color)",
+    "manage_collection_expander": "Copia de seguridad / restaurar",
+    "download_collection_btn": "⬇ Descargar mis_pinturas.json",
+    "import_collection_label": "Importar colección (.json)",
+    "collection_imported_toast": "Se importaron {count} pintura(s)",
+    "import_collection_error": "Error al importar: {err}"
   },
   "projects": {
     "load_expander": "📂 Cargar un proyecto guardado",
