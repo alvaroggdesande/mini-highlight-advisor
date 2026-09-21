@@ -67,3 +67,40 @@ def test_nearest_paint_empty_returns_none():
     from mini_highlight_advisor.collection import nearest_paint
     import numpy as np
     assert nearest_paint(np.zeros(3, dtype="float32"), []) is None
+
+
+import json as _json
+from mini_highlight_advisor.collection import (
+    export_to_json_bytes, import_from_json_bytes,
+)
+
+
+def test_export_collection_round_trips():
+    owned = {"72.112", "70.888"}
+    data = export_to_json_bytes(owned)
+    result = import_from_json_bytes(data)
+    assert result == owned
+
+
+def test_export_empty_set():
+    data = export_to_json_bytes(set())
+    assert import_from_json_bytes(data) == set()
+
+
+def test_import_collection_drops_unknown_codes():
+    catalog = [PaintColor(name="Red", hex="#ff0000", code="72.112")]
+    data = _json.dumps({"owned": ["72.112", "INVALID_CODE"]}).encode()
+    result = import_from_json_bytes(data, catalog=catalog)
+    assert result == {"72.112"}
+
+
+def test_import_collection_no_catalog_returns_all_codes():
+    data = _json.dumps({"owned": ["anything", "goes"]}).encode()
+    result = import_from_json_bytes(data, catalog=None)
+    assert result == {"anything", "goes"}
+
+
+def test_export_produces_sorted_json():
+    data = export_to_json_bytes({"b_code", "a_code"})
+    parsed = _json.loads(data)
+    assert parsed["owned"] == sorted(["b_code", "a_code"])
