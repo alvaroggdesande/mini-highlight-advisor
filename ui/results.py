@@ -147,4 +147,6 @@ def _render_steps_body(multi, key: str = "dl_swatch") -> None:
             st.warning(t("results.flat_warning", name=plan.name,
                           n=len(plan.names), requested=plan.requested_bands))
         helpers.render_region_steps(plan.steps, plan.roles, plan.names, plan.coverage,
-                                    technique=plan.technique)
+                                    technique=plan.technique,
+                                    palette=getattr(plan, "palette", None),
+                                    picked=st.session_state.get(keys.OWNED, []))

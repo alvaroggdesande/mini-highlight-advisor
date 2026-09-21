@@ -170,6 +170,7 @@ class RegionPlan:
     requested_bands: int | None = None
     flat_albedo: bool = False
     technique: str = "smooth"          # technique name (resolved via alias)
+    palette: list[PaintColor] | None = None  # final PaintColor objects used (after capping/resampling)
 
 
 @dataclass
@@ -256,7 +257,7 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         steps = steps + shade_steps(rgb, recess, shade_rgb, start_index=len(steps))
     return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps, overlays,
                       capped=capped, requested_bands=requested_bands,
-                      flat_albedo=flat_albedo, technique=spec.name)
+                      flat_albedo=flat_albedo, technique=spec.name, palette=palette)
 
 
 def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
