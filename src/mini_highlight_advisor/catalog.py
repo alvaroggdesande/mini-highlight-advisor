@@ -6,10 +6,21 @@ from pathlib import Path
 
 from .palette import PaintColor
 
-CATALOG_PATH = Path(__file__).parent / "data" / "vallejo_paints.json"
+DATA_DIR = Path(__file__).parent / "data"
 
 _HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
-_FINISHES = {"matte", "metallic", "wash", "contrast"}
+_FINISHES = {"matte", "metallic", "wash", "contrast", "gloss", "satin", "technical"}
+_CANONICAL_FINISHES = {
+    "satin": "matte",
+    "technical": "matte",
+    "gloss": "matte",
+}
+
+
+def _canonical_finish(value: str | None) -> str:
+    if value is None:
+        return "matte"
+    return _CANONICAL_FINISHES.get(value, value)
 
 
 def validate_catalog(paints: list[dict]) -> None:
@@ -43,10 +54,18 @@ def validate_catalog(paints: list[dict]) -> None:
         seen_codes.add(code)
 
 
-def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
-    paints = data["paints"]
-    validate_catalog(paints)
+def _load_file(path: Path) -> list[dict]:
+    return json.loads(path.read_text(encoding="utf-8"))["paints"]
+
+
+def load_catalog(path: Path | None = None) -> list[PaintColor]:
+    if path is not None:
+        all_paints = _load_file(Path(path))
+    else:
+        all_paints = []
+        for p in sorted(DATA_DIR.glob("*_paints.json")):
+            all_paints.extend(_load_file(p))
+    validate_catalog(all_paints)
     return [
         PaintColor(
             name=p["name"],
@@ -54,9 +73,9 @@ def load_catalog(path: Path = CATALOG_PATH) -> list[PaintColor]:
             brand=p.get("brand"),
             paint_range=p.get("range"),
             code=p.get("code", ""),
-            finish=p.get("finish", "matte"),
+            finish=_canonical_finish(p.get("finish", "matte")),
         )
-        for p in paints
+        for p in all_paints
     ]
 
 
