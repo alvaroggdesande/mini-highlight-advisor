@@ -1,6 +1,6 @@
 -e .
 numpy
-opencv-python
+opencv-python-headless
 pillow
 streamlit==1.61.*
 streamlit-drawable-canvas
