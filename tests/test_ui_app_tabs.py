@@ -49,7 +49,7 @@ def test_five_tabs_present():
     at = _make_at()
     tab_labels = [t.label for t in at.tabs]
     assert "🖌️ Studio" in tab_labels
-    assert "🪜 Paint" in tab_labels
+    assert "🪜 Paint guide" in tab_labels
     assert "📷 Capture & help" in tab_labels
 
 

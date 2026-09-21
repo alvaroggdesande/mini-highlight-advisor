@@ -9,10 +9,14 @@ from ui import (
     angles_panel, editor, gallery_panel, helpers, keys,
     paints_tab, projects_panel, ps_mode, results, state, _profile,
 )
+from ui.lang import init_lang, lang_selector
+from i18n import t
 
 _profile.rerun_start()
+init_lang()
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
-st.title("Mini Highlight Advisor")
+lang_selector()
+st.title(t("app.title"))
 st.caption(
     "Upload a photo of a primed miniature (background-removed PNG is fastest). "
     "You'll get a painted preview + a paint-by-layer plan. Best with a raking "
@@ -23,7 +27,11 @@ st.caption(
 # Paints must execute before Studio so owned_codes is finalised before Studio
 # renders ownership badges. Display order is fixed by the label list.
 tab_studio, tab_paint, tab_paints, tab_angles, tab_capture = st.tabs([
-    "🖌️ Studio", "🪜 Paint", "🎨 Paints", "🖼️ All angles", "📷 Capture & help",
+    "🖌️ " + t("app.tab_studio"),
+    "🪜 " + t("app.tab_paint"),
+    "🎨 " + t("app.tab_paints"),
+    "🖼️ " + t("app.tab_angles"),
+    "📷 " + t("app.tab_capture"),
 ])
 
 # --- 🎨 Paints: inventory (must run first — see note above) ---
