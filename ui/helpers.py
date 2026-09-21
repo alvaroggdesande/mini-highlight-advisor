@@ -43,12 +43,17 @@ def current_cov_seed(n: int) -> list[float]:
     return [round(f * 100, 1) for f in default_coverage(n)]
 
 
-def render_region_steps(steps, roles, names, coverage, technique: str = "smooth") -> None:
+def render_region_steps(steps, roles, names, coverage, technique: str = "smooth",
+                        palette=None, picked=None) -> None:
     # Shared paint-along step renderer for both the single-palette and the
     # per-region plans. `coverage` is per-band realized percentages.
     # Edge steps (step.kind == "edge") are appended after tonal steps; their
     # index is >= len(roles), so we guard the roles/names lookup with step.label.
+    # `palette` (list[PaintColor]) and `picked` (list of owned codes) are optional;
+    # when present, ownership / match text is shown below each tonal step.
     _spec = get_technique(technique)
+    _picked_set = set(picked) if picked else set()
+    _owned_list = None   # built lazily only if a custom-colour match is needed
     for step in steps:
         if step.label:
             # Edge step — label is set ("Edge Highlight" / "Extreme Edge Highlight")
@@ -63,6 +68,20 @@ def render_region_steps(steps, roles, names, coverage, technique: str = "smooth"
             cum_cov = sum(coverage[step.index:])
             cov = coverage[step.index]
             st.markdown(f"**Step {step.index + 1} — {caption_text} · {name_text}**")
+            if palette is not None and step.index < len(palette):
+                paint = palette[step.index]
+                if paint.code:
+                    badge = t("colour.owned_badge") if paint.code in _picked_set else t("colour.not_owned_badge")
+                    st.caption(f"{paint.hex} · {badge}")
+                else:
+                    from mini_highlight_advisor.matching import match, Target
+                    from ui import context as _ctx
+                    if _owned_list is None:
+                        _owned_list = [p for p in _ctx.CATALOG if p.code and p.code in _picked_set]
+                    _finish = "metallic" if technique == "nmm" else "matte"
+                    _result = match(Target(paint.hex, None, _finish),
+                                    owned=_owned_list, catalog=list(_ctx.CATALOG))
+                    st.caption(_result.phrase)
         if step.is_last:
             c1, c2 = st.columns(2)
             c1.image(step.zone_rgb, caption=t("results.where_to_paint"), use_container_width=True)
