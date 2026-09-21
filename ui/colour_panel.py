@@ -181,8 +181,8 @@ def _apply_paste_hex(i: int) -> None:
 
 def _blend_neighbours(i: int, n: int) -> None:
     from mini_highlight_advisor.color import blend_hex_lab
-    lo = st.session_state.get(keys.slot_hex(i - 1), ramp_hex(i - 1, n))
-    hi = st.session_state.get(keys.slot_hex(i + 1), ramp_hex(i + 1, n))
+    lo = st.session_state.get(keys.slot_hex(i - 1), "#000000") if i > 0 else "#000000"
+    hi = st.session_state.get(keys.slot_hex(i + 1), "#ffffff") if i < n - 1 else "#ffffff"
     st.session_state[keys.slot_hex(i)] = blend_hex_lab(lo, hi)
     st.session_state[keys.slot_code(i)] = context.CUSTOM
 
@@ -313,9 +313,8 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
         ba, bb, bc = c1.columns(3)
         ba.button("✕", key=f"band_del_{i}", help="Delete this band",
                   disabled=(n <= 3), on_click=_delete_band_at, args=(i, n))
-        if 0 < i < n - 1:
-            bb.button("↕", key=keys.blend(i), help="Blend with neighbours",
-                      on_click=_blend_neighbours, args=(i, n))
+        bb.button("↕", key=keys.blend(i), help="Blend with neighbours",
+                  on_click=_blend_neighbours, args=(i, n))
         bc.button("＋", key=f"band_ins_{i}", help="Insert band below",
                   disabled=(n >= 7), on_click=_insert_band_after, args=(i, n))
 
