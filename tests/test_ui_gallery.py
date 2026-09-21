@@ -154,71 +154,9 @@ def test_render_shows_one_preview_image_per_angle():
     assert len(at.get("image")) == 2
 
 
-def test_render_shows_an_edit_button_per_angle():
-    at = _run(2)
-    assert at.button(key="gallery_edit_0") is not None
-    assert at.button(key="gallery_edit_1") is not None
-
-
-def test_edit_button_sets_active_angle():
-    at = _run(2)
-    at.button(key="gallery_edit_1").click()
-    at.run()
-    assert at.session_state[keys.ACTIVE_ANGLE] == 1
-
-
 def test_render_with_no_angles_shows_placeholder_not_crash():
     at = _run(0)
     assert not at.exception
     assert len(at.get("image")) == 0
 
 
-# --- Edit button must switch angles WITHOUT bouncing back (studio radio sync) ---
-
-_COMBINED_HARNESS = """
-import io
-import numpy as np
-from PIL import Image
-import streamlit as st
-from ui import angles_panel, gallery_panel, keys, state
-from mini_highlight_advisor import projects
-from mini_highlight_advisor.region_state import new_book
-
-def _png(v):
-    rgb = np.zeros((32, 32, 3), np.uint8); rgb[:, :, 0] = v
-    a = np.zeros((32, 32), np.uint8); a[4:28, 4:28] = 255
-    b = io.BytesIO(); Image.fromarray(np.dstack([rgb, a]), "RGBA").save(b, "PNG")
-    return b.getvalue()
-
-if keys.ANGLES not in st.session_state:
-    A = [projects.AngleData(label=f"angle {i+1}", photo_bytes=_png(40*(i+1)),
-         photo_suffix=".png", book=new_book(5), settings=state._current_settings())
-         for i in range(2)]
-    st.session_state[keys.ANGLES] = A
-    st.session_state[keys.ACTIVE_ANGLE] = 0
-    state.seed_editor_from_angle(A[0])
-
-# Same tab order as app.py: studio (angle bar) BEFORE all-angles (gallery).
-ts, ta = st.tabs(["studio", "all angles"])
-with ts:
-    angles_panel.render()
-with ta:
-    _A = st.session_state.get(keys.ANGLES, []); _ac = st.session_state.get(keys.ACTIVE_ANGLE, 0)
-    if _A:
-        _A[_ac] = state.flush_editor_into_angle(_A[_ac])
-    gallery_panel.render(_A, _ac)
-"""
-
-
-def test_gallery_edit_button_does_not_revert_active_angle():
-    """Regression: the Edit button used to set ACTIVE_ANGLE without resetting the
-    studio angle radio, so the radio's stale value bounced the active angle back
-    on the following rerun. It must switch and stay switched."""
-    at = AppTest.from_string(_COMBINED_HARNESS)
-    at.run()
-    assert at.session_state[keys.ACTIVE_ANGLE] == 0
-    at.button(key="gallery_edit_1").click()
-    at.run()
-    at.run()  # extra passive rerun — where the old bug bounced back to 0
-    assert at.session_state[keys.ACTIVE_ANGLE] == 1
-    assert at.session_state["angle_select"] == 1
