@@ -46,6 +46,18 @@ def test_interpolation(tmp_locales):
     assert t("app.msg", n=3) == "Count: 3"
 
 
+def test_capture_help_is_translated_for_spanish():
+    """The capture guide text should be available in the locale catalog."""
+    set_lang("es")
+    guide = t("capture.shooting_guide")
+    note = t("capture.painted_capture_note")
+    ps_guide = t("capture.ps_guide")
+    assert "luz lateral" in guide.lower()
+    assert "miniatura" in guide.lower()
+    assert "imprimada" in note.lower() or "primed" not in note.lower()
+    assert "estéreo" in ps_guide.lower() or "fotométrico" in ps_guide.lower()
+
+
 def test_es_all_keys_accessible():
     """Every en.json key returns a non-key value when lang=es (fallback works)."""
     set_lang("es")

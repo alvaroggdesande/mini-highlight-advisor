@@ -124,15 +124,14 @@ with tab_angles:
 
 # --- 📷 Capture & help ---
 with tab_capture:
-    from mini_highlight_advisor.input_check import SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
     st.header(t("app.header_photo_guide"))
-    st.markdown(SHOOTING_GUIDE)
+    st.markdown(t("capture.shooting_guide"))
     st.divider()
-    st.markdown(PAINTED_CAPTURE_NOTE)
+    st.markdown(t("capture.painted_capture_note"))
     st.header(t("app.header_ps_capture"))
     ps_guide = Path("docs/ps-capture-guide.md")
     if ps_guide.exists():
-        st.markdown(ps_guide.read_text(encoding="utf-8"))
+        st.markdown(t("capture.ps_guide"))
     else:
         st.caption(t("app.ps_guide_missing"))
 
