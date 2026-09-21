@@ -1,6 +1,8 @@
 # src/mini_highlight_advisor/projects.py
 from __future__ import annotations
 
+import base64
+import io
 import json
 import os
 import re
@@ -288,3 +290,118 @@ def next_active_index(active: int, removed: int, count_before: int) -> int:
     if active == removed:
         return max(0, removed - 1)
     return active
+
+
+# ---------------------------------------------------------------------------
+# JSON-blob serialization (for download/upload without a persistent filesystem)
+# ---------------------------------------------------------------------------
+
+def _mask_to_b64(mask: np.ndarray) -> str:
+    buf = io.BytesIO()
+    Image.fromarray(np.asarray(mask, dtype=bool)).save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def _mask_from_b64(s: str) -> np.ndarray:
+    with Image.open(io.BytesIO(base64.b64decode(s))) as im:
+        return np.asarray(im).astype(bool)
+
+
+def _angle_to_blob_dict(a: AngleData) -> dict:
+    drawn = [
+        {"name": r.name,
+         "palette": _palette_to_dicts(r.palette),
+         "coverage": list(r.coverage),
+         "mask_b64": _mask_to_b64(r.mask),
+         "material": r.material,
+         "surface": r.surface,
+         "tone": r.tone,
+         "ramp_midtone": r.ramp_midtone,
+         "ramp_variant": r.ramp_variant}
+        for r in a.book.drawn
+    ]
+    return {
+        "label": a.label,
+        "photo_b64": base64.b64encode(a.photo_bytes).decode("ascii"),
+        "photo_suffix": a.photo_suffix,
+        "settings": _settings_to_dict(a.settings),
+        "book": {
+            "whole": {"palette": _palette_to_dicts(a.book.whole_palette),
+                      "coverage": list(a.book.whole_coverage),
+                      "material": a.book.whole_material,
+                      "surface": a.book.whole_surface,
+                      "tone": a.book.whole_tone},
+            "drawn": drawn,
+            "selected": a.book.selected,
+            "colour_context": {"hero_hex": a.book.hero_hex, "mood": a.book.mood,
+                               "whole_ramp_midtone": a.book.whole_ramp_midtone,
+                               "whole_ramp_variant": a.book.whole_ramp_variant},
+        },
+    }
+
+
+def _angle_from_blob_dict(entry: dict) -> AngleData:
+    photo_bytes = base64.b64decode(entry["photo_b64"])
+    b = entry["book"]
+    drawn = [
+        Region(name=d["name"],
+               mask=_mask_from_b64(d["mask_b64"]),
+               palette=_palette_from_dicts(d["palette"]),
+               coverage=list(d["coverage"]),
+               material=d.get("material", "matte"),
+               surface=d.get("surface", "other"),
+               tone=d.get("tone"),
+               ramp_midtone=d.get("ramp_midtone"),
+               ramp_variant=d.get("ramp_variant"))
+        for d in b["drawn"]
+    ]
+    colour_context = b.get("colour_context", {})
+    book = RegionBook(
+        whole_palette=_palette_from_dicts(b["whole"]["palette"]),
+        whole_coverage=list(b["whole"]["coverage"]),
+        whole_material=b["whole"].get("material", "matte"),
+        whole_surface=b["whole"].get("surface", "other"),
+        whole_tone=b["whole"].get("tone"),
+        drawn=drawn,
+        selected=b["selected"],
+        hero_hex=colour_context.get("hero_hex"),
+        mood=colour_context.get("mood"),
+        whole_ramp_midtone=colour_context.get("whole_ramp_midtone"),
+        whole_ramp_variant=colour_context.get("whole_ramp_variant"),
+    )
+    return AngleData(label=entry["label"],
+                     photo_bytes=photo_bytes,
+                     photo_suffix=entry["photo_suffix"],
+                     book=book,
+                     settings=_settings_from_dict(entry["settings"]))
+
+
+def project_to_json_bytes(name: str, paints_pool, active_angle: int,
+                          angles, schemes=None) -> bytes:
+    slug = slugify(name)
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "name": name,
+        "slug": slug,
+        "paints_pool": list(paints_pool),
+        "active_angle": active_angle,
+        "angles": [_angle_to_blob_dict(a) for a in angles],
+        "schemes": [_scheme_to_dict(s) for s in (schemes or [])],
+    }
+    return json.dumps(manifest, indent=2).encode("utf-8")
+
+
+def project_from_json_bytes(data: bytes) -> LoadedProject:
+    m = json.loads(data.decode("utf-8"))
+    angles = [_angle_from_blob_dict(e) for e in m["angles"]]
+    active = m.get("active_angle", 0)
+    if angles:
+        active = min(max(0, active), len(angles) - 1)
+    schemes = []
+    for d in m.get("schemes", []):
+        try:
+            schemes.append(_scheme_from_dict(d))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return LoadedProject(paints_pool=list(m.get("paints_pool", [])),
+                         active_angle=active, angles=angles, schemes=schemes)

@@ -393,3 +393,84 @@ def test_v4_manifest_loads_with_none_decision_defaults(tmp_path):
     assert lp.angles[0].book.drawn[0].ramp_variant is None
     assert lp.angles[0].book.whole_ramp_midtone is None
     assert lp.angles[0].book.whole_ramp_variant is None
+
+
+# ---------------------------------------------------------------------------
+# JSON blob (download/upload) roundtrip
+# ---------------------------------------------------------------------------
+
+def test_json_blob_roundtrip_single_angle():
+    """project_to_json_bytes / project_from_json_bytes preserve all fields."""
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    from mini_highlight_advisor.region_state import RegionBook
+    from mini_highlight_advisor.regions import Region
+
+    m = np.zeros((6, 8), dtype=bool); m[1:4, 2:6] = True
+    book = RegionBook(
+        default_ramp(5), default_coverage(5),
+        drawn=[Region("Cape", m, default_ramp(4), default_coverage(4),
+                      material="nmm", surface="cloak", tone="cold",
+                      ramp_midtone="#c02030", ramp_variant="complementary")],
+        selected=1, hero_hex="#a03020", mood="grimdark",
+        whole_ramp_midtone="#506070", whole_ramp_variant="warm",
+    )
+    angle = projects.AngleData("front", b"PHOTOBYTES", ".jpg", book, _settings())
+    data = projects.project_to_json_bytes(
+        "My Mini", ["70.950", "72.001"], 0, [angle],
+        schemes=[],
+    )
+    assert isinstance(data, bytes)
+
+    lp = projects.project_from_json_bytes(data)
+    assert lp.paints_pool == ["70.950", "72.001"]
+    assert lp.active_angle == 0
+    assert len(lp.angles) == 1
+    a = lp.angles[0]
+    assert a.label == "front"
+    assert a.photo_bytes == b"PHOTOBYTES"
+    assert a.photo_suffix == ".jpg"
+    assert a.settings == _settings()
+    assert a.book.hero_hex == "#a03020"
+    assert a.book.mood == "grimdark"
+    assert a.book.whole_ramp_midtone == "#506070"
+    assert a.book.whole_ramp_variant == "warm"
+    assert len(a.book.drawn) == 1
+    r = a.book.drawn[0]
+    assert r.name == "Cape"
+    assert np.array_equal(r.mask, m)
+    assert r.material == "nmm"
+    assert r.surface == "cloak"
+    assert r.tone == "cold"
+    assert r.ramp_midtone == "#c02030"
+    assert r.ramp_variant == "complementary"
+
+
+def test_json_blob_roundtrip_multi_angle():
+    """Multiple angles and a non-trivial paints_pool survive the blob roundtrip."""
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    from mini_highlight_advisor.region_state import RegionBook
+
+    a1 = projects.AngleData("front", b"F", ".png",
+                             RegionBook(default_ramp(5), default_coverage(5)), _settings())
+    a2 = projects.AngleData("back", b"B", ".png",
+                             RegionBook(default_ramp(4), default_coverage(4)), _settings())
+    data = projects.project_to_json_bytes("Two Angles", ["X", "Y"], 1, [a1, a2])
+    lp = projects.project_from_json_bytes(data)
+    assert lp.active_angle == 1
+    assert [a.label for a in lp.angles] == ["front", "back"]
+    assert lp.angles[0].photo_bytes == b"F"
+    assert lp.angles[1].photo_bytes == b"B"
+
+
+def test_json_blob_name_round_trips():
+    """The project name is preserved in the blob (not just the slug)."""
+    import json as _json
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    from mini_highlight_advisor.region_state import RegionBook
+
+    angle = projects.AngleData("front", b"X", ".png",
+                               RegionBook(default_ramp(5), default_coverage(5)), _settings())
+    data = projects.project_to_json_bytes("Skaven Hero!!", [], 0, [angle])
+    parsed = _json.loads(data)
+    assert parsed["name"] == "Skaven Hero!!"
+    assert parsed["slug"] == "skaven-hero"

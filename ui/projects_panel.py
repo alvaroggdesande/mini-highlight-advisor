@@ -1,74 +1,73 @@
-"""📁 Projects panel — save the current mini and reload/delete saved ones.
+"""📁 Projects panel — download/upload JSON project files.
 
-Streamlit glue only; all persistence lives in mini_highlight_advisor.projects.
+No disk writes; works on Streamlit Cloud (ephemeral FS) and locally alike.
+All persistence lives in mini_highlight_advisor.projects (project_to/from_json_bytes).
 """
+import json
+
 import streamlit as st
 
 from mini_highlight_advisor import projects
 from ui import keys, state
 
 
-def _make_load_callback(slug: str, labels: dict):
-    """Return a callback that loads a project into session state.
-
-    Must run via on_click (before the next render cycle) so that setting
-    st.session_state[keys.OWNED] is legal — the 'owned' multiselect renders in
-    tab_paints before render_library() runs, making a direct inline assignment
-    raise StreamlitAPIException.
-    """
-    def _callback():
-        lp = projects.load_project(slug)
-        st.session_state[keys.ANGLES] = list(lp.angles)
-        state.set_active_angle(lp.active_angle)
-        st.session_state[keys.OWNED] = list(lp.paints_pool)
-        st.session_state[keys.LOADED_NAME] = labels[slug]
-        state.seed_editor_from_angle(lp.angles[lp.active_angle])
-        st.session_state[keys.SCHEMES] = list(lp.schemes)
-    return _callback
+def _load_from_project(lp: projects.LoadedProject, name: str) -> None:
+    st.session_state[keys.ANGLES] = list(lp.angles)
+    state.set_active_angle(lp.active_angle)
+    st.session_state[keys.OWNED] = list(lp.paints_pool)
+    st.session_state[keys.LOADED_NAME] = name
+    state.seed_editor_from_angle(lp.angles[lp.active_angle])
+    st.session_state[keys.SCHEMES] = list(lp.schemes)
 
 
 def render_library() -> None:
-    """Load / delete existing projects. Render this BEFORE the upload gate."""
-    with st.expander("📁 Projects — load a saved mini", expanded=False):
-        metas = projects.list_projects()
-        if not metas:
-            st.caption("No saved projects yet. Save one below after setting up a mini.")
-            return
-        labels = {m.slug: f"{m.name}" for m in metas}
-        slug = st.selectbox("Saved projects", [m.slug for m in metas],
-                            format_func=lambda s: labels[s], key=keys.LOAD_SELECT)
-        c_load, c_del = st.columns(2)
-        c_load.button("Load", type="primary", on_click=_make_load_callback(slug, labels))
-        confirm_del = st.checkbox("Confirm delete", key=f"confirm_del_{slug}")
-        if c_del.button("Delete", disabled=not confirm_del):
-            projects.delete_project(slug)
-            st.session_state.pop(f"confirm_del_{slug}", None)
+    """Upload a previously downloaded project JSON to restore it."""
+    with st.expander("📂 Load a saved project", expanded=False):
+        nonce = st.session_state.get(keys.UPLOAD_PROJECT_NONCE, 0)
+        uploaded = st.file_uploader(
+            "Upload project file (.json)",
+            type=["json"],
+            key=f"{keys.UPLOAD_PROJECT}_{nonce}",
+        )
+        if uploaded is not None:
+            try:
+                data = uploaded.read()
+                name = json.loads(data).get("name", "Untitled")
+                lp = projects.project_from_json_bytes(data)
+            except Exception as e:
+                st.error(f"Could not load project: {e}")
+                return
+            _load_from_project(lp, name)
+            st.session_state[keys.UPLOAD_PROJECT_NONCE] = nonce + 1
+            st.toast(f'Project "{name}" loaded.')
             st.rerun()
 
 
 def render_save() -> None:
-    """Save the whole mini (all angles + shared paint pool). Render AFTER the editor."""
-    with st.expander("💾 Save this mini as a project", expanded=False):
+    """Serialize the current project and offer a download button."""
+    with st.expander("💾 Download project as JSON", expanded=False):
         default = st.session_state.get(keys.LOADED_NAME, "Untitled")
         name = st.text_input("Project name", value=default, key=keys.SAVE_PROJECT_NAME)
-        existing = {m.slug for m in projects.list_projects()}
+        angles = st.session_state.get(keys.ANGLES, [])
+        if not angles:
+            st.caption("No mini loaded yet.")
+            return
+        active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
+        flushed = list(angles)
+        flushed[active] = state.flush_editor_into_angle(flushed[active])
+        pool = list(st.session_state.get(keys.OWNED, []))
         try:
-            will_overwrite = projects.slugify(name) in existing
-        except ValueError:
-            will_overwrite = False
-        if will_overwrite:
-            st.warning(f"A project named \"{name}\" exists — saving overwrites it.")
-        ok = (not will_overwrite) or st.checkbox("Confirm overwrite", key=f"confirm_ow_{name}")
-        if st.button("Save project", type="primary", disabled=not ok):
-            angles = st.session_state[keys.ANGLES]
-            active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
-            # flush live edits of the active angle before serializing
-            angles[active] = state.flush_editor_into_angle(angles[active])
-            pool = list(st.session_state.get(keys.OWNED, []))
-            try:
-                projects.save_project(name, pool, active, angles,
-                                      schemes=st.session_state.get(keys.SCHEMES, []))
-                st.session_state[keys.LOADED_NAME] = name
-                st.toast(f"Saved \"{name}\".")
-            except ValueError as e:
-                st.error(str(e))
+            data = projects.project_to_json_bytes(
+                name, pool, active, flushed,
+                schemes=st.session_state.get(keys.SCHEMES, []),
+            )
+            slug = projects.slugify(name)
+        except ValueError as e:
+            st.error(str(e))
+            return
+        st.download_button(
+            label="⬇ Download project JSON",
+            data=data,
+            file_name=f"{slug}.json",
+            mime="application/json",
+        )

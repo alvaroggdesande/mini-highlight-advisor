@@ -63,6 +63,8 @@ LOADED_PHOTO = "loaded_photo"          # {"bytes":..., "suffix":...} for a loade
 LOADED_NAME = "loaded_project_name"    # display name of the loaded project (save default)
 SAVE_PROJECT_NAME = "save_project_name"
 LOAD_SELECT = "load_project_select"
+UPLOAD_PROJECT = "upload_project_file" # file_uploader key for JSON restore
+UPLOAD_PROJECT_NONCE = "_upload_project_nonce"  # bumped to reset uploader after load
 SCHEMES = "schemes"                    # list[Scheme] in session
 SCHEME_GENERATED = "scheme_generated"  # True once Level 1 scheme has been applied
 
