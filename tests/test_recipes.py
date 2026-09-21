@@ -1,7 +1,9 @@
 from pathlib import Path
+import json as _json
 
 from mini_highlight_advisor.recipes import (
     Recipe, RecipeStep, load_builtin, load_user, save_user, load_all, to_palette,
+    export_to_json_bytes, import_from_json_bytes,
 )
 
 
@@ -52,3 +54,39 @@ def test_load_all_merges_builtin_and_user(tmp_path):
     save_user(Recipe("Custom", [RecipeStep("s", "#333333", None)]), path=p)
     names = [r.name for r in load_all(user_path=p)]
     assert "NMM Copper" in names and "Custom" in names
+
+
+def test_export_import_round_trips():
+    original = [Recipe("Test", [RecipeStep("Base", "#ff0000", "Red Paint")])]
+    data = export_to_json_bytes(original)
+    result = import_from_json_bytes(data)
+    assert len(result) == 1
+    assert result[0].name == "Test"
+    assert result[0].steps[0].hex == "#ff0000"
+    assert result[0].steps[0].paint_ref == "Red Paint"
+
+
+def test_export_empty_list():
+    data = export_to_json_bytes([])
+    result = import_from_json_bytes(data)
+    assert result == []
+
+
+def test_import_preserves_paint_ref_none():
+    r = Recipe("NoPaintRef", [RecipeStep("Base", "#aabbcc")])  # paint_ref defaults to None
+    result = import_from_json_bytes(export_to_json_bytes([r]))
+    assert result[0].steps[0].paint_ref is None
+
+
+def test_import_from_json_bytes_malformed_raises():
+    import pytest
+    with pytest.raises(Exception):
+        import_from_json_bytes(b"not valid json {{{")
+
+
+def test_export_produces_valid_json():
+    r = Recipe("Gold", [RecipeStep("Shadow", "#1a1a1a", "Black")])
+    data = export_to_json_bytes([r])
+    parsed = _json.loads(data)
+    assert "recipes" in parsed
+    assert parsed["recipes"][0]["name"] == "Gold"
