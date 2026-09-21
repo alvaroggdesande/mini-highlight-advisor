@@ -88,7 +88,12 @@
     "apply_btn": "Aplicar",
     "scheme_applied_info": "{count} región(es) actualizada(s) — sin color guardado para: {skipped}",
     "delete_btn": "Eliminar",
-    "editing_heading": "**Editando:** {name}"
+    "editing_heading": "**Editando:** {name}",
+    "manage_recipes_expander": "Gestionar recetas",
+    "download_recipes_btn": "⬇ Descargar mis_recetas.json",
+    "import_recipes_label": "Importar recetas (.json)",
+    "recipes_imported_toast": "Se importaron {count} receta(s)",
+    "import_recipes_error": "Error al importar: {err}"
   },
   "coverage": {
     "metal_steps_heading": "**Pasos de metal** (bandas de valor para esta región NMM)",

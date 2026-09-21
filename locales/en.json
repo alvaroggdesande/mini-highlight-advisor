@@ -88,7 +88,12 @@
     "apply_btn": "Apply",
     "scheme_applied_info": "{count} region(s) updated — no saved colour for: {skipped}",
     "delete_btn": "Delete",
-    "editing_heading": "**Editing:** {name}"
+    "editing_heading": "**Editing:** {name}",
+    "manage_recipes_expander": "Manage recipes",
+    "download_recipes_btn": "⬇ Download my_recipes.json",
+    "import_recipes_label": "Import recipes (.json)",
+    "recipes_imported_toast": "Imported {count} recipe(s)",
+    "import_recipes_error": "Import failed: {err}"
   },
   "coverage": {
     "metal_steps_heading": "**Metal steps** (value bands for this NMM region)",

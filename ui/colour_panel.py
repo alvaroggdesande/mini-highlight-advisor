@@ -11,7 +11,11 @@ from mini_highlight_advisor.palette import (
 )
 from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
-from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
+from mini_highlight_advisor.recipes import (
+    load_all, load_user, to_palette, save_user,
+    export_to_json_bytes, import_from_json_bytes,
+    Recipe, RecipeStep,
+)
 from mini_highlight_advisor.matching import match, Target
 from i18n import t
 from ui import context, coverage_editor, helpers, keys
@@ -97,6 +101,49 @@ def _render_level1(book, owned_paints) -> None:
             _reseed_editor_widgets()
             st.success(t("colour.generated_success"))
             st.rerun()
+
+
+_RECIPE_IMPORT_NONCE = "_recipe_import_nonce"
+
+
+def _render_recipe_manager() -> None:
+    with st.expander(t("colour.manage_recipes_expander")):
+        user_recipes = load_user()
+        if user_recipes:
+            st.download_button(
+                t("colour.download_recipes_btn"),
+                data=export_to_json_bytes(user_recipes),
+                file_name="my_recipes.json",
+                mime="application/json",
+                key="_recipe_dl_btn",
+            )
+
+        nonce = st.session_state.get(_RECIPE_IMPORT_NONCE, 0)
+        uploader_key = f"_recipe_import_{nonce}"
+
+        def _on_import():
+            uploaded = st.session_state.get(uploader_key)
+            if uploaded is None:
+                return
+            try:
+                imported = import_from_json_bytes(uploaded.read())
+                for r in imported:
+                    save_user(r)
+                st.session_state[_RECIPE_IMPORT_NONCE] = nonce + 1
+                st.session_state["_recipe_import_count"] = len(imported)
+            except Exception as exc:
+                st.session_state["_recipe_import_err"] = str(exc)
+
+        st.file_uploader(
+            t("colour.import_recipes_label"),
+            type=["json"],
+            key=uploader_key,
+            on_change=_on_import,
+        )
+        if count := st.session_state.pop("_recipe_import_count", None):
+            st.toast(t("colour.recipes_imported_toast", count=count))
+        if err := st.session_state.pop("_recipe_import_err", None):
+            st.error(t("colour.import_recipes_error", err=err))
 
 
 def _apply_ramp(hexes: list[str], n: int) -> None:
@@ -427,6 +474,7 @@ def render(book, sel: int, picked, owned_paints, rgb=None) -> None:
 
     # Scheme save / swap at the bottom.
     _render_scheme_save(book)
+    _render_recipe_manager()
 
     # Deferred rerun after Apply Ramp / Load recipe so Level 3 has already updated
     # the book palette before the analysis re-runs — one click = one visible update.
