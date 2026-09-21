@@ -1,0 +1,13 @@
+{
+  "sidebar": {
+    "language": "Idioma"
+  },
+  "app": {
+    "title": "Ayuda para pintar miniaturas",
+    "tab_studio": "Estudio",
+    "tab_paint": "Guía de pintura",
+    "tab_paints": "Colección de pinturas",
+    "tab_angles": "Todos los ángulos",
+    "tab_capture": "Captura y ayuda"
+  }
+}

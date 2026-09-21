@@ -1,0 +1,13 @@
+{
+  "sidebar": {
+    "language": "Language"
+  },
+  "app": {
+    "title": "Mini Highlight Advisor",
+    "tab_studio": "Studio",
+    "tab_paint": "Paint guide",
+    "tab_paints": "Paint collection",
+    "tab_angles": "All angles",
+    "tab_capture": "Capture & help"
+  }
+}
