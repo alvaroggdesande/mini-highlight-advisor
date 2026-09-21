@@ -154,6 +154,11 @@ def _apply_ramp(hexes: list[str], n: int) -> None:
     st.session_state["_ramp_applied"] = True
 
 
+def _on_ramp_click(book, sel: int, mid_hex: str, variant_key: str, hexes: list[str], n: int) -> None:
+    _apply_ramp(hexes, n)
+    _write_ramp_decision(book, sel, mid_hex, variant_key)
+
+
 def _write_ramp_decision(book, sel: int, mid_hex: str, variant: str) -> None:
     """Persist the ramp decision (midtone hex + variant key) on the book."""
     if sel > 0:
@@ -221,9 +226,8 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
 
     btn_cols = st.columns(len(ramps))
     for col, (label, (variant_key, hexes)) in zip(btn_cols, ramps.items()):
-        if col.button(label, key=f"apply_ramp_{label}", width="stretch"):
-            _apply_ramp(hexes, n)
-            _write_ramp_decision(book, sel, mid_hex, variant_key)
+        col.button(label, key=f"apply_ramp_{label}", width="stretch",
+                   on_click=_on_ramp_click, args=(book, sel, mid_hex, variant_key, hexes, n))
 
 
 def _apply_paste_hex(i: int) -> None:
