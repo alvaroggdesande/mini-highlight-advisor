@@ -16,6 +16,8 @@ spikes/input/
 *.jpg
 *.jpeg
 *.png
+src/mini_highlight_advisor/data/samples/photos/*
+!src/mini_highlight_advisor/data/samples/photos/.gitkeep
 !docs/**/*.png
 
 # Local user data (owned paints + saved recipes)
