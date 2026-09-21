@@ -114,7 +114,7 @@
     "caption": "Same paints, every face. Switch to the 🖌️ Studio tab to edit the active angle.",
     "render_error": "\"{label}\" — couldn't render this photo.",
     "active_caption": "✓ Active — go to the 🖌️ Studio tab to edit.",
-    "inactive_caption": "Go to 🖌️ Studio to activate this angle."
+    "edit_btn": "✏️ Edit"
   },
   "osl": {
     "heading": "**Object-source glow** (OSL) — click where the light lives, pick a colour.",

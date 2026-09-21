@@ -12,7 +12,7 @@ import streamlit as st
 
 from mini_highlight_advisor.pipeline import analyze_regions
 from i18n import t
-from ui import keys, _profile
+from ui import keys, state, _profile
 
 _PER_ROW = 3
 
@@ -151,5 +151,5 @@ def render(angles, active_idx: int) -> None:
                     st.warning(t("gallery.render_error", label=angle.label))
                 if i == active_idx:
                     st.caption(t("gallery.active_caption"))
-                else:
-                    st.caption(t("gallery.inactive_caption"))
+                st.button(t("gallery.edit_btn"), key=f"gallery_edit_{i}",
+                          on_click=state.set_active_angle, args=(i,))

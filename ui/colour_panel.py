@@ -208,6 +208,25 @@ def _delete_band_at(i: int, n: int) -> None:
     st.session_state[keys.N] = n - 1
 
 
+def _remove_last_band(n: int) -> None:
+    """Remove the last band (position n-1), decrement N. No-op if n <= 3."""
+    if n <= 3:
+        return
+    st.session_state.pop(keys.slot_code(n - 1), None)
+    st.session_state.pop(keys.slot_hex(n - 1), None)
+    st.session_state.pop(keys.slot_hexinput(n - 1), None)
+    st.session_state[keys.N] = n - 1
+
+
+def _add_band(n: int) -> None:
+    """Append a new lightest band at position n, increment N. No-op if n >= 7."""
+    if n >= 7:
+        return
+    st.session_state[keys.slot_hex(n)] = ramp_hex(n, n + 1)
+    st.session_state[keys.slot_code(n)] = context.CUSTOM
+    st.session_state[keys.N] = n + 1
+
+
 def _insert_band_at_start(n: int) -> None:
     """Insert a new darkest band at position 0, shifting all others up. No-op if n >= 7."""
     if n >= 7:

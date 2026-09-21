@@ -114,7 +114,7 @@
     "caption": "Las mismas pinturas, cada cara. Cambia a la pestaña 🖌️ Estudio para editar el ángulo activo.",
     "render_error": "\"{label}\" — no se pudo renderizar esta foto.",
     "active_caption": "✓ Activo — ve a la pestaña 🖌️ Estudio para editar.",
-    "inactive_caption": "Ve a 🖌️ Estudio para activar este ángulo."
+    "edit_btn": "✏️ Editar"
   },
   "osl": {
     "heading": "**Resplandor de fuente de luz** (OSL) — haz clic donde está la luz, elige un color.",
