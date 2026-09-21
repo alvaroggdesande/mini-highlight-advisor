@@ -151,5 +151,3 @@ def render(angles, active_idx: int) -> None:
                     st.warning(t("gallery.render_error", label=angle.label))
                 if i == active_idx:
                     st.caption(t("gallery.active_caption"))
-                st.button(t("gallery.edit_btn"), key=f"gallery_edit_{i}",
-                          on_click=state.set_active_angle, args=(i,))
