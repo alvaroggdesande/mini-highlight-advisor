@@ -16,9 +16,10 @@ spikes/input/
 *.jpg
 *.jpeg
 *.png
-src/mini_highlight_advisor/data/samples/photos/*
-!src/mini_highlight_advisor/data/samples/photos/.gitkeep
 !docs/**/*.png
+!src/mini_highlight_advisor/data/samples/photos/ratogre_1.png
+!src/mini_highlight_advisor/data/samples/photos/ratogre_2.png
+!src/mini_highlight_advisor/data/samples/photos/ratogre_3.png
 
 # Local user data (owned paints + saved recipes)
 user_data/
