@@ -9,6 +9,7 @@ import streamlit as st
 
 from mini_highlight_advisor import projects
 from mini_highlight_advisor.region_state import new_book
+from i18n import t
 from ui import keys, state
 
 
@@ -37,16 +38,16 @@ def render() -> int:
     if msg:
         st.success(msg)
 
-    st.markdown("**Angles**")
+    st.markdown(t("angles.heading"))
     labels = [a.label for a in angles]
-    picked = st.radio("Active angle", list(range(len(angles))),
+    picked = st.radio(t("angles.active_label"), list(range(len(angles))),
                       index=active, format_func=lambda i: labels[i],
                       horizontal=True, key=keys.ANGLE_SELECT)
     if picked != active:
         state.load_angle_into_editor(picked)   # flush + seed + rerun
 
     c_rename, c_remove = st.columns([3, 1])
-    new_label = c_rename.text_input("Rename angle", value=labels[active],
+    new_label = c_rename.text_input(t("angles.rename_label"), value=labels[active],
                                     key=keys.angle_label(active))
     if new_label.strip() and new_label != labels[active]:
         angles[active] = projects.AngleData(
@@ -55,7 +56,7 @@ def render() -> int:
             settings=angles[active].settings)
         st.rerun()
 
-    if c_remove.button("🗑️ Remove", disabled=len(angles) == 1):
+    if c_remove.button(t("angles.remove_btn"), disabled=len(angles) == 1):
         new_active = projects.next_active_index(active, active, len(angles))
         angles.pop(active)
         state.set_active_angle(new_active)
@@ -63,7 +64,7 @@ def render() -> int:
         state.seed_editor_from_angle(angles[new_active])
         st.rerun()
 
-    with st.expander("➕ Add another angle", expanded=False):
+    with st.expander(t("angles.add_expander"), expanded=False):
         # Consume the upload exactly ONCE by resetting the widget after each add:
         # bump a nonce into its key so the next render mounts a fresh, empty
         # uploader. A signature guard is NOT enough here — st_canvas is a
@@ -73,7 +74,7 @@ def render() -> int:
         # angle per stroke (and wiping the in-progress lasso). A fresh key has no
         # persisted file to re-read, so transient None reads are harmless.
         nonce = st.session_state.get("_add_angle_nonce", 0)
-        up = st.file_uploader("New angle photo", type=["png", "jpg", "jpeg"],
+        up = st.file_uploader(t("angles.new_photo_label"), type=["png", "jpg", "jpeg"],
                               key=f"add_angle_uploader_{nonce}")
         if up is not None:
             # persist edits to the current angle before switching to the new one
@@ -85,9 +86,7 @@ def render() -> int:
             angles.append(a)
             state.set_active_angle(len(angles) - 1)
             st.session_state["_add_angle_nonce"] = nonce + 1
-            st.session_state["_angle_added_msg"] = (
-                f"'{a.label}' added — it's now the active angle for editing."
-            )
+            st.session_state["_angle_added_msg"] = t("angles.added_msg", label=a.label)
             _clear_angle_label_keys()
             state.seed_editor_from_angle(a)
             st.rerun()

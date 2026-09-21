@@ -25,7 +25,7 @@ def test_renders_two_sliders_with_defaults():
 def test_preset_button_sets_light():
     at = _run()
     # click the "Raking-L" preset; azimuth/elevation should jump to its values
-    at.button(key="preset_Raking-L").click()
+    at.button(key="preset_raking_l").click()
     at.run()
     assert at.session_state["light_az"] == 200
     assert at.session_state["light_el"] == 20

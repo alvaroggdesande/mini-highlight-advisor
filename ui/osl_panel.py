@@ -7,6 +7,7 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
+from i18n import t
 from ui import keys
 from ui.compat import st_canvas
 from ui import geometry
@@ -55,22 +56,22 @@ def params_from_session(mask_shape) -> dict | None:
 
 
 def render(mask_shape, background_rgb) -> dict | None:
-    st.markdown("**Object-source glow** (OSL) — click where the light lives, pick a colour.")
-    enabled = st.checkbox("Enable glow", value=st.session_state.get(keys.OSL_ON, False),
+    st.markdown(t("osl.heading"))
+    enabled = st.checkbox(t("osl.enable_cb"), value=st.session_state.get(keys.OSL_ON, False),
                           key=keys.OSL_ON)
     if not enabled:
         return None
 
-    preset = st.selectbox("Preset", list(PRESETS), key=keys.OSL_PRESET)
+    preset = st.selectbox(t("osl.preset_label"), list(PRESETS), key=keys.OSL_PRESET)
     dg, dh = PRESETS[preset]
-    glow_hex = st.color_picker("Glow colour", '#%02x%02x%02x' % dg, key=keys.OSL_GLOW)
-    hot_hex = st.color_picker("Hotspot tint", '#%02x%02x%02x' % dh, key=keys.OSL_HOT)
-    height = st.slider("Height (off surface)", 0.0, 120.0, 40.0, key=keys.OSL_HEIGHT)
-    reach = st.slider("Reach (glow radius, px)", 5.0, 300.0, 60.0, key=keys.OSL_REACH)
-    intensity = st.slider("Intensity", 0.1, 2.0, 1.0, key=keys.OSL_INTENSITY)
-    n_layers = st.slider("Glow layers", 2, 4, 3, key=keys.OSL_LAYERS)
+    glow_hex = st.color_picker(t("osl.glow_colour_label"), '#%02x%02x%02x' % dg, key=keys.OSL_GLOW)
+    hot_hex = st.color_picker(t("osl.hotspot_label"), '#%02x%02x%02x' % dh, key=keys.OSL_HOT)
+    height = st.slider(t("osl.height_label"), 0.0, 120.0, 40.0, key=keys.OSL_HEIGHT)
+    reach = st.slider(t("osl.reach_label"), 5.0, 300.0, 60.0, key=keys.OSL_REACH)
+    intensity = st.slider(t("osl.intensity_label"), 0.1, 2.0, 1.0, key=keys.OSL_INTENSITY)
+    n_layers = st.slider(t("osl.layers_label"), 2, 4, 3, key=keys.OSL_LAYERS)
 
-    st.caption("Click the source point on the mini below.")
+    st.caption(t("osl.click_caption"))
     src_h, src_w = mask_shape
     disp_w = min(600, src_w)
     disp_h = round(src_h * disp_w / src_w)
@@ -87,7 +88,7 @@ def render(mask_shape, background_rgb) -> dict | None:
     if click is None:
         click = st.session_state.get(keys.OSL_POINT)
     if click is None:
-        st.info("No source placed yet — click on the mini.")
+        st.info(t("osl.no_source_info"))
         return None
     st.session_state[keys.OSL_POINT] = click
 

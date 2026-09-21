@@ -17,11 +17,7 @@ init_lang()
 st.set_page_config(page_title="Mini Highlight Advisor", layout="wide")
 lang_selector()
 st.title(t("app.title"))
-st.caption(
-    "Upload a photo of a primed miniature (background-removed PNG is fastest). "
-    "You'll get a painted preview + a paint-by-layer plan. Best with a raking "
-    "side light (not on-axis flash) — that gives the sculpt the shadows the tool reads."
-)
+st.caption(t("app.intro_caption"))
 
 # NOTE: st.tabs runs ALL bodies every rerun in code order.
 # Paints must execute before Studio so owned_codes is finalised before Studio
@@ -45,25 +41,27 @@ with tab_studio:
 
     projects_panel.render_library()
 
+    _input_opts = ["photo", "ps"]
+    _input_labels = {"photo": t("app.input_photo"), "ps": t("app.input_ps")}
     input_mode = st.radio(
-        "Input", ["Photo", "Import normal map (photometric stereo)"],
+        t("app.input_label"), _input_opts,
+        format_func=lambda v: _input_labels[v],
         horizontal=True, key="input_mode",
-        help="Photo = primed mini under a raking light (luminance). PS = import a "
-             "recovered normal map for dark/primed minis; drag a virtual light.")
+        help=t("app.input_help"))
     # NOTE: do NOT st.stop() here. st.tabs bodies all run in one script pass in
     # code order, and st.stop() halts the WHOLE run — it would kill the later
     # 🪜 Paint / 🖼️ All angles / 📷 Capture tab bodies. Skip only the photo-mode
     # block instead, so execution continues to those tabs. (PS mode still writes
     # keys.LAST_MULTI / keys.OSL_RESULT for the Paint tab via editor.render.)
-    if input_mode.startswith("Import"):
+    if input_mode == "ps":
         ps_mode.render(picked, owned_paints)
     else:
         angles = st.session_state[keys.ANGLES]
 
         if not angles:
-            uploaded = st.file_uploader("Mini photo", type=["png", "jpg", "jpeg"])
+            uploaded = st.file_uploader(t("app.photo_uploader"), type=["png", "jpg", "jpeg"])
             if uploaded is None:
-                st.info("Upload a photo of a primed miniature to begin, or load a saved project above.")
+                st.info(t("app.upload_prompt"))
             else:
                 a = projects.AngleData(label="angle 1", photo_bytes=uploaded.getvalue(),
                                        photo_suffix=os.path.splitext(uploaded.name)[1],
@@ -80,7 +78,7 @@ with tab_studio:
             photo_bytes, photo_suffix = active.photo_bytes, active.photo_suffix
 
             try:
-                with st.spinner("Preparing shading…"):
+                with st.spinner(t("app.spinner_shading")):
                     rgb, alpha, shading = helpers.shading(photo_bytes, photo_suffix)
 
                 normal_field = st.session_state.get(keys.NORMALS)
@@ -93,7 +91,7 @@ with tab_studio:
                 projects_panel.render_save()
 
             except Exception as e:
-                st.error("Error processing image — see traceback below.")
+                st.error(t("app.error_processing"))
                 st.exception(e)
 
 # --- 🪜 Paint: paint-along steps ---
@@ -127,15 +125,15 @@ with tab_angles:
 # --- 📷 Capture & help ---
 with tab_capture:
     from mini_highlight_advisor.input_check import SHOOTING_GUIDE, PAINTED_CAPTURE_NOTE
-    st.header("How to photograph your mini")
+    st.header(t("app.header_photo_guide"))
     st.markdown(SHOOTING_GUIDE)
     st.divider()
     st.markdown(PAINTED_CAPTURE_NOTE)
-    st.header("Photometric stereo (PS) capture")
+    st.header(t("app.header_ps_capture"))
     ps_guide = Path("docs/ps-capture-guide.md")
     if ps_guide.exists():
         st.markdown(ps_guide.read_text(encoding="utf-8"))
     else:
-        st.caption("PS capture guide not found.")
+        st.caption(t("app.ps_guide_missing"))
 
 _profile.rerun_end()

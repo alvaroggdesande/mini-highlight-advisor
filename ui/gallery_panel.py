@@ -11,6 +11,7 @@ import numpy as np
 import streamlit as st
 
 from mini_highlight_advisor.pipeline import analyze_regions
+from i18n import t
 from ui import keys, _profile
 
 _PER_ROW = 3
@@ -131,13 +132,12 @@ def render(angles, active_idx: int) -> None:
     """Read-only grid of every angle's combined painted preview. The active
     angle is marked; editing happens back in the 🖌️ Miniature tab."""
     if not angles:
-        st.info("Add angles in the 🖌️ Miniature tab to see them together here.")
+        st.info(t("gallery.no_angles_info"))
         return
     _profile.mark(f"ALL-ANGLES tab: rendering {len(angles)} angle(s)")
 
-    st.subheader("All angles")
-    st.caption("Same paints, every face. Switch to the 🖌️ Studio tab to edit "
-               "the active angle.")
+    st.subheader(t("gallery.subheader"))
+    st.caption(t("gallery.caption"))
 
     for start in range(0, len(angles), _PER_ROW):
         cols = st.columns(_PER_ROW)
@@ -148,8 +148,8 @@ def render(angles, active_idx: int) -> None:
                     st.image(_cached_preview(angle), caption=angle.label,
                              use_container_width=True)
                 except Exception:  # one bad angle must not blank the whole grid
-                    st.warning(f'"{angle.label}" — couldn\'t render this photo.')
+                    st.warning(t("gallery.render_error", label=angle.label))
                 if i == active_idx:
-                    st.caption("✓ Active — go to the 🖌️ Studio tab to edit.")
+                    st.caption(t("gallery.active_caption"))
                 else:
-                    st.caption("Go to 🖌️ Studio to activate this angle.")
+                    st.caption(t("gallery.inactive_caption"))

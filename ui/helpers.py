@@ -9,6 +9,7 @@ from mini_highlight_advisor.pipeline import prepare_shading
 from mini_highlight_advisor.palette import default_coverage
 from mini_highlight_advisor.techniques import get_technique
 from mini_highlight_advisor import pipeline
+from i18n import t
 from ui import keys
 
 
@@ -64,13 +65,13 @@ def render_region_steps(steps, roles, names, coverage, technique: str = "smooth"
             st.markdown(f"**Step {step.index + 1} — {caption_text} · {name_text}**")
         if step.is_last:
             c1, c2 = st.columns(2)
-            c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
+            c1.image(step.zone_rgb, caption=t("results.where_to_paint"), use_container_width=True)
             c2.image(step.cumulative_rgb,
                      caption=_spec.captions.across.format(pct=cum_cov),
                      use_container_width=True)
         else:
             c1, c2, c3 = st.columns(3)
-            c1.image(step.zone_rgb, caption="Where to paint", use_container_width=True)
+            c1.image(step.zone_rgb, caption=t("results.where_to_paint"), use_container_width=True)
             c2.image(step.cumulative_rgb,
                      caption=_spec.captions.across.format(pct=cum_cov),
                      use_container_width=True)

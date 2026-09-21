@@ -8,6 +8,7 @@ import json
 import streamlit as st
 
 from mini_highlight_advisor import projects
+from i18n import t
 from ui import keys, state
 
 _DL_DATA = "_dl_data"
@@ -17,7 +18,7 @@ _UPLOAD_ERR = "_upload_error"
 
 def render_library() -> None:
     """Upload a previously downloaded project JSON to restore it."""
-    with st.expander("📂 Load a saved project", expanded=False):
+    with st.expander(t("projects.load_expander"), expanded=False):
         nonce = st.session_state.get(keys.UPLOAD_PROJECT_NONCE, 0)
         uploader_key = f"{keys.UPLOAD_PROJECT}_{nonce}"
 
@@ -42,14 +43,14 @@ def render_library() -> None:
             st.session_state[keys.UPLOAD_PROJECT_NONCE] = nonce + 1
 
         st.file_uploader(
-            "Upload project file (.json)",
+            t("projects.upload_label"),
             type=["json"],
             key=uploader_key,
             on_change=_on_upload,
         )
 
         if err := st.session_state.pop(_UPLOAD_ERR, None):
-            st.error(f"Could not load project: {err}")
+            st.error(t("projects.load_error", err=err))
 
 
 def render_save() -> None:
@@ -59,15 +60,15 @@ def render_save() -> None:
     Avoids the Streamlit gotcha where clicking a download button before pressing
     Enter in the text field sends the stale pre-edit filename.
     """
-    with st.expander("💾 Download project as JSON", expanded=False):
+    with st.expander(t("projects.save_expander"), expanded=False):
         default = st.session_state.get(keys.LOADED_NAME, "Untitled")
-        name = st.text_input("Project name", value=default, key=keys.SAVE_PROJECT_NAME)
+        name = st.text_input(t("projects.project_name_label"), value=default, key=keys.SAVE_PROJECT_NAME)
         angles = st.session_state.get(keys.ANGLES, [])
         if not angles:
-            st.caption("No mini loaded yet.")
+            st.caption(t("projects.no_mini_caption"))
             return
 
-        if st.button("Prepare download", type="primary"):
+        if st.button(t("projects.prepare_btn"), type="primary"):
             active = st.session_state.get(keys.ACTIVE_ANGLE, 0)
             flushed = list(angles)
             flushed[active] = state.flush_editor_into_angle(flushed[active])
@@ -85,7 +86,7 @@ def render_save() -> None:
         if st.session_state.get(_DL_DATA):
             slug = st.session_state[_DL_SLUG]
             st.download_button(
-                label=f"⬇ Download {slug}.json",
+                label=t("projects.download_btn", slug=slug),
                 data=st.session_state[_DL_DATA],
                 file_name=f"{slug}.json",
                 mime="application/json",

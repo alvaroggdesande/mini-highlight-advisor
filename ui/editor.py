@@ -13,6 +13,7 @@ is that shared middle.
 """
 import streamlit as st
 
+from i18n import t
 from ui import colour_panel, context, geometry, helpers, keys, osl_panel, regions_panel, results, state
 
 
@@ -63,7 +64,7 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
 
     with col_render:
         st.image(osl_preview_rgb,
-                 caption="Painted preview (all regions)",
+                 caption=t("editor.preview_caption"),
                  use_container_width=True)
         # Photo-quality checks only make sense for a real photo; PS supplies a
         # normal field, so this self-guards off for the import path.
@@ -72,7 +73,7 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
                 from mini_highlight_advisor.input_check import check_input
                 checks = check_input(rgb, shading.mask)
                 all_ok = all(r.ok for r in checks)
-                label = "📷 Photo quality" if all_ok else "📷 Photo quality ⚠️"
+                label = t("editor.photo_quality_ok") if all_ok else t("editor.photo_quality_warn")
                 with st.expander(label, expanded=not all_ok):
                     for r in checks:
                         (st.success if r.ok else st.warning)(f"**{r.label}** — {r.detail}")
@@ -84,7 +85,7 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
         src_h, src_w = rgb.shape[:2]
         labels = book.names()
         sel = st.radio(
-            "Region to edit",
+            t("editor.region_to_edit"),
             list(range(len(labels))),
             index=min(book.selected, len(labels) - 1),
             format_func=lambda g: geometry.region_label(g, labels[g]),
@@ -100,9 +101,9 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
         state.rehydrate_editor_widgets(book, sel)
         book.selected = sel
 
-        tab_labels = ["🗺 Manage", "🎨 Colour", "🖌 Technique"]
+        tab_labels = [t("editor.tab_manage"), t("editor.tab_colour"), t("editor.tab_technique")]
         if has_normals:
-            tab_labels.append("✨ Glow")
+            tab_labels.append(t("editor.tab_glow"))
         subtabs = st.tabs(tab_labels)
         subtab_m, subtab_c, subtab_t = subtabs[0], subtabs[1], subtabs[2]
 
