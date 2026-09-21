@@ -4,6 +4,7 @@ import streamlit as st
 from mini_highlight_advisor.palette import (
     role_names, default_coverage, remainder_pct, slider_max_pct,
 )
+from i18n import t
 from ui import keys
 
 _COV_FLOOR = 3.0
@@ -19,14 +20,13 @@ def _cap_slider(idx: int, n_ctrl: int) -> None:
 
 def render(n: int, is_nmm: bool = False, sel: int = 0) -> list[float]:
     if is_nmm:
-        st.markdown("**Metal steps** (value bands for this NMM region)")
+        st.markdown(t("coverage.metal_steps_heading"))
         steps = st.number_input(
-            "Metal steps", min_value=2, max_value=n, value=min(5, n), step=1,
+            t("coverage.metal_steps_label"), min_value=2, max_value=n, value=min(5, n), step=1,
             key=keys.metal_steps(sel),
-            help="How many brightness bands the reflected environment is cut into. "
-                 "NMM has no per-band coverage — each step owns a fixed value range.")
+            help=t("coverage.metal_steps_help"))
         return default_coverage(int(steps))
-    st.markdown("**Coverage** (% of the model each layer occupies)")
+    st.markdown(t("coverage.coverage_heading"))
     roles_now = role_names(n)
     n_ctrl = n - 1  # controllable bands; lightest band is the auto remainder
     seed = [round(f * 100, 1) for f in default_coverage(n)]
@@ -36,7 +36,7 @@ def render(n: int, is_nmm: bool = False, sel: int = 0) -> list[float]:
             st.session_state[keys.cov_pct(i)] = seed[i]
         st.session_state[keys.COV_N] = n
 
-    if st.button("Reset to default curve"):
+    if st.button(t("coverage.reset_btn")):
         for i in range(n_ctrl):
             st.session_state[keys.cov_pct(i)] = seed[i]
         st.rerun()
@@ -50,5 +50,5 @@ def render(n: int, is_nmm: bool = False, sel: int = 0) -> list[float]:
         cov_pcts.append(val)
 
     remainder = remainder_pct(cov_pcts)
-    st.caption(f"**{roles_now[-1]} · auto: {remainder:.1f}%**  (remainder — always keeps ≥ {_COV_FLOOR:.0f}%)")
+    st.caption(t("coverage.remainder_caption", role=roles_now[-1], pct=f"{remainder:.1f}", floor=f"{_COV_FLOOR:.0f}"))
     return [p / 100.0 for p in (cov_pcts + [remainder])]  # fractions, sum == 1.0

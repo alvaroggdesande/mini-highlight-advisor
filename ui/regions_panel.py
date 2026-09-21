@@ -9,6 +9,7 @@ from PIL import Image
 
 from mini_highlight_advisor.regions import scale_points, polygons_to_mask
 from mini_highlight_advisor.palette import default_ramp
+from i18n import t
 from ui import geometry, helpers, keys, state, _profile
 from ui.compat import st_canvas
 
@@ -21,7 +22,7 @@ def render_management(book, rgb, shading, src_w, src_h, sel: int) -> None:
 
     if draw_mode and st_canvas is not None:
         _profile.mark(f"DRAW mode: canvas active, bg {rgb.shape[1]}x{rgb.shape[0]}px")
-        st.caption("Trace a lasso around an area below, then click **Add region**.")
+        st.caption(t("regions.draw_caption"))
         with _profile.prof("draw: region_outline_image (bg build)"):
             bg = geometry.region_outline_image(rgb, book.drawn)
         # Key the canvas by the active angle too: st_canvas persists its strokes by
@@ -37,32 +38,33 @@ def render_management(book, rgb, shading, src_w, src_h, sel: int) -> None:
     else:
         canvas = None
         outline = geometry.region_outline_image(rgb, book.drawn)
-        st.image(outline, caption="Region outlines", width=disp_w)
+        st.image(outline, caption=t("regions.outlines_caption"), width=disp_w)
 
     st.divider()
 
     if st_canvas is None:
-        st.info("Install `streamlit-drawable-canvas` to draw regions.")
+        st.info(t("regions.canvas_missing_info"))
     elif not draw_mode:
-        if st.button("➕ Draw a new region"):
+        if st.button(t("regions.draw_btn")):
             st.session_state[keys.DRAW_MODE] = True
             st.rerun()
     else:
-        st.markdown("**New region** — lasso on the image above.")
-        new_name = st.text_input("Region name", value=f"Region {len(book.drawn) + 1}")
+        st.markdown(t("regions.new_region_heading"))
+        _default_name = t("regions.region_default_name", n=len(book.drawn) + 1)
+        new_name = st.text_input(t("regions.region_name_label"), value=_default_name)
         c_add, c_cancel = st.columns(2)
-        if c_add.button("Add region", type="primary"):
+        if c_add.button(t("regions.add_btn"), type="primary"):
             objs = (canvas.json_data or {}).get("objects", []) if canvas else []
             if not objs:
-                st.warning("Trace a lasso around an area on the image first.")
+                st.warning(t("regions.no_lasso_warning"))
             else:
                 sx, sy = src_w / disp_w, src_h / disp_h
                 rings = [scale_points(geometry.points_from_object(o), sx, sy) for o in objs]
                 rmask = polygons_to_mask(rings, (src_h, src_w)) & shading.mask
                 if not rmask.any():
-                    st.warning("Lasso didn't overlap the mini — trace around a part of the model.")
+                    st.warning(t("regions.lasso_no_overlap_warning"))
                 else:
-                    book.add(rmask, new_name.strip() or f"Region {len(book.drawn) + 1}",
+                    book.add(rmask, new_name.strip() or _default_name,
                              default_ramp(st.session_state[keys.N]),
                              [c / 100 for c in helpers.current_cov_seed(st.session_state[keys.N])])
                     st.session_state.pop(keys.LOADED_G, None)
@@ -70,21 +72,21 @@ def render_management(book, rgb, shading, src_w, src_h, sel: int) -> None:
                         st.session_state.pop(_k, None)
                     st.session_state[keys.DRAW_MODE] = False
                     st.rerun()
-        if c_cancel.button("Cancel"):
+        if c_cancel.button(t("regions.cancel_btn")):
             st.session_state[keys.DRAW_MODE] = False
             st.rerun()
 
     # Per-region controls for the selected region (hidden while drawing)
     if not draw_mode and sel >= 1:
         st.divider()
-        renamed = st.text_input("Rename region", value=book.names()[sel],
+        renamed = st.text_input(t("regions.rename_label"), value=book.names()[sel],
                                 key=keys.rename(sel))
         if renamed.strip() and renamed.strip() != book.names()[sel]:
             book.set_name_at(sel, renamed)
             st.session_state.pop(keys.LOADED_G, None)
             st.rerun()
 
-        if st.button("🗑 Delete this region", key="delete_region_btn"):
+        if st.button(t("regions.delete_btn"), key="delete_region_btn"):
             book.remove(sel)
             st.session_state.pop(keys.LOADED_G, None)
             for _k in [k for k in list(st.session_state) if k.startswith(keys.RENAME_PREFIX)]:

@@ -13,6 +13,7 @@ from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.matching import match, Target
+from i18n import t
 from ui import context, coverage_editor, helpers, keys
 
 
@@ -33,17 +34,16 @@ def _render_level1(book, owned_paints) -> None:
     if book.mood is not None and book.mood in MOODS and "sgen_mood" not in st.session_state:
         st.session_state["sgen_mood"] = book.mood
     generated = st.session_state.get(keys.SCHEME_GENERATED, False)
-    with st.expander("🎯 Generate scheme (surfaces + hero colour + mood)",
-                     expanded=not generated):
+    with st.expander(t("colour.scheme_expander"), expanded=not generated):
         names = book.names()
-        st.caption("Tag each region, then pick a hero colour and a mood.")
+        st.caption(t("colour.scheme_caption"))
         for g, name in enumerate(names):
             c1, c2 = st.columns([1, 1])
             surf_keys = list(SURFACES)
             cur_surf = book.surface_at(g)
             idx = surf_keys.index(cur_surf) if cur_surf in surf_keys else surf_keys.index("other")
             chosen = c1.selectbox(
-                f"Surface — {name}", surf_keys, index=idx,
+                t("colour.surface_label", name=name), surf_keys, index=idx,
                 format_func=lambda s: SURFACES[s].display, key=f"sgen_surface_{g}")
             book.set_surface_at(g, chosen)
             spec = get_surface(chosen)
@@ -52,27 +52,27 @@ def _render_level1(book, owned_paints) -> None:
                 cur_tone = book.tone_at(g)
                 t_idx = tone_opts.index(cur_tone) if cur_tone in tone_opts else 0
                 tone = c2.selectbox(
-                    f"Tone — {name}", tone_opts, index=t_idx,
-                    format_func=lambda t: "Follow scheme colour" if t == HARMONY_TONE else t,
+                    t("colour.tone_label", name=name), tone_opts, index=t_idx,
+                    format_func=lambda tone_v: t("colour.tone_follow_scheme") if tone_v == HARMONY_TONE else tone_v,
                     key=f"sgen_tone_{g}")
                 book.set_tone_at(g, tone)
             else:
                 book.set_tone_at(g, None)
 
-        anchor_name = st.selectbox("Hero region (anchor)", names, key="sgen_anchor")
+        anchor_name = st.selectbox(t("colour.hero_region_label"), names, key="sgen_anchor")
         g_anchor = names.index(anchor_name)
         pal = book.palette_at(g_anchor)
         default_hex = pal[len(pal) // 2].hex if pal else "#c02030"
-        anchor_hex = st.color_picker("Hero colour", value=default_hex, key="sgen_anchor_hex")
-        mood = st.selectbox("Mood", list(MOODS), key="sgen_mood")
-        variant = st.selectbox("Harmony", VARIANTS, key="sgen_variant",
-                               help="Cycle this to re-roll the free regions' colours.")
-        owned_only = st.checkbox("Owned only (no catalogue suggestions)", value=False,
+        anchor_hex = st.color_picker(t("colour.hero_colour_label"), value=default_hex, key="sgen_anchor_hex")
+        mood = st.selectbox(t("colour.mood_label"), list(MOODS), key="sgen_mood")
+        variant = st.selectbox(t("colour.harmony_label"), VARIANTS, key="sgen_variant",
+                               help=t("colour.harmony_help"))
+        owned_only = st.checkbox(t("colour.owned_only_cb"), value=False,
                                  key="sgen_owned_only")
-        set_tech = st.checkbox("Also set techniques from surface", value=True,
+        set_tech = st.checkbox(t("colour.set_tech_cb"), value=True,
                                key="sgen_set_tech")
 
-        if st.button("✨ Generate & apply scheme", type="primary", key="sgen_go"):
+        if st.button(t("colour.generate_btn"), type="primary", key="sgen_go"):
             specs = [
                 RegionColorSpec(nm, book.surface_at(g), book.tone_at(g),
                                 len(book.palette_at(g)))
@@ -95,7 +95,7 @@ def _render_level1(book, owned_paints) -> None:
             book.mood = mood
             st.session_state[keys.SCHEME_GENERATED] = True
             _reseed_editor_widgets()
-            st.success("Scheme generated and applied. Adjust any colour below.")
+            st.success(t("colour.generated_success"))
             st.rerun()
 
 
@@ -127,7 +127,7 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
                     "Warm (+30°)": "warm", "Cool (−30°)": "cool"}
 
     st.divider()
-    st.markdown(f"**Ramp for: {book.names()[sel]}**")
+    st.markdown(t("colour.ramp_heading", name=book.names()[sel]))
 
     # Resolve ramp decisions for whichever region is selected.
     _ramp_midtone = book.drawn[sel - 1].ramp_midtone if sel > 0 else book.whole_ramp_midtone
@@ -139,8 +139,14 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
 
     # Last-applied indicator
     if _ramp_variant is not None:
-        _applied_label = {v: k for k, v in _VARIANT_MAP.items()}.get(_ramp_variant, _ramp_variant)
-        st.caption(f"✓ Last applied: {_applied_label}")
+        _variant_labels = {
+            "standard": t("colour.ramp_btn"),
+            "complementary": t("colour.complementary_btn"),
+            "warm": t("colour.warm_btn"),
+            "cool": t("colour.cool_btn"),
+        }
+        _applied_label = _variant_labels.get(_ramp_variant, _ramp_variant)
+        st.caption(t("colour.last_applied", label=_applied_label))
 
     # Scheme shortcut: seed the midtone picker with the midtone of this region's
     # palette, which is the colour the scheme assigned to it.  Works uniformly
@@ -150,20 +156,20 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
         _anchor_hex = _pal[len(_pal) // 2].hex
         c_info, c_btn = st.columns([3, 1])
         c_info.caption(
-            f"⊕ Scheme colour: {helpers.swatch(_anchor_hex, size='1.2em')} `{_anchor_hex}`",
+            t("colour.scheme_colour", swatch=helpers.swatch(_anchor_hex, size='1.2em'), hex=_anchor_hex),
             unsafe_allow_html=True,
         )
-        if c_btn.button("Use", key=f"use_complement_{sel}"):
+        if c_btn.button(t("colour.use_btn"), key=f"use_complement_{sel}"):
             st.session_state[keys.midtone_hex(sel)] = _anchor_hex
             st.rerun()
 
-    mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
+    mid_hex = st.color_picker(t("colour.midtone_label"), value="#808080", key=keys.midtone_hex(sel))
 
     ramps = {
-        "Ramp": ("standard", ramp_from_midtone(mid_hex, n)),
-        "Complementary": ("complementary", ramp_from_midtone(hue_rotate(mid_hex, 180), n)),
-        "Warm (+30°)":   ("warm",          ramp_from_midtone(hue_rotate(mid_hex, 30), n)),
-        "Cool (−30°)":   ("cool",          ramp_from_midtone(hue_rotate(mid_hex, -30), n)),
+        t("colour.ramp_btn"):          ("standard",      ramp_from_midtone(mid_hex, n)),
+        t("colour.complementary_btn"): ("complementary", ramp_from_midtone(hue_rotate(mid_hex, 180), n)),
+        t("colour.warm_btn"):          ("warm",          ramp_from_midtone(hue_rotate(mid_hex, 30), n)),
+        t("colour.cool_btn"):          ("cool",          ramp_from_midtone(hue_rotate(mid_hex, -30), n)),
     }
 
     btn_cols = st.columns(len(ramps))
@@ -247,9 +253,10 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
     recipes = load_all()
     recipe_by_name = {r.name: r for r in recipes}
     name_counts = Counter(p.name for p in context.CATALOG)
-    choice = st.selectbox("Load recipe", ["(none)"] + list(recipe_by_name),
+    _recipe_none = t("colour.recipe_none")
+    choice = st.selectbox(t("colour.load_recipe_label"), [_recipe_none] + list(recipe_by_name),
                           key="cp_recipe_choice")
-    if st.button("Load recipe", key="cp_recipe_load") and choice != "(none)":
+    if st.button(t("colour.load_recipe_btn"), key="cp_recipe_load") and choice != _recipe_none:
         pal = to_palette(recipe_by_name[choice])
         st.session_state[keys.N] = max(3, min(7, len(pal)))
         for i, p in enumerate(pal[:st.session_state[keys.N]]):
@@ -268,8 +275,8 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
     st.session_state.setdefault(keys.N, 5)
     n = st.session_state[keys.N]
     c_hdr, c_ins_first = st.columns([4, 1])
-    c_hdr.markdown(f"**{n} bands (dark → light)**")
-    c_ins_first.button("＋", key="band_ins_start", help="Insert new darkest band at top",
+    c_hdr.markdown(t("colour.bands_heading", n=n))
+    c_ins_first.button("＋", key="band_ins_start", help=t("colour.insert_first_help"),
                        disabled=(n >= 7), on_click=_insert_band_at_start, args=(n,))
 
     palette = []
@@ -283,7 +290,7 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
             default_code = context.CUSTOM
         c1, c2, c3 = st.columns([3, 1, 1])
         slot_sel = c1.selectbox(
-            f"Layer {i + 1}", options,
+            t("colour.layer_label", i=i + 1), options,
             index=options.index(default_code),
             format_func=lambda c: context.CUSTOM if c == context.CUSTOM else context.CODE_LABEL.get(c, c),
             key=keys.slot_code(i),
@@ -295,7 +302,7 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
                                    on_change=_apply_paste_hex, args=(i,),
                                    label_visibility="collapsed")
             if pasted and valid_hex(pasted) is None:
-                c3.caption("⚠️ invalid hex")
+                c3.caption(t("colour.invalid_hex"))
             paint = PaintColor(f"Custom {i+1}", hexv)
             palette.append(paint)
             _owned_list = [p for p in context.CATALOG if p.code and p.code in set(picked)]
@@ -307,32 +314,32 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
             c2.markdown(helpers.swatch(paint.hex, size="2.2em"), unsafe_allow_html=True)
             palette.append(paint)
             st.session_state[keys.slot_hex(i)] = paint.hex
-            badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
+            badge = t("colour.owned_badge") if paint.code in set(picked) else t("colour.not_owned_badge")
             c3.write(f"{paint.hex} · {badge}")
 
         ba, bb, bc = c1.columns(3)
-        ba.button("✕", key=f"band_del_{i}", help="Delete this band",
+        ba.button("✕", key=f"band_del_{i}", help=t("colour.delete_band_help"),
                   disabled=(n <= 3), on_click=_delete_band_at, args=(i, n))
-        bb.button("↕", key=keys.blend(i), help="Blend with neighbours",
+        bb.button("↕", key=keys.blend(i), help=t("colour.blend_help"),
                   on_click=_blend_neighbours, args=(i, n))
-        bc.button("＋", key=f"band_ins_{i}", help="Insert band below",
+        bc.button("＋", key=f"band_ins_{i}", help=t("colour.insert_below_help"),
                   disabled=(n >= 7), on_click=_insert_band_after, args=(i, n))
 
     c_name, c_btn = st.columns([3, 1])
-    save_name = c_name.text_input("Save bands as recipe", key=f"band_recipe_name_{sel}",
-                                   placeholder="e.g. Dark armour scheme",
+    save_name = c_name.text_input(t("colour.save_recipe_label"), key=f"band_recipe_name_{sel}",
+                                   placeholder=t("colour.save_recipe_placeholder"),
                                    label_visibility="collapsed")
-    c_name.caption("Save current bands as a recipe (name it, then Save)")
-    if c_btn.button("Save recipe", key=f"band_recipe_save_{sel}"):
+    c_name.caption(t("colour.save_recipe_caption"))
+    if c_btn.button(t("colour.save_recipe_btn"), key=f"band_recipe_save_{sel}"):
         clean = save_name.strip()
         if not clean:
-            st.warning("Give the recipe a name.")
+            st.warning(t("colour.recipe_name_required"))
         else:
             steps = [RecipeStep(label=role_names(n)[i], hex=p.hex,
                                 paint_ref=p.name if p.code else None)
                      for i, p in enumerate(palette)]
             save_user(Recipe(clean, steps))
-            st.toast(f"Saved recipe '{clean}'")
+            st.toast(t("colour.recipe_saved_toast", name=clean))
 
     return palette, n
 
@@ -341,36 +348,37 @@ def _render_scheme_save(book) -> None:
     """Scheme save / swap at the bottom of the Colour panel (replaces schemes_panel)."""
     st.divider()
     stored = st.session_state.setdefault(keys.SCHEMES, [])
-    with st.expander("💾 Save & swap schemes"):
-        name = st.text_input("Scheme name", key="cp_scheme_save_name")
-        if st.button("＋ Save current as scheme", type="primary", key="cp_scheme_save_btn"):
+    with st.expander(t("colour.schemes_expander")):
+        name = st.text_input(t("colour.scheme_name_label"), key="cp_scheme_save_name")
+        if st.button(t("colour.save_scheme_btn"), type="primary", key="cp_scheme_save_btn"):
             clean = name.strip()
             if not clean:
-                st.warning("Give the scheme a name.")
+                st.warning(t("colour.scheme_name_required"))
             else:
                 snap = sch.snapshot(book, clean)
                 existing = next((s for s in stored if s.name == clean), None)
                 if existing:
                     stored[stored.index(existing)] = snap
-                    st.toast(f'Updated scheme "{clean}".')
+                    st.toast(t("colour.scheme_updated_toast", name=clean))
                 else:
                     stored.append(snap)
-                    st.toast(f'Saved scheme "{clean}".')
+                    st.toast(t("colour.scheme_saved_toast", name=clean))
                 st.rerun()
 
         if stored:
             names = [s.name for s in stored]
-            pick = st.radio("Saved schemes", names, key="cp_scheme_pick")
+            pick = st.radio(t("colour.saved_schemes_label"), names, key="cp_scheme_pick")
             chosen = stored[names.index(pick)]
             c_apply, c_del = st.columns(2)
-            if c_apply.button("Apply", type="primary", key="cp_scheme_apply_btn"):
+            if c_apply.button(t("colour.apply_btn"), type="primary", key="cp_scheme_apply_btn"):
                 report = sch.apply(chosen, book)
                 _reseed_editor_widgets()
                 if report.skipped_regions:
-                    st.info(f"{len(report.updated)} region(s) updated — no saved colour "
-                            f"for: {', '.join(report.skipped_regions)}")
+                    st.info(t("colour.scheme_applied_info",
+                               count=len(report.updated),
+                               skipped=', '.join(report.skipped_regions)))
                 st.rerun()
-            if c_del.button("Delete", key="cp_scheme_delete_btn"):
+            if c_del.button(t("colour.delete_btn"), key="cp_scheme_delete_btn"):
                 stored.remove(chosen)
                 st.session_state.pop("cp_scheme_pick", None)
                 st.rerun()
@@ -381,7 +389,7 @@ def render(book, sel: int, picked, owned_paints, rgb=None) -> None:
 
     Order: Bands (primary) → Coverage → Ramp → Scheme → Save.
     """
-    st.markdown(f"**Editing:** {book.names()[sel]}")
+    st.markdown(t("colour.editing_heading", name=book.names()[sel]))
 
     # Level 3 first: bands are the primary interaction.
     palette, n = _render_level3(book, sel, picked)

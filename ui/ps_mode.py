@@ -12,6 +12,7 @@ from mini_highlight_advisor import relight
 from mini_highlight_advisor.masking import compute_mask
 from mini_highlight_advisor.pipeline import ShadingResult
 from mini_highlight_advisor.region_state import new_book
+from i18n import t
 from ui import editor, keys, relight_panel
 
 
@@ -20,12 +21,11 @@ def _import_gate() -> bool:
     once a valid bundle is in session."""
     if keys.NORMALS in st.session_state and keys.PS_MASK in st.session_state:
         return True
-    st.info("Import a photometric-stereo bundle produced by `tools/ps_tool.py`: "
-            "a normal map and its mask. See docs/ps-capture-guide.md.")
+    st.info(t("ps.info"))
     c1, c2, c3 = st.columns(3)
-    nrm = c1.file_uploader("normal.png", type=["png"], key="ps_upload_normal")
-    msk = c2.file_uploader("mask.png", type=["png"], key="ps_upload_mask")
-    alb = c3.file_uploader("albedo.png (optional)", type=["png"],
+    nrm = c1.file_uploader(t("ps.normal_label"), type=["png"], key="ps_upload_normal")
+    msk = c2.file_uploader(t("ps.mask_label"), type=["png"], key="ps_upload_mask")
+    alb = c3.file_uploader(t("ps.albedo_label"), type=["png"],
                            key="ps_upload_albedo")
     if nrm is None or msk is None:
         return False
@@ -33,12 +33,10 @@ def _import_gate() -> bool:
     rgb01 = np.asarray(Image.open(nrm).convert("RGB"), np.float32) / 255.0
     mask = np.asarray(Image.open(msk).convert("L")) > 127
     if rgb01.shape[:2] != mask.shape:
-        st.error(f"Dimension mismatch: normal {rgb01.shape[:2]} vs mask {mask.shape}. "
-                 "The two files must be the same size.")
+        st.error(t("ps.dimension_error", shape1=rgb01.shape[:2], shape2=mask.shape))
         return False
     if not relight.plausible_unit_normals(rgb01, mask):
-        st.error("That doesn't look like a normal map (values don't decode to unit "
-                 "normals over the mask). Re-export the bundle from ps_tool.")
+        st.error(t("ps.normal_map_error"))
         return False
 
     st.session_state[keys.NORMALS] = relight._decode(rgb01)
@@ -51,8 +49,7 @@ def _import_gate() -> bool:
         if relight.plausible_albedo(albedo_arr, mask):
             albedo = albedo_arr
         else:
-            st.warning("albedo.png didn't pass the plausibility check — "
-                       "falling back to grey display base.")
+            st.warning(t("ps.albedo_warning"))
     st.session_state[keys.PS_ALBEDO] = albedo
 
     st.rerun()
