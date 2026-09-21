@@ -30,7 +30,6 @@ def _render_sample_projects() -> None:
                 return
             st.session_state[keys.ANGLES] = list(lp.angles)
             state.set_active_angle(lp.active_angle)
-            st.session_state[keys.OWNED] = list(lp.paints_pool)
             st.session_state[keys.LOADED_NAME] = sp.name
             state.seed_editor_from_angle(lp.angles[lp.active_angle])
             st.session_state[keys.SCHEMES] = list(lp.schemes)
