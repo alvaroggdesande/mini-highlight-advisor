@@ -187,28 +187,53 @@ def _blend_neighbours(i: int, n: int) -> None:
     st.session_state[keys.slot_code(i)] = context.CUSTOM
 
 
-def _remove_last_band(n: int) -> None:
-    """Shrink band count by 1 and clear the removed slot's session keys. No-op if n <= 3."""
+def _delete_band_at(i: int, n: int) -> None:
+    """Delete band i, shift bands i+1..n-1 down, decrement n. No-op if n <= 3."""
     if n <= 3:
         return
-    i = n - 1
-    st.session_state.pop(keys.slot_code(i), None)
-    st.session_state.pop(keys.slot_hex(i), None)
-    st.session_state.pop(keys.slot_hexinput(i), None)
+    for j in range(i, n - 1):
+        st.session_state[keys.slot_code(j)] = st.session_state.get(keys.slot_code(j + 1))
+        st.session_state[keys.slot_hex(j)] = st.session_state.get(keys.slot_hex(j + 1))
+        st.session_state[keys.slot_hexinput(j)] = st.session_state.get(keys.slot_hexinput(j + 1), "")
+    last = n - 1
+    st.session_state.pop(keys.slot_code(last), None)
+    st.session_state.pop(keys.slot_hex(last), None)
+    st.session_state.pop(keys.slot_hexinput(last), None)
     st.session_state[keys.N] = n - 1
 
 
-def _add_band(n: int) -> None:
-    """Grow band count by 1 and seed the new slot with a default colour. No-op if n >= 7."""
+def _insert_band_at_start(n: int) -> None:
+    """Insert a new darkest band at position 0, shifting all others up. No-op if n >= 7."""
     if n >= 7:
         return
-    new_idx = n  # new band's 0-based index (becomes the new lightest)
-    if keys.slot_code(new_idx) not in st.session_state:
-        default = (DEFAULT_PALETTE[new_idx]
-                   if new_idx < len(DEFAULT_PALETTE)
-                   else PaintColor(f"Grey {new_idx + 1}", ramp_hex(new_idx, n + 1)))
-        st.session_state[keys.slot_code(new_idx)] = default.code
-        st.session_state[keys.slot_hex(new_idx)] = default.hex
+    for j in range(n - 1, -1, -1):
+        st.session_state[keys.slot_code(j + 1)] = st.session_state.get(keys.slot_code(j))
+        st.session_state[keys.slot_hex(j + 1)] = st.session_state.get(keys.slot_hex(j))
+        st.session_state.pop(keys.slot_hexinput(j + 1), None)
+    st.session_state[keys.slot_hex(0)] = ramp_hex(0, n + 1)
+    st.session_state[keys.slot_code(0)] = context.CUSTOM
+    st.session_state.pop(keys.slot_hexinput(0), None)
+    st.session_state[keys.N] = n + 1
+
+
+def _insert_band_after(i: int, n: int) -> None:
+    """Insert a new band after position i, shift i+1..n-1 up, increment n. No-op if n >= 7."""
+    from mini_highlight_advisor.color import blend_hex_lab
+    if n >= 7:
+        return
+    for j in range(n - 1, i, -1):
+        st.session_state[keys.slot_code(j + 1)] = st.session_state.get(keys.slot_code(j))
+        st.session_state[keys.slot_hex(j + 1)] = st.session_state.get(keys.slot_hex(j))
+        st.session_state.pop(keys.slot_hexinput(j + 1), None)
+    lo = st.session_state.get(keys.slot_hex(i), ramp_hex(i, n))
+    if i < n - 1:
+        hi = st.session_state.get(keys.slot_hex(i + 2), ramp_hex(i + 2, n + 1))
+        new_hex = blend_hex_lab(lo, hi)
+    else:
+        new_hex = ramp_hex(i + 1, n + 1)
+    st.session_state[keys.slot_hex(i + 1)] = new_hex
+    st.session_state[keys.slot_code(i + 1)] = context.CUSTOM
+    st.session_state.pop(keys.slot_hexinput(i + 1), None)
     st.session_state[keys.N] = n + 1
 
 
@@ -242,16 +267,11 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
 
     st.session_state.setdefault(keys.N, 5)
     n = st.session_state[keys.N]
-    c_minus, c_label, c_plus = st.columns([1, 2, 1])
-    if c_minus.button("– band", disabled=n <= 3, key="band_remove"):
-        _remove_last_band(n)
-        st.rerun()
-    c_label.markdown(f"**{n} bands**")
-    if c_plus.button("+ band", disabled=n >= 7, key="band_add"):
-        _add_band(n)
-        st.rerun()
+    c_hdr, c_ins_first = st.columns([4, 1])
+    c_hdr.markdown(f"**{n} bands (dark → light)**")
+    c_ins_first.button("＋", key="band_ins_start", help="Insert new darkest band at top",
+                       disabled=(n >= 7), on_click=_insert_band_at_start, args=(n,))
 
-    st.markdown("**Bands (dark → light)**")
     palette = []
     options = context.CATALOG_CODES + [context.CUSTOM]
     for i in range(n):
@@ -290,9 +310,14 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
             badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
             c3.write(f"{paint.hex} · {badge}")
 
+        ba, bb, bc = c1.columns(3)
+        ba.button("✕", key=f"band_del_{i}", help="Delete this band",
+                  disabled=(n <= 3), on_click=_delete_band_at, args=(i, n))
         if 0 < i < n - 1:
-            c1.button("↕ blend", key=keys.blend(i),
+            bb.button("↕", key=keys.blend(i), help="Blend with neighbours",
                       on_click=_blend_neighbours, args=(i, n))
+        bc.button("＋", key=f"band_ins_{i}", help="Insert band below",
+                  disabled=(n >= 7), on_click=_insert_band_after, args=(i, n))
 
     c_name, c_btn = st.columns([3, 1])
     save_name = c_name.text_input("Save bands as recipe", key=f"band_recipe_name_{sel}",
