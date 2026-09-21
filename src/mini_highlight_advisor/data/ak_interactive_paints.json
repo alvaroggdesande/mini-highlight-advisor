@@ -1,0 +1,1437 @@
+{
+  "_note": "AK Interactive 3rd Generation Acrylics General Series Catalog (First 100 Tones). Finish: ultra-matte.",
+  "paints": [
+    {
+      "code": "AK11001",
+      "name": "White (Intense)",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#FFFFFF"
+    },
+    {
+      "code": "AK11002",
+      "name": "Offwhite",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#F4F1EA"
+    },
+    {
+      "code": "AK11003",
+      "name": "White Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E3E4E0"
+    },
+    {
+      "code": "AK11004",
+      "name": "Ivory",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#ECE2CA"
+    },
+    {
+      "code": "AK11005",
+      "name": "Greenish White",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E0E3D5"
+    },
+    {
+      "code": "AK11006",
+      "name": "Silver Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#D1D5D4"
+    },
+    {
+      "code": "AK11007",
+      "name": "Rock Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C2C4C1"
+    },
+    {
+      "code": "AK11008",
+      "name": "Grimy Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B1B3AF"
+    },
+    {
+      "code": "AK11009",
+      "name": "Warm Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C8C2B7"
+    },
+    {
+      "code": "AK11010",
+      "name": "Medium Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A2A4A1"
+    },
+    {
+      "code": "AK11011",
+      "name": "Blue Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#949C9E"
+    },
+    {
+      "code": "AK11012",
+      "name": "Sky Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B9C2C6"
+    },
+    {
+      "code": "AK11013",
+      "name": "Pale Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#CDD1CE"
+    },
+    {
+      "code": "AK11014",
+      "name": "Medium Sea Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8C9294"
+    },
+    {
+      "code": "AK11015",
+      "name": "Dark Sea Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6C7175"
+    },
+    {
+      "code": "AK11016",
+      "name": "Grey Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#76827A"
+    },
+    {
+      "code": "AK11017",
+      "name": "Reddish Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#918785"
+    },
+    {
+      "code": "AK11018",
+      "name": "Neutral Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#7A7D80"
+    },
+    {
+      "code": "AK11019",
+      "name": "Graphite",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4E5154"
+    },
+    {
+      "code": "AK11020",
+      "name": "English Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#666A6D"
+    },
+    {
+      "code": "AK11021",
+      "name": "Basalt Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#54585A"
+    },
+    {
+      "code": "AK11022",
+      "name": "Dark Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#404345"
+    },
+    {
+      "code": "AK11023",
+      "name": "Lead Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3A3D40"
+    },
+    {
+      "code": "AK11024",
+      "name": "Ash Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5D6160"
+    },
+    {
+      "code": "AK11025",
+      "name": "German Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#333739"
+    },
+    {
+      "code": "AK11026",
+      "name": "Tenebrous Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2B2E30"
+    },
+    {
+      "code": "AK11027",
+      "name": "Rubber Black",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#212324"
+    },
+    {
+      "code": "AK11028",
+      "name": "Smoke Black",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1C1D1E"
+    },
+    {
+      "code": "AK11029",
+      "name": "Black",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#111212"
+    },
+    {
+      "code": "AK11030",
+      "name": "Pale Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#F1D4C3"
+    },
+    {
+      "code": "AK11031",
+      "name": "Buff",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E3C9A8"
+    },
+    {
+      "code": "AK11032",
+      "name": "Pale Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EFD78A"
+    },
+    {
+      "code": "AK11033",
+      "name": "Ice Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#F3E7A0"
+    },
+    {
+      "code": "AK11034",
+      "name": "Medium Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#ECC343"
+    },
+    {
+      "code": "AK11035",
+      "name": "Sand Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#D1B36A"
+    },
+    {
+      "code": "AK11036",
+      "name": "Ice Yellow-Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#DFE287"
+    },
+    {
+      "code": "AK11037",
+      "name": "Pastel Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EAD77B"
+    },
+    {
+      "code": "AK11038",
+      "name": "Pale Yellow-Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C9D16F"
+    },
+    {
+      "code": "AK11039",
+      "name": "Light Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E6CD53"
+    },
+    {
+      "code": "AK11040",
+      "name": "Deep Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E5A928"
+    },
+    {
+      "code": "AK11041",
+      "name": "Golden Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EFA22F"
+    },
+    {
+      "code": "AK11042",
+      "name": "Ochre Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C6963B"
+    },
+    {
+      "code": "AK11043",
+      "name": "Yellow Ochre",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B58434"
+    },
+    {
+      "code": "AK11044",
+      "name": "Yellow Light Orange",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EFA25D"
+    },
+    {
+      "code": "AK11045",
+      "name": "Deep Orange",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#D95E28"
+    },
+    {
+      "code": "AK11046",
+      "name": "Burnished Orange",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C55B32"
+    },
+    {
+      "code": "AK11047",
+      "name": "Dry Light Mud",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C9B097"
+    },
+    {
+      "code": "AK11048",
+      "name": "Basic Flesh Tone",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#DDA587"
+    },
+    {
+      "code": "AK11049",
+      "name": "Suntan Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C98C72"
+    },
+    {
+      "code": "AK11050",
+      "name": "Light Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E8BA9B"
+    },
+    {
+      "code": "AK11051",
+      "name": "Luminous Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EFA68F"
+    },
+    {
+      "code": "AK11052",
+      "name": "Flesh Lights",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EFC4B5"
+    },
+    {
+      "code": "AK11053",
+      "name": "Highlight Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#F3D2C5"
+    },
+    {
+      "code": "AK11054",
+      "name": "Peach Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EBA485"
+    },
+    {
+      "code": "AK11055",
+      "name": "Sunny Flesh Tone",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E3A581"
+    },
+    {
+      "code": "AK11056",
+      "name": "Beige Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#CE9381"
+    },
+    {
+      "code": "AK11057",
+      "name": "Reddish Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C58175"
+    },
+    {
+      "code": "AK11058",
+      "name": "Decomposed Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8A7973"
+    },
+    {
+      "code": "AK11059",
+      "name": "Pink",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E79F9F"
+    },
+    {
+      "code": "AK11060",
+      "name": "Pale Pink",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#EBB7B7"
+    },
+    {
+      "code": "AK11061",
+      "name": "Salmon",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E58E7D"
+    },
+    {
+      "code": "AK11062",
+      "name": "Intense Pink",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#E25372"
+    },
+    {
+      "code": "AK11063",
+      "name": "Laser Magenta",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C92F67"
+    },
+    {
+      "code": "AK11064",
+      "name": "Muted Purple",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6C4F6B"
+    },
+    {
+      "code": "AK11065",
+      "name": "Burgundy",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5D2132"
+    },
+    {
+      "code": "AK11066",
+      "name": "Violet Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8C344D"
+    },
+    {
+      "code": "AK11067",
+      "name": "Laser Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#D1213A"
+    },
+    {
+      "code": "AK11068",
+      "name": "Vermilion",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#D93B2B"
+    },
+    {
+      "code": "AK11069",
+      "name": "Pure Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C91A23"
+    },
+    {
+      "code": "AK11070",
+      "name": "Signal Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B11C23"
+    },
+    {
+      "code": "AK11071",
+      "name": "Carmine",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#981F28"
+    },
+    {
+      "code": "AK11072",
+      "name": "Magenta",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8A2345"
+    },
+    {
+      "code": "AK11073",
+      "name": "Purple",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#522659"
+    },
+    {
+      "code": "AK11074",
+      "name": "Deep Purple",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3E2145"
+    },
+    {
+      "code": "AK11075",
+      "name": "Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4C325B"
+    },
+    {
+      "code": "AK11076",
+      "name": "Imperial Purple",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#37244D"
+    },
+    {
+      "code": "AK11077",
+      "name": "Medium Purple",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#614775"
+    },
+    {
+      "code": "AK11078",
+      "name": "Pale Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8D789B"
+    },
+    {
+      "code": "AK11079",
+      "name": "Pastel Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#AAA0B8"
+    },
+    {
+      "code": "AK11080",
+      "name": "Deep Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2B1D35"
+    },
+    {
+      "code": "AK11081",
+      "name": "Shadow Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6F5147"
+    },
+    {
+      "code": "AK11082",
+      "name": "Cork",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#AA7A61"
+    },
+    {
+      "code": "AK11083",
+      "name": "Reddish Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8A4939"
+    },
+    {
+      "code": "AK11084",
+      "name": "Muted Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#994D44"
+    },
+    {
+      "code": "AK11085",
+      "name": "Dirty Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#833E37"
+    },
+    {
+      "code": "AK11086",
+      "name": "Dark Red Brick",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#672F2B"
+    },
+    {
+      "code": "AK11087",
+      "name": "Burnt Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#542624"
+    },
+    {
+      "code": "AK11088",
+      "name": "Deep Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#421F20"
+    },
+    {
+      "code": "AK11089",
+      "name": "Blood Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8E2024"
+    },
+    {
+      "code": "AK11090",
+      "name": "Chocolate Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4A322C"
+    },
+    {
+      "code": "AK11091",
+      "name": "Burnt Umber",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3E2B27"
+    },
+    {
+      "code": "AK11092",
+      "name": "Grimy Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#534237"
+    },
+    {
+      "code": "AK11093",
+      "name": "Brownish Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#534E3B"
+    },
+    {
+      "code": "AK11094",
+      "name": "Base Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#9F705C"
+    },
+    {
+      "code": "AK11095",
+      "name": "Dirty Flesh",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8C6A5A"
+    },
+    {
+      "code": "AK11096",
+      "name": "Wine Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#512128"
+    },
+    {
+      "code": "AK11097",
+      "name": "Burnt Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3A2825"
+    },
+    {
+      "code": "AK11098",
+      "name": "Blackish Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#281E1D"
+    },
+    {
+      "code": "AK11099",
+      "name": "Cadmium Red Light",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B3372B"
+    },
+    {
+      "code": "AK11100",
+      "name": "Light Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#8E6D53"
+    },
+    {
+      "code": "AK11101",
+      "name": "Orange Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A7653F"
+    },
+    {
+      "code": "AK11102",
+      "name": "Deep Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#543A32"
+    },
+    {
+      "code": "AK11103",
+      "name": "Medium Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6C4B3E"
+    },
+    {
+      "code": "AK11104",
+      "name": "Saddle Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#764232"
+    },
+    {
+      "code": "AK11105",
+      "name": "Light Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#926B54"
+    },
+    {
+      "code": "AK11106",
+      "name": "Mahogany Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#51312E"
+    },
+    {
+      "code": "AK11107",
+      "name": "Dark Rust",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#643C33"
+    },
+    {
+      "code": "AK11108",
+      "name": "Hull Red",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4D3332"
+    },
+    {
+      "code": "AK11109",
+      "name": "Dark Earth",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5A4C41"
+    },
+    {
+      "code": "AK11110",
+      "name": "Leather Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5D493A"
+    },
+    {
+      "code": "AK11111",
+      "name": "Burnt Umber",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#443933"
+    },
+    {
+      "code": "AK11112",
+      "name": "Grimy Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#635848"
+    },
+    {
+      "code": "AK11113",
+      "name": "Chocolate Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#473B35"
+    },
+    {
+      "code": "AK11114",
+      "name": "Red Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#71463D"
+    },
+    {
+      "code": "AK11115",
+      "name": "Light Earth",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#89755F"
+    },
+    {
+      "code": "AK11116",
+      "name": "Greenish Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6D644F"
+    },
+    {
+      "code": "AK11117",
+      "name": "Earth Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#736050"
+    },
+    {
+      "code": "AK11118",
+      "name": "Ochre",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B48B4A"
+    },
+    {
+      "code": "AK11119",
+      "name": "Cork",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A7825E"
+    },
+    {
+      "code": "AK11120",
+      "name": "Mud Brown",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#594E42"
+    },
+    {
+      "code": "AK11121",
+      "name": "Tan Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#767156"
+    },
+    {
+      "code": "AK11122",
+      "name": "Desert Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#BAA16E"
+    },
+    {
+      "code": "AK11123",
+      "name": "Khaki",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#94876E"
+    },
+    {
+      "code": "AK11124",
+      "name": "Middle Stone",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A89A6F"
+    },
+    {
+      "code": "AK11125",
+      "name": "Greyish Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A1987C"
+    },
+    {
+      "code": "AK11126",
+      "name": "Greenish Yellow",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#999E5C"
+    },
+    {
+      "code": "AK11127",
+      "name": "British Khaki",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#86795B"
+    },
+    {
+      "code": "AK11128",
+      "name": "Golden Olive",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#7F7B4C"
+    },
+    {
+      "code": "AK11129",
+      "name": "Interm. Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#53644F"
+    },
+    {
+      "code": "AK11130",
+      "name": "Olive Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4C563D"
+    },
+    {
+      "code": "AK11131",
+      "name": "Pale Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#899A7A"
+    },
+    {
+      "code": "AK11132",
+      "name": "Faded Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#717E64"
+    },
+    {
+      "code": "AK11133",
+      "name": "Dark Greenish Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4A534C"
+    },
+    {
+      "code": "AK11134",
+      "name": "Green Black",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#29322D"
+    },
+    {
+      "code": "AK11135",
+      "name": "Field Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4A5647"
+    },
+    {
+      "code": "AK11136",
+      "name": "Japanese Navy Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3A463B"
+    },
+    {
+      "code": "AK11137",
+      "name": "US Dark Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3E483D"
+    },
+    {
+      "code": "AK11138",
+      "name": "Russian Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4A543E"
+    },
+    {
+      "code": "AK11139",
+      "name": "Golden Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6E7A44"
+    },
+    {
+      "code": "AK11140",
+      "name": "Greenish Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#7B877B"
+    },
+    {
+      "code": "AK11141",
+      "name": "Light Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5E8E5B"
+    },
+    {
+      "code": "AK11142",
+      "name": "Deep Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2B5D3A"
+    },
+    {
+      "code": "AK11143",
+      "name": "Frog Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#448741"
+    },
+    {
+      "code": "AK11144",
+      "name": "Lime Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#73B243"
+    },
+    {
+      "code": "AK11145",
+      "name": "Bright Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#339A46"
+    },
+    {
+      "code": "AK11146",
+      "name": "Vibrant Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#228043"
+    },
+    {
+      "code": "AK11147",
+      "name": "Dark Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#20462D"
+    },
+    {
+      "code": "AK11148",
+      "name": "Mint Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#70BA96"
+    },
+    {
+      "code": "AK11149",
+      "name": "Luminous Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A9D960"
+    },
+    {
+      "code": "AK11150",
+      "name": "Gunship Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#445548"
+    },
+    {
+      "code": "AK11151",
+      "name": "Brownish Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#54563B"
+    },
+    {
+      "code": "AK11152",
+      "name": "Oceanic Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#29665B"
+    },
+    {
+      "code": "AK11153",
+      "name": "Extra Dark Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#263B32"
+    },
+    {
+      "code": "AK11154",
+      "name": "Flanker Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5F7D74"
+    },
+    {
+      "code": "AK11155",
+      "name": "Turquoise",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1F847B"
+    },
+    {
+      "code": "AK11156",
+      "name": "Camouflage Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#576747"
+    },
+    {
+      "code": "AK11157",
+      "name": "USMC Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#354737"
+    },
+    {
+      "code": "AK11158",
+      "name": "Reflective Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3E4C34"
+    },
+    {
+      "code": "AK11159",
+      "name": "German Field Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#556257"
+    },
+    {
+      "code": "AK11160",
+      "name": "Sauer Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3D4E3A"
+    },
+    {
+      "code": "AK11161",
+      "name": "Pale Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#76A2A6"
+    },
+    {
+      "code": "AK11162",
+      "name": "Light Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4F8D94"
+    },
+    {
+      "code": "AK11163",
+      "name": "Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#286872"
+    },
+    {
+      "code": "AK11164",
+      "name": "Dark Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1C434B"
+    },
+    {
+      "code": "AK11165",
+      "name": "Grey Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#556E74"
+    },
+    {
+      "code": "AK11166",
+      "name": "French Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3C5D66"
+    },
+    {
+      "code": "AK11167",
+      "name": "Sea Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#243E48"
+    },
+    {
+      "code": "AK11168",
+      "name": "Deep Turquoise",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#134952"
+    },
+    {
+      "code": "AK11169",
+      "name": "Sky Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A4CCD3"
+    },
+    {
+      "code": "AK11170",
+      "name": "Pastel Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#C2E2E5"
+    },
+    {
+      "code": "AK11171",
+      "name": "Buff Sky Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#B1C7C1"
+    },
+    {
+      "code": "AK11172",
+      "name": "Ocean Blue Green",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#598387"
+    },
+    {
+      "code": "AK11173",
+      "name": "Pale Azure",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#A1C5D9"
+    },
+    {
+      "code": "AK11174",
+      "name": "Sky Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#7FB5D6"
+    },
+    {
+      "code": "AK11175",
+      "name": "Light Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5297C6"
+    },
+    {
+      "code": "AK11176",
+      "name": "Medium Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3670A7"
+    },
+    {
+      "code": "AK11177",
+      "name": "Deep Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1F4E82"
+    },
+    {
+      "code": "AK11178",
+      "name": "Dark Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#172F57"
+    },
+    {
+      "code": "AK11179",
+      "name": "French Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2D5A8B"
+    },
+    {
+      "code": "AK11180",
+      "name": "Imperial Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1B2A4A"
+    },
+    {
+      "code": "AK11181",
+      "name": "Prussian Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1D355C"
+    },
+    {
+      "code": "AK11182",
+      "name": "Deep Navy Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#151F33"
+    },
+    {
+      "code": "AK11183",
+      "name": "Sea Blue Dark",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1A2E44"
+    },
+    {
+      "code": "AK11184",
+      "name": "Captivating Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2B4C7E"
+    },
+    {
+      "code": "AK11185",
+      "name": "Luminous Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3C74C2"
+    },
+    {
+      "code": "AK11186",
+      "name": "Pastel Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#94BCE6"
+    },
+    {
+      "code": "AK11187",
+      "name": "Ice Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#CBE0F2"
+    },
+    {
+      "code": "AK11188",
+      "name": "Space Grey",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#5B6A7A"
+    },
+    {
+      "code": "AK11189",
+      "name": "Dark Prussian Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#16223B"
+    },
+    {
+      "code": "AK11190",
+      "name": "Steel Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#3D5268"
+    },
+    {
+      "code": "AK11191",
+      "name": "Ocean Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#314354"
+    },
+    {
+      "code": "AK11192",
+      "name": "Night Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#181E26"
+    },
+    {
+      "code": "AK11193",
+      "name": "Violet Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2F3159"
+    },
+    {
+      "code": "AK11194",
+      "name": "Periscope Blue",
+      "brand": "3Gen Standard",
+      "range": "3Gen Standard",
+      "hex": "#2D3B4E"
+    },
+    {
+      "code": "AK11195",
+      "name": "Anthracite Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#1F262E"
+    },
+    {
+      "code": "AK11196",
+      "name": "Base Blue",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#254875"
+    },
+    {
+      "code": "AK11197",
+      "name": "Deep Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#2E2440"
+    },
+    {
+      "code": "AK11198",
+      "name": "Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#4D325E"
+    },
+    {
+      "code": "AK11199",
+      "name": "Medium Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#6C4B82"
+    },
+    {
+      "code": "AK11200",
+      "name": "Light Violet",
+      "brand": "AK Interactive",
+      "range": "3Gen Standard",
+      "hex": "#9274A4"
+    },
+    {"code": "AK11201", "name": "Cobalt Blue", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#1A3B6C", "finish": "metallic"},
+    {"code": "AK11202", "name": "Anodized Violet", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#4B2C5C", "finish": "metallic"},
+    {"code": "AK11203", "name": "Foundry Red", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#7A1C23", "finish": "metallic"},
+    {"code": "AK11204", "name": "Emerald Metallic Green", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#0D543A", "finish": "metallic"},
+    {"code": "AK11205", "name": "Metallic Green", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#296333", "finish": "metallic"},
+    {"code": "AK11206", "name": "Pearl", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#EAEAE6", "finish": "metallic"},
+    {"code": "AK11207", "name": "Aluminium", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#D1D5D8", "finish": "metallic"},
+    {"code": "AK11208", "name": "Dark Aluminium", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#8A9095", "finish": "metallic"},
+    {"code": "AK11209", "name": "Silver", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#E0E4E7", "finish": "metallic"},
+    {"code": "AK11210", "name": "Natural Steel", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#767A7D", "finish": "metallic"},
+    {"code": "AK11211", "name": "Oily Steel", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#505356", "finish": "metallic"},
+    {"code": "AK11212", "name": "Gun Metal", "brand": "AK Interactive", "range": "3Gen Metallic", "hex": "#3E4143", "finish": "metallic"},
+    {"code": "AK11213", "name": "Clear Red", "brand": "AK Interactive", "range": "3Gen Transparent", "hex": "#C8102E", "finish": "gloss"},
+    {"code": "AK11214", "name": "Clear Blue", "brand": "AK Interactive", "range": "3Gen Transparent", "hex": "#005A9C", "finish": "gloss"},
+    {"code": "AK11215", "name": "Clear Smoke", "brand": "AK Interactive", "range": "3Gen Transparent", "hex": "#413A34", "finish": "gloss"},
+    {"code": "AK11216", "name": "Clear Green", "brand": "AK Interactive", "range": "3Gen Transparent", "hex": "#008751", "finish": "gloss"},
+    {"code": "AK11217", "name": "Clear Yellow", "brand": "AK Interactive", "range": "3Gen Transparent", "hex": "#FFCD00", "finish": "gloss"},
+    {"code": "AK11218", "name": "Clear Orange", "brand": "AK Interactive", "range": "3Gen Transparent", "hex": "#FF671F", "finish": "gloss"},
+    {"code": "AK11219", "name": "Turquoise Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#00A3A6", "finish": "satin"},
+    {"code": "AK11220", "name": "Purple Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#522D80", "finish": "satin"},
+    {"code": "AK11221", "name": "Magenta Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#D10056", "finish": "satin"},
+    {"code": "AK11222", "name": "Red Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#DA291C", "finish": "satin"},
+    {"code": "AK11223", "name": "Orange Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#FF5800", "finish": "satin"},
+    {"code": "AK11224", "name": "Yellow Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#F4E000", "finish": "satin"},
+    {"code": "AK11225", "name": "Green Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#009639", "finish": "satin"},
+    {"code": "AK11226", "name": "Blue Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#002F6C", "finish": "satin"},
+    {"code": "AK11227", "name": "Sepia Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#5C4033", "finish": "satin"},
+    {"code": "AK11228", "name": "Flesh Tint Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#C39B78", "finish": "satin"},
+    {"code": "AK11229", "name": "Black Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#1A1A1A", "finish": "satin"},
+    {"code": "AK11230", "name": "White Ink", "brand": "AK Interactive", "range": "3Gen Ink", "hex": "#FAFAFA", "finish": "satin"}
+
+
+  ]
+}

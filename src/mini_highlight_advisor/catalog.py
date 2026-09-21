@@ -9,7 +9,18 @@ from .palette import PaintColor
 DATA_DIR = Path(__file__).parent / "data"
 
 _HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
-_FINISHES = {"matte", "metallic", "wash", "contrast"}
+_FINISHES = {"matte", "metallic", "wash", "contrast", "gloss", "satin", "technical"}
+_CANONICAL_FINISHES = {
+    "satin": "matte",
+    "technical": "matte",
+    "gloss": "matte",
+}
+
+
+def _canonical_finish(value: str | None) -> str:
+    if value is None:
+        return "matte"
+    return _CANONICAL_FINISHES.get(value, value)
 
 
 def validate_catalog(paints: list[dict]) -> None:
@@ -62,7 +73,7 @@ def load_catalog(path: Path | None = None) -> list[PaintColor]:
             brand=p.get("brand"),
             paint_range=p.get("range"),
             code=p.get("code", ""),
-            finish=p.get("finish", "matte"),
+            finish=_canonical_finish(p.get("finish", "matte")),
         )
         for p in all_paints
     ]

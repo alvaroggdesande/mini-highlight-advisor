@@ -132,6 +132,19 @@ def test_load_reads_metallic_finish(tmp_path):
     assert load_catalog(p)[0].finish == "metallic"
 
 
+def test_non_metallic_paints_normalize_to_matte_finish(tmp_path):
+    import json
+    from mini_highlight_advisor.catalog import load_catalog
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({"paints": [
+        {"code": "AK11213", "name": "Clear Red", "hex": "#C8102E", "finish": "gloss"},
+        {"code": "AK11219", "name": "Turquoise Ink", "hex": "#00A3A6", "finish": "satin"},
+        {"code": "AK11231", "name": "Decal Adapter", "hex": "#FFFFFF", "finish": "technical"},
+    ]}))
+    paints = load_catalog(p)
+    assert [paint.finish for paint in paints] == ["matte", "matte", "matte"]
+
+
 def test_validate_rejects_bad_finish():
     from mini_highlight_advisor.catalog import validate_catalog
     with pytest.raises(ValueError) as exc:
