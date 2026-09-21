@@ -2,8 +2,8 @@ import streamlit as st
 from i18n import set_lang, available_langs, t
 
 _LANG_LABELS = {
-    "en": "🇬🇧 English",
-    "es": "🇪🇸 Español",
+    "en": "English",
+    "es": "Español",
 }
 
 
