@@ -20,7 +20,9 @@
     "error_processing": "Error procesando la imagen — ver rastreo a continuación.",
     "header_photo_guide": "Cómo fotografiar tu miniatura",
     "header_ps_capture": "Captura estéreo fotométrica (PS)",
-    "ps_guide_missing": "Guía de captura PS no encontrada."
+    "ps_guide_missing": "Guía de captura PS no encontrada.",
+    "sample_photos_header": "O prueba con una foto de muestra",
+    "use_sample_btn": "Usar"
   },
   "capture": {
     "shooting_guide": "### Cómo fotografiar tu miniatura\n\n- **Luz lateral rasante — la que más importa.** Ilumina la miniatura por un lado a unos 45° para que la escultura proyecte sombras suaves — ese sombreado es exactamente lo que la herramienta lee.\n- **Sin flash frontal / axial.** Un flash (o cualquier luz) apuntando directamente a la miniatura llena sus recesos y borra las sombras que la herramienta necesita, achatando la forma. Esta es la causa número 1 de un resultado plano y con poco detalle.\n- **Rellena el marco.** Acércate (o recorta) para que la miniatura ocupe la mayor parte de la foto.\n- **Fondo plano y neutro.** Un fondo limpio ayuda a aislar la miniatura.\n- **Enfoque nítido, manos estables.** Enfoca la miniatura y usa temporizador o sujétate para evitar el desenfoque.\n- **Una miniatura imprimada zenithal (gris/blanca) se lee mejor** — ya es un mapa de sombreado.\n",
