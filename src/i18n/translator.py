@@ -27,7 +27,9 @@ def set_lang(lang: str, *, _locales_dir: Path | None = None) -> None:
 
 def t(key: str, **kwargs) -> str:
     """Translate key in active language, fallback to en, then to key itself."""
-    val = _flat.get(key) or _en_flat.get(key, key)
+    val = _flat.get(key)
+    if val is None:
+        val = _en_flat.get(key, key)
     if kwargs:
         try:
             val = val.format(**kwargs)

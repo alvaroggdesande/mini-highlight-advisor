@@ -23,7 +23,7 @@ def lang_selector() -> None:
     chosen = st.sidebar.selectbox(
         t("sidebar.language"),
         langs,
-        index=langs.index(current),
+        index=langs.index(current) if current in langs else 0,
         format_func=lambda lang: _LANG_LABELS.get(lang, lang),
     )
     if chosen != current:
