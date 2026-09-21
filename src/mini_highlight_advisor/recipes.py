@@ -61,5 +61,20 @@ def load_all(builtin_path: Path = BUILTIN_PATH, user_path: Path = USER_PATH) -> 
     return load_builtin(builtin_path) + load_user(user_path)
 
 
+def export_to_json_bytes(recipes: list[Recipe]) -> bytes:
+    payload = {"recipes": [
+        {"name": r.name, "steps": [
+            {"label": s.label, "hex": s.hex, "paint_ref": s.paint_ref}
+            for s in r.steps
+        ]}
+        for r in recipes
+    ]}
+    return json.dumps(payload, indent=2).encode("utf-8")
+
+
+def import_from_json_bytes(data: bytes) -> list[Recipe]:
+    return _parse(json.loads(data.decode("utf-8")))
+
+
 def to_palette(recipe: Recipe) -> list[PaintColor]:
     return [PaintColor(name=s.paint_ref or s.label, hex=s.hex) for s in recipe.steps]

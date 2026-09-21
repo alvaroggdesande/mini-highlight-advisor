@@ -3,7 +3,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from mini_highlight_advisor import projects
+from mini_highlight_advisor import projects, samples
 from mini_highlight_advisor.region_state import RegionBook, new_book
 from ui import (
     angles_panel, editor, gallery_panel, helpers, keys,
@@ -62,6 +62,26 @@ with tab_studio:
             uploaded = st.file_uploader(t("app.photo_uploader"), type=["png", "jpg", "jpeg"])
             if uploaded is None:
                 st.info(t("app.upload_prompt"))
+                _sample_photos = samples.list_photos()
+                if _sample_photos:
+                    st.caption(t("app.sample_photos_header"))
+                    _cols = st.columns(min(len(_sample_photos), 4))
+                    for _i, (_col, _sp) in enumerate(zip(_cols, _sample_photos)):
+                        with _col:
+                            st.caption(_sp.name)
+                            if st.button(t("app.use_sample_btn"), key=f"_sample_photo_{_i}"):
+                                _photo_bytes = _sp.path.read_bytes()
+                                _a = projects.AngleData(
+                                    label="angle 1",
+                                    photo_bytes=_photo_bytes,
+                                    photo_suffix=_sp.path.suffix,
+                                    book=new_book(5),
+                                    settings=state._current_settings(),
+                                )
+                                st.session_state[keys.ANGLES] = [_a]
+                                state.set_active_angle(0)
+                                state.seed_editor_from_angle(_a)
+                                st.rerun()
             else:
                 a = projects.AngleData(label="angle 1", photo_bytes=uploaded.getvalue(),
                                        photo_suffix=os.path.splitext(uploaded.name)[1],

@@ -20,7 +20,9 @@
     "error_processing": "Error processing image — see traceback below.",
     "header_photo_guide": "How to photograph your mini",
     "header_ps_capture": "Photometric stereo (PS) capture",
-    "ps_guide_missing": "PS capture guide not found."
+    "ps_guide_missing": "PS capture guide not found.",
+    "sample_photos_header": "Or try with a sample photo",
+    "use_sample_btn": "Use"
   },
   "capture": {
     "shooting_guide": "### How to photograph your mini\n\n- **Raking side light — the one that matters most.** Light the mini from one side at roughly 45° so the sculpt casts soft shadows — that shading is exactly what the tool reads.\n- **No on-axis / frontal flash.** A flash (or any light) pointing straight at the mini fills its recesses and erases the very shadows the tool reads, flattening the form. This is the #1 cause of a flat, low-detail result.\n- **Fill the frame.** Get close (or crop) so the mini occupies most of the photo.\n- **Plain, neutral background.** A clean backdrop helps isolate the mini.\n- **Sharp focus, steady hands.** Focus on the mini and use a timer or brace your hands to avoid blur.\n- **A zenithal-primed (grey/white) mini reads best** — it is already a shading map.\n",
@@ -88,7 +90,12 @@
     "apply_btn": "Apply",
     "scheme_applied_info": "{count} region(s) updated — no saved colour for: {skipped}",
     "delete_btn": "Delete",
-    "editing_heading": "**Editing:** {name}"
+    "editing_heading": "**Editing:** {name}",
+    "manage_recipes_expander": "Manage recipes",
+    "download_recipes_btn": "⬇ Download my_recipes.json",
+    "import_recipes_label": "Import recipes (.json)",
+    "recipes_imported_toast": "Imported {count} recipe(s)",
+    "import_recipes_error": "Import failed: {err}"
   },
   "coverage": {
     "metal_steps_heading": "**Metal steps** (value bands for this NMM region)",
@@ -134,7 +141,12 @@
     "multiselect_label": "Paints you own",
     "owned_heading": "**Owned paints**",
     "no_paints_caption": "No paints selected yet — tick the paints you own above.",
-    "catalogue_caption": "Catalogue: {count} paints (Vallejo Model Color + Game Color)"
+    "catalogue_caption": "Catalogue: {count} paints (Vallejo Model Color + Game Color)",
+    "manage_collection_expander": "Back up / restore",
+    "download_collection_btn": "⬇ Download my_paints.json",
+    "import_collection_label": "Import collection (.json)",
+    "collection_imported_toast": "Imported {count} paint(s)",
+    "import_collection_error": "Import failed: {err}"
   },
   "projects": {
     "load_expander": "📂 Load a saved project",
@@ -144,7 +156,8 @@
     "project_name_label": "Project name",
     "no_mini_caption": "No mini loaded yet.",
     "prepare_btn": "Prepare download",
-    "download_btn": "⬇ Download {slug}.json"
+    "download_btn": "⬇ Download {slug}.json",
+    "samples_header": "Sample projects"
   },
   "ps": {
     "info": "Import a photometric-stereo bundle produced by `tools/ps_tool.py`: a normal map and its mask. See docs/ps-capture-guide.md.",
