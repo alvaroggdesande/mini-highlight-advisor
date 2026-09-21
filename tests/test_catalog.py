@@ -8,10 +8,12 @@ from mini_highlight_advisor.catalog import (
 from mini_highlight_advisor.palette import DEFAULT_PALETTE
 
 
-def test_load_catalog_returns_vallejo_paints():
+def test_load_catalog_returns_paints_from_all_brand_files():
     cat = load_catalog()
     assert len(cat) > 0
-    assert all(p.brand == "Vallejo" for p in cat)
+    brands = {p.brand for p in cat}
+    assert "Vallejo" in brands
+    assert "Citadel" in brands
 
 
 def test_known_paint_resolves_to_expected_hex():
@@ -33,10 +35,11 @@ def test_default_palette_entries_exist_in_catalog():
 
 
 def test_shipped_seed_passes_validation():
-    # The curated seed must load cleanly (no regression).
+    # All brand files must load cleanly with no validation errors.
     cat = load_catalog()
     assert len(cat) > 0
-    assert all(p.brand == "Vallejo" for p in cat)
+    assert any(p.brand == "Vallejo" for p in cat)
+    assert any(p.brand == "Citadel" for p in cat)
 
 
 def test_missing_required_key_raises_naming_index():
