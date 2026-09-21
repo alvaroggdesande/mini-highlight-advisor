@@ -120,8 +120,7 @@
     "subheader": "Todos los ángulos",
     "caption": "Las mismas pinturas, cada cara. Cambia a la pestaña 🖌️ Estudio para editar el ángulo activo.",
     "render_error": "\"{label}\" — no se pudo renderizar esta foto.",
-    "active_caption": "✓ Activo — ve a la pestaña 🖌️ Estudio para editar.",
-    "edit_btn": "✏️ Editar"
+    "active_caption": "✓ Activo — ve a la pestaña 🖌️ Estudio para editar."
   },
   "osl": {
     "heading": "**Resplandor de fuente de luz** (OSL) — haz clic donde está la luz, elige un color.",
