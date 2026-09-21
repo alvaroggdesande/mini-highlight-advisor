@@ -156,7 +156,8 @@
     "project_name_label": "Project name",
     "no_mini_caption": "No mini loaded yet.",
     "prepare_btn": "Prepare download",
-    "download_btn": "⬇ Download {slug}.json"
+    "download_btn": "⬇ Download {slug}.json",
+    "samples_header": "Sample projects"
   },
   "ps": {
     "info": "Import a photometric-stereo bundle produced by `tools/ps_tool.py`: a normal map and its mask. See docs/ps-capture-guide.md.",

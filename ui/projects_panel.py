@@ -7,13 +7,34 @@ import json
 
 import streamlit as st
 
-from mini_highlight_advisor import projects
+from mini_highlight_advisor import projects, samples
 from i18n import t
 from ui import keys, state
 
 _DL_DATA = "_dl_data"
 _DL_SLUG = "_dl_slug"
 _UPLOAD_ERR = "_upload_error"
+
+
+def _render_sample_projects() -> None:
+    sample_projs = samples.list_projects()
+    if not sample_projs:
+        return
+    st.caption(t("projects.samples_header"))
+    for sp in sample_projs:
+        if st.button(sp.name, key=f"_sample_proj_{sp.path.stem}"):
+            try:
+                lp = projects.project_from_json_bytes(sp.path.read_bytes())
+            except Exception as e:
+                st.error(t("projects.load_error", err=str(e)))
+                return
+            st.session_state[keys.ANGLES] = list(lp.angles)
+            state.set_active_angle(lp.active_angle)
+            st.session_state[keys.OWNED] = list(lp.paints_pool)
+            st.session_state[keys.LOADED_NAME] = sp.name
+            state.seed_editor_from_angle(lp.angles[lp.active_angle])
+            st.session_state[keys.SCHEMES] = list(lp.schemes)
+            st.rerun()
 
 
 def render_library() -> None:
@@ -51,6 +72,8 @@ def render_library() -> None:
 
         if err := st.session_state.pop(_UPLOAD_ERR, None):
             st.error(t("projects.load_error", err=err))
+
+        _render_sample_projects()
 
 
 def render_save() -> None:

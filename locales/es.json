@@ -156,7 +156,8 @@
     "project_name_label": "Nombre del proyecto",
     "no_mini_caption": "Aún no hay miniatura cargada.",
     "prepare_btn": "Preparar descarga",
-    "download_btn": "⬇ Descargar {slug}.json"
+    "download_btn": "⬇ Descargar {slug}.json",
+    "samples_header": "Proyectos de muestra"
   },
   "ps": {
     "info": "Importa un paquete de estéreo fotométrico producido por `tools/ps_tool.py`: un mapa de normales y su máscara. Ver docs/ps-capture-guide.md.",
