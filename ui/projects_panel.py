@@ -8,6 +8,25 @@ from mini_highlight_advisor import projects
 from ui import keys, state
 
 
+def _make_load_callback(slug: str, labels: dict):
+    """Return a callback that loads a project into session state.
+
+    Must run via on_click (before the next render cycle) so that setting
+    st.session_state[keys.OWNED] is legal — the 'owned' multiselect renders in
+    tab_paints before render_library() runs, making a direct inline assignment
+    raise StreamlitAPIException.
+    """
+    def _callback():
+        lp = projects.load_project(slug)
+        st.session_state[keys.ANGLES] = list(lp.angles)
+        state.set_active_angle(lp.active_angle)
+        st.session_state[keys.OWNED] = list(lp.paints_pool)
+        st.session_state[keys.LOADED_NAME] = labels[slug]
+        state.seed_editor_from_angle(lp.angles[lp.active_angle])
+        st.session_state[keys.SCHEMES] = list(lp.schemes)
+    return _callback
+
+
 def render_library() -> None:
     """Load / delete existing projects. Render this BEFORE the upload gate."""
     with st.expander("📁 Projects — load a saved mini", expanded=False):
@@ -19,15 +38,7 @@ def render_library() -> None:
         slug = st.selectbox("Saved projects", [m.slug for m in metas],
                             format_func=lambda s: labels[s], key=keys.LOAD_SELECT)
         c_load, c_del = st.columns(2)
-        if c_load.button("Load", type="primary"):
-            lp = projects.load_project(slug)
-            st.session_state[keys.ANGLES] = list(lp.angles)
-            state.set_active_angle(lp.active_angle)
-            st.session_state[keys.OWNED] = list(lp.paints_pool)
-            st.session_state[keys.LOADED_NAME] = labels[slug]
-            state.seed_editor_from_angle(lp.angles[lp.active_angle])
-            st.session_state[keys.SCHEMES] = list(lp.schemes)
-            st.rerun()
+        c_load.button("Load", type="primary", on_click=_make_load_callback(slug, labels))
         confirm_del = st.checkbox("Confirm delete", key=f"confirm_del_{slug}")
         if c_del.button("Delete", disabled=not confirm_del):
             projects.delete_project(slug)

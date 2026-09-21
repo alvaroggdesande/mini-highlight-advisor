@@ -13,8 +13,7 @@ from mini_highlight_advisor.color import hue_rotate, ramp_from_midtone
 from mini_highlight_advisor.catalog import find_by_code, find_by_name
 from mini_highlight_advisor.recipes import load_all, to_palette, save_user, Recipe, RecipeStep
 from mini_highlight_advisor.matching import match, Target
-from mini_highlight_advisor import collection
-from ui import context, coverage_editor, geometry, helpers, keys
+from ui import context, coverage_editor, helpers, keys
 
 
 def _reseed_editor_widgets() -> None:
@@ -108,6 +107,16 @@ def _apply_ramp(hexes: list[str], n: int) -> None:
     st.session_state["_ramp_applied"] = True
 
 
+def _write_ramp_decision(book, sel: int, mid_hex: str, variant: str) -> None:
+    """Persist the ramp decision (midtone hex + variant key) on the book."""
+    if sel > 0:
+        book.drawn[sel - 1].ramp_midtone = mid_hex
+        book.drawn[sel - 1].ramp_variant = variant
+    else:
+        book.whole_ramp_midtone = mid_hex
+        book.whole_ramp_variant = variant
+
+
 def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     """Level 2 — region ramp: midtone → ramp + harmony variants.
 
@@ -151,32 +160,17 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
     mid_hex = st.color_picker("Base colour (midtone)", value="#808080", key=keys.midtone_hex(sel))
 
     ramps = {
-        "Ramp": ramp_from_midtone(mid_hex, n),
-        "Complementary": ramp_from_midtone(hue_rotate(mid_hex, 180), n),
-        "Warm (+30°)":   ramp_from_midtone(hue_rotate(mid_hex, 30), n),
-        "Cool (−30°)":   ramp_from_midtone(hue_rotate(mid_hex, -30), n),
+        "Ramp": ("standard", ramp_from_midtone(mid_hex, n)),
+        "Complementary": ("complementary", ramp_from_midtone(hue_rotate(mid_hex, 180), n)),
+        "Warm (+30°)":   ("warm",          ramp_from_midtone(hue_rotate(mid_hex, 30), n)),
+        "Cool (−30°)":   ("cool",          ramp_from_midtone(hue_rotate(mid_hex, -30), n)),
     }
 
-    for label, hexes in ramps.items():
-        paints = [
-            collection.nearest_paint(PaintColor(f"r{i}", h).rgb, context.CATALOG)
-            for i, h in enumerate(hexes)
-        ]
-        row_cols = st.columns([2] + [1] * n)
-        row_cols[0].markdown(f"**{label}**")
-        for i, (h, p) in enumerate(zip(hexes, paints)):
-            row_cols[i + 1].markdown(helpers.swatch(h, size="1.8em"), unsafe_allow_html=True)
-            if p:
-                row_cols[i + 1].caption(p.name[:10])
-
-        if st.button(f"Apply {label}", key=f"apply_ramp_{label}"):
+    btn_cols = st.columns(len(ramps))
+    for col, (label, (variant_key, hexes)) in zip(btn_cols, ramps.items()):
+        if col.button(label, key=f"apply_ramp_{label}", width="stretch"):
             _apply_ramp(hexes, n)
-            if sel > 0:
-                book.drawn[sel - 1].ramp_midtone = mid_hex
-                book.drawn[sel - 1].ramp_variant = _VARIANT_MAP[label]
-            else:
-                book.whole_ramp_midtone = mid_hex
-                book.whole_ramp_variant = _VARIANT_MAP[label]
+            _write_ramp_decision(book, sel, mid_hex, variant_key)
 
 
 def _apply_paste_hex(i: int) -> None:
@@ -187,10 +181,60 @@ def _apply_paste_hex(i: int) -> None:
 
 def _blend_neighbours(i: int, n: int) -> None:
     from mini_highlight_advisor.color import blend_hex_lab
-    lo = st.session_state.get(keys.slot_hex(i - 1), ramp_hex(i - 1, n))
-    hi = st.session_state.get(keys.slot_hex(i + 1), ramp_hex(i + 1, n))
+    lo = st.session_state.get(keys.slot_hex(i - 1), "#000000") if i > 0 else "#000000"
+    hi = st.session_state.get(keys.slot_hex(i + 1), "#ffffff") if i < n - 1 else "#ffffff"
     st.session_state[keys.slot_hex(i)] = blend_hex_lab(lo, hi)
     st.session_state[keys.slot_code(i)] = context.CUSTOM
+
+
+def _delete_band_at(i: int, n: int) -> None:
+    """Delete band i, shift bands i+1..n-1 down, decrement n. No-op if n <= 3."""
+    if n <= 3:
+        return
+    for j in range(i, n - 1):
+        st.session_state[keys.slot_code(j)] = st.session_state.get(keys.slot_code(j + 1))
+        st.session_state[keys.slot_hex(j)] = st.session_state.get(keys.slot_hex(j + 1))
+        st.session_state[keys.slot_hexinput(j)] = st.session_state.get(keys.slot_hexinput(j + 1), "")
+    last = n - 1
+    st.session_state.pop(keys.slot_code(last), None)
+    st.session_state.pop(keys.slot_hex(last), None)
+    st.session_state.pop(keys.slot_hexinput(last), None)
+    st.session_state[keys.N] = n - 1
+
+
+def _insert_band_at_start(n: int) -> None:
+    """Insert a new darkest band at position 0, shifting all others up. No-op if n >= 7."""
+    if n >= 7:
+        return
+    for j in range(n - 1, -1, -1):
+        st.session_state[keys.slot_code(j + 1)] = st.session_state.get(keys.slot_code(j))
+        st.session_state[keys.slot_hex(j + 1)] = st.session_state.get(keys.slot_hex(j))
+        st.session_state.pop(keys.slot_hexinput(j + 1), None)
+    st.session_state[keys.slot_hex(0)] = ramp_hex(0, n + 1)
+    st.session_state[keys.slot_code(0)] = context.CUSTOM
+    st.session_state.pop(keys.slot_hexinput(0), None)
+    st.session_state[keys.N] = n + 1
+
+
+def _insert_band_after(i: int, n: int) -> None:
+    """Insert a new band after position i, shift i+1..n-1 up, increment n. No-op if n >= 7."""
+    from mini_highlight_advisor.color import blend_hex_lab
+    if n >= 7:
+        return
+    for j in range(n - 1, i, -1):
+        st.session_state[keys.slot_code(j + 1)] = st.session_state.get(keys.slot_code(j))
+        st.session_state[keys.slot_hex(j + 1)] = st.session_state.get(keys.slot_hex(j))
+        st.session_state.pop(keys.slot_hexinput(j + 1), None)
+    lo = st.session_state.get(keys.slot_hex(i), ramp_hex(i, n))
+    if i < n - 1:
+        hi = st.session_state.get(keys.slot_hex(i + 2), ramp_hex(i + 2, n + 1))
+        new_hex = blend_hex_lab(lo, hi)
+    else:
+        new_hex = ramp_hex(i + 1, n + 1)
+    st.session_state[keys.slot_hex(i + 1)] = new_hex
+    st.session_state[keys.slot_code(i + 1)] = context.CUSTOM
+    st.session_state.pop(keys.slot_hexinput(i + 1), None)
+    st.session_state[keys.N] = n + 1
 
 
 def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
@@ -222,9 +266,12 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
         st.session_state["_recipe_loaded"] = True
 
     st.session_state.setdefault(keys.N, 5)
-    n = st.slider("Number of layers", 3, 7, key=keys.N)
+    n = st.session_state[keys.N]
+    c_hdr, c_ins_first = st.columns([4, 1])
+    c_hdr.markdown(f"**{n} bands (dark → light)**")
+    c_ins_first.button("＋", key="band_ins_start", help="Insert new darkest band at top",
+                       disabled=(n >= 7), on_click=_insert_band_at_start, args=(n,))
 
-    st.markdown("**Bands (dark → light)**")
     palette = []
     options = context.CATALOG_CODES + [context.CUSTOM]
     for i in range(n):
@@ -263,9 +310,13 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
             badge = "✅ owned" if paint.code in set(picked) else "⚠️ not owned"
             c3.write(f"{paint.hex} · {badge}")
 
-        if 0 < i < n - 1:
-            c1.button("↕ blend", key=keys.blend(i),
-                      on_click=_blend_neighbours, args=(i, n))
+        ba, bb, bc = c1.columns(3)
+        ba.button("✕", key=f"band_del_{i}", help="Delete this band",
+                  disabled=(n <= 3), on_click=_delete_band_at, args=(i, n))
+        bb.button("↕", key=keys.blend(i), help="Blend with neighbours",
+                  on_click=_blend_neighbours, args=(i, n))
+        bc.button("＋", key=f"band_ins_{i}", help="Insert band below",
+                  disabled=(n >= 7), on_click=_insert_band_after, args=(i, n))
 
     c_name, c_btn = st.columns([3, 1])
     save_name = c_name.text_input("Save bands as recipe", key=f"band_recipe_name_{sel}",
@@ -326,27 +377,29 @@ def _render_scheme_save(book) -> None:
 
 
 def render(book, sel: int, picked, owned_paints, rgb=None) -> None:
-    """Render the three-level colour panel for the selected region."""
+    """Render the three-level colour panel for the selected region.
+
+    Order: Bands (primary) → Coverage → Ramp → Scheme → Save.
+    """
     st.markdown(f"**Editing:** {book.names()[sel]}")
-    if rgb is not None and book.drawn and sel >= 1:
-        thumb = geometry.highlight_region_image(rgb, book, sel)
-        st.image(thumb, width=220)
 
-    _render_level1(book, owned_paints)
-
-    # Level 2 needs n (band count); read from session_state (set by Level 3 slider).
-    n = st.session_state.get(keys.N, 5)
-    _render_level2(book, sel, n, owned_paints)
-
+    # Level 3 first: bands are the primary interaction.
     palette, n = _render_level3(book, sel, picked)
     book.set_palette_at(sel, palette)
 
-    _render_scheme_save(book)
-
-    # Coverage sliders live here so colour + coverage are always visible together.
+    # Coverage lives next to bands (both are about 'how many layers and how wide').
     st.divider()
     cov = coverage_editor.render(n)
     book.set_coverage_at(sel, cov)
+
+    # Level 2: ramp quick-apply to seed the bands.
+    _render_level2(book, sel, n, owned_paints)
+
+    # Level 1: whole-mini scheme — collapsed once generated.
+    _render_level1(book, owned_paints)
+
+    # Scheme save / swap at the bottom.
+    _render_scheme_save(book)
 
     # Deferred rerun after Apply Ramp / Load recipe so Level 3 has already updated
     # the book palette before the analysis re-runs — one click = one visible update.

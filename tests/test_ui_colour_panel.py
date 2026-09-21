@@ -255,3 +255,125 @@ def test_level3_finish_is_matte_for_smooth():
     sel = 0
     finish = "metallic" if book.material_at(sel) == "nmm" else "matte"
     assert finish == "matte"
+
+
+def _make_session():
+    """Minimal stand-in for st.session_state (plain dict)."""
+    return {}
+
+
+def test_remove_last_band_decrements_count():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 5
+    from ui.colour_panel import _remove_last_band
+    _remove_last_band(5)
+    assert st.session_state[keys.N] == 4
+
+
+def test_remove_last_band_clears_slot_keys():
+    from ui import keys
+    import streamlit as st
+    n = 5
+    st.session_state[keys.N] = n
+    st.session_state[keys.slot_code(n - 1)] = "ABC"
+    st.session_state[keys.slot_hex(n - 1)] = "#aabbcc"
+    st.session_state[keys.slot_hexinput(n - 1)] = "#aabbcc"
+    from ui.colour_panel import _remove_last_band
+    _remove_last_band(n)
+    assert keys.slot_code(n - 1) not in st.session_state
+    assert keys.slot_hex(n - 1) not in st.session_state
+    assert keys.slot_hexinput(n - 1) not in st.session_state
+
+
+def test_remove_last_band_noop_at_minimum():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 3
+    from ui.colour_panel import _remove_last_band
+    _remove_last_band(3)
+    assert st.session_state[keys.N] == 3
+
+
+def test_add_band_increments_count():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 4
+    from ui.colour_panel import _add_band
+    _add_band(4)
+    assert st.session_state[keys.N] == 5
+
+
+def test_add_band_seeds_new_slot_keys():
+    from ui import keys
+    import streamlit as st
+    n = 4
+    st.session_state[keys.N] = n
+    # Ensure slot at index n doesn't pre-exist
+    st.session_state.pop(keys.slot_code(n), None)
+    st.session_state.pop(keys.slot_hex(n), None)
+    from ui.colour_panel import _add_band
+    _add_band(n)
+    assert keys.slot_hex(n) in st.session_state
+    assert st.session_state[keys.slot_hex(n)]  # non-empty hex
+
+
+def test_add_band_noop_at_maximum():
+    from ui import keys
+    import streamlit as st
+    st.session_state[keys.N] = 7
+    from ui.colour_panel import _add_band
+    _add_band(7)
+    assert st.session_state[keys.N] == 7
+
+
+def test_write_ramp_decision_drawn_region():
+    """_write_ramp_decision writes midtone + variant back to the correct drawn region."""
+    from mini_highlight_advisor.region_state import new_book
+    from mini_highlight_advisor.palette import default_ramp, default_coverage
+    import numpy as np
+    book = new_book(5)
+    m = np.zeros((8, 8), bool); m[2:5, 2:5] = True
+    book.add(m, "Cloak", default_ramp(5), default_coverage(5))
+
+    from ui.colour_panel import _write_ramp_decision
+    _write_ramp_decision(book, sel=1, mid_hex="#a03020", variant="complementary")
+
+    assert book.drawn[0].ramp_midtone == "#a03020"
+    assert book.drawn[0].ramp_variant == "complementary"
+
+
+def test_write_ramp_decision_whole_mini():
+    """_write_ramp_decision at sel==0 writes to book.whole_ramp_midtone/variant."""
+    from mini_highlight_advisor.region_state import new_book
+    book = new_book(5)
+
+    from ui.colour_panel import _write_ramp_decision
+    _write_ramp_decision(book, sel=0, mid_hex="#c02030", variant="standard")
+
+    assert book.whole_ramp_midtone == "#c02030"
+    assert book.whole_ramp_variant == "standard"
+
+
+def test_render_function_still_exposes_expected_signature():
+    """render() must accept (book, sel, picked, owned_paints, rgb=None)."""
+    import inspect
+    from ui import colour_panel
+    sig = inspect.signature(colour_panel.render)
+    params = list(sig.parameters)
+    assert params == ["book", "sel", "picked", "owned_paints", "rgb"]
+
+
+def test_level3_runs_before_level2_dependency():
+    """n (band count) flows from _render_level3 return value — verify n is returned."""
+    import inspect, ui.colour_panel as cp
+    # _render_level3 must return (palette, n)
+    src = inspect.getsource(cp._render_level3)
+    assert "return palette, n" in src
+
+
+def test_thumbnail_removed_from_render():
+    """The per-region thumbnail (highlight_region_image) is no longer called from render()."""
+    import inspect, ui.colour_panel as cp
+    src = inspect.getsource(cp.render)
+    assert "highlight_region_image" not in src
