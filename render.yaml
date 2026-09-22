@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: mini-highlight-advisor
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile

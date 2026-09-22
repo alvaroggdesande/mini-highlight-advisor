@@ -88,11 +88,8 @@ to run independently. The React app does not replace it; both are available.
 
 See `backend/README.md` and `web/README.md` for test commands and more detail.
 
-**Deploying to production (Fly.io):**
-```
-cd web && npm run build && cd ..   # build SPA into web/dist (FastAPI serves it)
-fly launch     # first time — registers the app; updates fly.toml app name
-fly deploy     # subsequent deploys
-```
-FastAPI serves the built SPA from `web/dist` at `/`; `/api/*` routes take precedence.
+**Deploying to production (Render — free tier):**
+Render builds the `Dockerfile` automatically on every push to `main`.
+Connect the GitHub repo on render.com → New Web Service → Docker → Free → Port 8000.
+`web/dist` is built inside the Docker image; FastAPI serves it at `/`. `/api/*` routes take precedence.
 Project files (`user_data/`) are ephemeral on free-tier containers — use JSON export to persist.
