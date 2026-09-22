@@ -226,7 +226,7 @@ def _render_level2(book, sel: int, n: int, owned_paints) -> None:
 
     btn_cols = st.columns(len(ramps))
     for col, (label, (variant_key, hexes)) in zip(btn_cols, ramps.items()):
-        col.button(label, key=f"apply_ramp_{label}", width="stretch",
+        col.button(label, key=f"apply_ramp_{label}",
                    on_click=_on_ramp_click, args=(book, sel, mid_hex, variant_key, hexes, n))
 
 
@@ -387,7 +387,7 @@ def _render_level3(book, sel: int, picked) -> tuple[list[PaintColor], int]:
             badge = t("colour.owned_badge") if paint.code in set(picked) else t("colour.not_owned_badge")
             c3.write(f"{paint.hex} · {badge}")
 
-        ba, bb, bc = c1.columns(3)
+        ba, bb, bc, _rest = st.columns([1, 1, 1, 8])
         ba.button("✕", key=f"band_del_{i}", help=t("colour.delete_band_help"),
                   disabled=(n <= 3), on_click=_delete_band_at, args=(i, n))
         bb.button("↕", key=keys.blend(i), help=t("colour.blend_help"),

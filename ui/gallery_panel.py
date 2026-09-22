@@ -145,8 +145,7 @@ def render(angles, active_idx: int) -> None:
             i = start + j
             with cols[j]:
                 try:
-                    st.image(_cached_preview(angle), caption=angle.label,
-                             use_container_width=True)
+                    st.image(_cached_preview(angle), caption=angle.label)
                 except Exception:  # one bad angle must not blank the whole grid
                     st.warning(t("gallery.render_error", label=angle.label))
                 if i == active_idx:

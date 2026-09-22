@@ -64,8 +64,7 @@ def render(rgb, alpha, book, shading, *, light_field, normal_field,
 
     with col_render:
         st.image(osl_preview_rgb,
-                 caption=t("editor.preview_caption"),
-                 use_container_width=True)
+                 caption=t("editor.preview_caption"))
         # Photo-quality checks only make sense for a real photo; PS supplies a
         # normal field, so this self-guards off for the import path.
         if normal_field is None:

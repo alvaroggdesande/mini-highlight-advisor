@@ -84,19 +84,16 @@ def render_region_steps(steps, roles, names, coverage, technique: str = "smooth"
                     st.caption(_result.phrase)
         if step.is_last:
             c1, c2 = st.columns(2)
-            c1.image(step.zone_rgb, caption=t("results.where_to_paint"), use_container_width=True)
+            c1.image(step.zone_rgb, caption=t("results.where_to_paint"))
             c2.image(step.cumulative_rgb,
-                     caption=_spec.captions.across.format(pct=cum_cov),
-                     use_container_width=True)
+                     caption=_spec.captions.across.format(pct=cum_cov))
         else:
             c1, c2, c3 = st.columns(3)
-            c1.image(step.zone_rgb, caption=t("results.where_to_paint"), use_container_width=True)
+            c1.image(step.zone_rgb, caption=t("results.where_to_paint"))
             c2.image(step.cumulative_rgb,
-                     caption=_spec.captions.across.format(pct=cum_cov),
-                     use_container_width=True)
+                     caption=_spec.captions.across.format(pct=cum_cov))
             c3.image(step.exact_rgb,
-                     caption=_spec.captions.stays.format(pct=cov),
-                     use_container_width=True)
+                     caption=_spec.captions.stays.format(pct=cov))
 
 
 def _analysis_settings() -> tuple:

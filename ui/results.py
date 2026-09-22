@@ -107,10 +107,8 @@ def render_osl_steps(osl_result) -> None:
     for i, s in enumerate(osl_result.steps):
         cols = st.columns(2)
         cols[0].image(s.zone_rgb,
-                      caption=pipeline.osl_step_caption(i, n, s.label),
-                      use_container_width=True)
-        cols[1].image(s.cumulative_rgb, caption=t("results.after_layer_caption"),
-                      use_container_width=True)
+                      caption=pipeline.osl_step_caption(i, n, s.label))
+        cols[1].image(s.cumulative_rgb, caption=t("results.after_layer_caption"))
 
 
 def render_steps(multi, key: str = "dl_swatch") -> None:
