@@ -3,7 +3,7 @@ import json
 import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from mini_highlight_advisor.pipeline import analyze_regions, prepare_shading
@@ -13,7 +13,7 @@ from mini_highlight_advisor import samples
 from backend.cache import LRU
 from backend.core_adapters import decode_image, default_whole, paint_from_model
 from backend.schemas import AnalyzeRequest
-from backend.serialize import png_data_uri
+from backend.serialize import png_data_uri, to_png_bytes
 
 app = FastAPI(title="Mini Highlight Advisor API")
 
@@ -94,6 +94,15 @@ def sample_photo(sid: str):
         if p.path.stem == sid:
             return FileResponse(p.path)
     raise HTTPException(status_code=404, detail="unknown sample id")
+
+
+@app.get("/api/photo/{photo_id}/image")
+def photo_image(photo_id: str):
+    cached = shading_cache.get(photo_id)
+    if cached is None:
+        raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
+    rgb, _alpha, _shading = cached
+    return Response(content=to_png_bytes(rgb), media_type="image/png")
 
 
 # Serve the built React SPA in production (after `npm run build`).
