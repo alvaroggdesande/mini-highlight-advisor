@@ -37,3 +37,44 @@ class AnalyzeRequest(BaseModel):
     whole: WholeModel
     settings: SettingsModel = Field(default_factory=SettingsModel)
     regions: list[RegionModel] = Field(default_factory=list)
+
+
+class RegionColorSpec(BaseModel):
+    region_name: str
+    surface: str
+    tone: str | None = None
+    n_bands: int
+    is_anchor: bool = False
+
+
+class SchemeGenerateRequest(BaseModel):
+    specs: list[RegionColorSpec]
+    anchor_name: str
+    anchor_hex: str
+    mood: str = "neutral"
+    variant: str = "complementary"
+    owned_codes: list[str] = Field(default_factory=list)
+
+
+class RampGenerateRequest(BaseModel):
+    midtone_hex: str = ""
+    n: int
+    variant: str = "ramp"
+    blend_hexes: list[str] | None = None
+
+
+class MatchRequest(BaseModel):
+    hex: str
+    finish: str = "matte"
+    owned_codes: list[str] = Field(default_factory=list)
+
+
+class RecipeStepModel(BaseModel):
+    label: str
+    hex: str
+    paint_ref: str | None = None
+
+
+class RecipeModel(BaseModel):
+    name: str
+    steps: list[RecipeStepModel]
