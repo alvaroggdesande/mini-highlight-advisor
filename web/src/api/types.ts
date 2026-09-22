@@ -7,7 +7,13 @@ export interface Settings {
   edge_hl: boolean; edge_extreme: boolean; edge_sens: number;
   relief_cap: boolean; per_region_norm: boolean;
 }
-export interface AnalyzeRequest { photo_id: string; whole: Whole; settings?: Partial<Settings>; }
+export interface RegionPayload {
+  name: string; rings: number[][][];
+  palette: PaintColor[]; coverage: number[]; material: string;
+}
+export interface AnalyzeRequest {
+  photo_id: string; whole: Whole; regions: RegionPayload[]; settings?: Partial<Settings>;
+}
 export interface QualityCheck { label: string; ok: boolean; detail: string; }
 export interface PhotoResponse {
   photo_id: string; width: number; height: number;

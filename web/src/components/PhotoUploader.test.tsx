@@ -4,7 +4,7 @@ import { PhotoUploader } from "./PhotoUploader";
 import { useProjectStore } from "../store/projectStore";
 import * as client from "../api/client";
 
-beforeEach(() => useProjectStore.setState(useProjectStore.getInitialState()));
+beforeEach(() => useProjectStore.setState(useProjectStore.getInitialState(), true));
 afterEach(() => vi.restoreAllMocks());
 
 it("lists sample photos and seeds the store when one is picked", async () => {
@@ -17,5 +17,5 @@ it("lists sample photos and seeds the store when one is picked", async () => {
   render(<PhotoUploader />);
   const btn = await screen.findByRole("button", { name: /Necron/ });
   btn.click();
-  await waitFor(() => expect(useProjectStore.getState().photoId).toBe("s1"));
+  await waitFor(() => expect(useProjectStore.getState().angles).toHaveLength(1));
 });
