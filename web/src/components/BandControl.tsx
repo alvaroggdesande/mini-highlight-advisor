@@ -1,13 +1,14 @@
-import { useProjectStore } from "../store/projectStore";
+import { useProjectStore, activeBookOf } from "../store/projectStore";
 
 export function BandControl() {
-  const whole = useProjectStore((s) => s.whole);
+  const book = useProjectStore(activeBookOf);
   const setBandCount = useProjectStore((s) => s.setBandCount);
-  if (!whole) return null;
+  if (!book) return null;
+  const cur = book.selected === 0 ? book.whole : book.drawn[book.selected - 1];
   return (
     <label>
-      Bands: {whole.palette.length}
-      <input type="range" min={1} max={8} value={whole.palette.length}
+      Bands: {cur.palette.length}
+      <input type="range" min={1} max={8} value={cur.palette.length}
         onChange={(e) => setBandCount(Number(e.target.value))} />
     </label>
   );

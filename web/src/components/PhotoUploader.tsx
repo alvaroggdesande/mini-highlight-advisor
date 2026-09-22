@@ -4,14 +4,14 @@ import type { SamplePhoto } from "../api/types";
 import { useProjectStore } from "../store/projectStore";
 
 export function PhotoUploader() {
-  const setPhoto = useProjectStore((s) => s.setPhoto);
+  const initFromPhoto = useProjectStore((s) => s.initFromPhoto);
   const setError = useProjectStore((s) => s.setError);
   const [samples, setSamples] = useState<SamplePhoto[]>([]);
 
   useEffect(() => { listSamplePhotos().then(setSamples).catch(() => setSamples([])); }, []);
 
   async function handleBlob(blob: Blob, name: string) {
-    try { setPhoto(await uploadPhoto(blob, name)); }
+    try { initFromPhoto(await uploadPhoto(blob, name)); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   }
 
