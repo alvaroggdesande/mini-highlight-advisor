@@ -1,7 +1,9 @@
 import hashlib
+import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from mini_highlight_advisor.pipeline import analyze_regions, prepare_shading
 from mini_highlight_advisor.input_check import check_input
@@ -75,3 +77,10 @@ def sample_photo(sid: str):
         if p.path.stem == sid:
             return FileResponse(p.path)
     raise HTTPException(status_code=404, detail="unknown sample id")
+
+
+# Serve the built React SPA in production (after `npm run build`).
+# In dev, web/dist doesn't exist — Vite dev server handles the frontend instead.
+_dist = os.path.join(os.path.dirname(__file__), "..", "web", "dist")
+if os.path.isdir(_dist):
+    app.mount("/", StaticFiles(directory=_dist, html=True), name="static")
