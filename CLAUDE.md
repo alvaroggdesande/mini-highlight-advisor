@@ -65,3 +65,25 @@ Streamlit app now; UI-agnostic core so a web app can reuse it later.
 - Process: brainstorm → spec (`docs/superpowers/specs/`) → plan
   (`docs/superpowers/plans/`) → subagent-driven implementation. Feature branch +
   PR/merge; never build straight on `main`.
+
+## Web app (React + FastAPI)
+
+A React+Vite frontend and FastAPI backend coexist alongside the Streamlit app.
+
+**Architecture:** Two independent processes:
+- Backend (`uvicorn` on :8000): Imports `src/mini_highlight_advisor/` directly to
+  provide `/api/photo` (photo + mask upload) and `/api/analyze` (shading plan).
+- Frontend (`npm run dev` on :5173): React + TypeScript + Vite, with API proxy
+  (`/api` → :8000).
+
+**Shared core:** `src/` is untouched and used by both the backend and Streamlit UI.
+
+**Streamlit coexistence:** Streamlit (`streamlit run app.py` on :8501) continues
+to run independently. The React app does not replace it; both are available.
+
+**Getting started:**
+1. Install backend deps: `.venv/Scripts/python -m pip install -r backend/requirements.txt`
+2. Run backend: `.venv/Scripts/python -m uvicorn backend.main:app --reload --port 8000`
+3. Run frontend: `cd web && npm run dev` (opens http://localhost:5173)
+
+See `backend/README.md` and `web/README.md` for test commands and more detail.
