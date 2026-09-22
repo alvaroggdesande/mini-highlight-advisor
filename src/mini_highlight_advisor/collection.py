@@ -27,16 +27,16 @@ def _validate_codes(stored: set[str], catalog: list[PaintColor] | None) -> set[s
     return result
 
 
-def load(path: Path = COLLECTION_PATH, catalog: list[PaintColor] | None = None) -> set[str]:
-    path = Path(path)
+def load(path: Path | None = None, catalog: list[PaintColor] | None = None) -> set[str]:
+    path = Path(path) if path is not None else COLLECTION_PATH
     if not path.exists():
         return set()
     stored = set(json.loads(path.read_text(encoding="utf-8")).get("owned", []))
     return _validate_codes(stored, catalog)
 
 
-def save(owned: set[str], path: Path = COLLECTION_PATH) -> None:
-    path = Path(path)
+def save(owned: set[str], path: Path | None = None) -> None:
+    path = Path(path) if path is not None else COLLECTION_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"owned": sorted(owned)}, indent=2), encoding="utf-8")
 

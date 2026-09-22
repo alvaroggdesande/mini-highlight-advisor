@@ -1,15 +1,22 @@
+import { useEffect } from "react";
 import { PhotoUploader } from "./components/PhotoUploader";
 import { PreviewImage } from "./components/PreviewImage";
-import { BandControl } from "./components/BandControl";
 import { RegionSelector } from "./components/RegionSelector";
-import { ManagePanel } from "./components/ManagePanel";
 import { AngleBar } from "./components/AngleBar";
+import { RightPanel } from "./components/RightPanel";
 import { useAnalyze } from "./hooks/useAnalyze";
 import { useProjectStore } from "./store/projectStore";
+import { useCatalogStore } from "./store/catalogStore";
 
 export default function App() {
   useAnalyze();
   const hasAngle = useProjectStore((s) => s.angles.length > 0);
+  const fetchCatalog = useCatalogStore((s) => s.fetch);
+
+  useEffect(() => {
+    if (hasAngle) fetchCatalog();
+  }, [hasAngle, fetchCatalog]);
+
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
       <h1>Mini Highlight Advisor</h1>
@@ -24,8 +31,7 @@ export default function App() {
             </div>
             <div style={{ flex: 1 }}>
               <RegionSelector />
-              <ManagePanel />
-              <BandControl />
+              <RightPanel />
             </div>
           </div>
         </>

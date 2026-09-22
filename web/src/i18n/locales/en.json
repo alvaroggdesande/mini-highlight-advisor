@@ -1,0 +1,82 @@
+{
+  "tabs": {
+    "manage": "Manage",
+    "colour": "Colour",
+    "technique": "Technique"
+  },
+  "technique": {
+    "material": "Material",
+    "matte": "Matte",
+    "metallic": "Metallic"
+  },
+  "colour": {
+    "scheme_generator": "Scheme Generator (L1)",
+    "anchor_region": "Anchor region",
+    "hero_colour": "Hero colour",
+    "mood": "Mood",
+    "harmony": "Harmony variant",
+    "surface": "Surface",
+    "tone": "Tone",
+    "owned_only": "Owned paints only",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "ramp_editor": "Ramp Generator (L2)",
+    "midtone": "Midtone",
+    "use_scheme_colour": "Use scheme colour",
+    "ramp": "Ramp",
+    "complementary": "Complementary",
+    "warm": "Warm",
+    "cool": "Cool",
+    "band_editor": "Band Editor (L3)",
+    "band_count": "Bands",
+    "reset_coverage": "Reset coverage",
+    "recipe_name": "Recipe name",
+    "save_recipe": "Save recipe",
+    "recipe_saved": "Recipe saved",
+    "load_recipe": "Load",
+    "select_recipe": "Select recipe…",
+    "custom": "(custom)",
+    "blend": "Blend",
+    "add_band": "Add band",
+    "delete_band": "Delete band"
+  },
+  "schemes": {
+    "title": "Colour Schemes",
+    "name_placeholder": "Scheme name",
+    "save": "Save snapshot",
+    "apply": "Apply",
+    "delete": "Delete"
+  },
+  "recipes": {
+    "export": "Export recipes",
+    "import": "Import recipes",
+    "collection_export": "Export collection",
+    "collection_import": "Import collection"
+  },
+  "surfaces": {
+    "skin": "Skin",
+    "bone": "Bone",
+    "metal": "Metal",
+    "wood": "Wood",
+    "leather": "Leather",
+    "fur": "Fur",
+    "cloth": "Cloth",
+    "cloak": "Cloak",
+    "robe": "Robe",
+    "gem": "Gem",
+    "accent": "Accent",
+    "other": "Other"
+  },
+  "moods": {
+    "neutral": "Neutral",
+    "grimdark": "Grimdark",
+    "heroic": "Heroic",
+    "natural": "Natural"
+  },
+  "variants": {
+    "complementary": "Complementary",
+    "analogous": "Analogous",
+    "triadic": "Triadic",
+    "split-complementary": "Split-Complementary"
+  }
+}

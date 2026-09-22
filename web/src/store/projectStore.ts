@@ -6,11 +6,38 @@ export const DEFAULT_SETTINGS: Settings = {
   edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false,
 };
 
+export interface WholeState extends Whole {
+  surface?: string;
+  tone?: string;
+  ramp_midtone?: string;
+  ramp_variant?: string;
+}
+
 export interface DrawnRegion {
   id: string; name: string; rings: number[][][];
   palette: PaintColor[]; coverage: number[]; material: string; blank: boolean;
+  surface?: string;
+  tone?: string;
+  ramp_midtone?: string;
+  ramp_variant?: string;
 }
-export interface Book { whole: Whole; drawn: DrawnRegion[]; selected: number; }
+
+export interface Scheme {
+  id: string;
+  name: string;
+  palettes: { [regionId: string]: PaintColor[] };
+  anchor_hex?: string;
+}
+
+export interface Book {
+  whole: WholeState;
+  drawn: DrawnRegion[];
+  selected: number;
+  hero_hex?: string;
+  mood?: string;
+  variant?: string;
+  schemes: Scheme[];
+}
 export interface Angle {
   id: string; label: string;
   photoId?: string; width?: number; height?: number; qualityChecks: QualityCheck[];
@@ -35,6 +62,19 @@ interface State {
   setBandCount(n: number): void;
   setPreview(png: string, token: string): void;
   setError(msg?: string): void;
+  setSurface(g: number, surface: string): void;
+  setTone(g: number, tone: string): void;
+  setMaterial(g: number, material: string): void;
+  setHeroHex(hex: string): void;
+  setMood(mood: string): void;
+  setVariant(variant: string): void;
+  setRampState(g: number, midtone: string, variant: string): void;
+  setPaletteAt(g: number, palette: PaintColor[]): void;
+  setPaletteSlot(g: number, i: number, paint: PaintColor): void;
+  setHexSlot(g: number, i: number, hex: string): void;
+  saveScheme(name: string): void;
+  applyScheme(id: string): void;
+  deleteScheme(id: string): void;
 }
 
 export const activeAngleOf = (s: { angles: Angle[]; activeAngle: number }): Angle | undefined =>
@@ -46,7 +86,7 @@ function makeAngle(res: PhotoResponse, label: string, settings: Settings): Angle
   return {
     id: newId(), label, photoId: res.photo_id, width: res.width, height: res.height,
     qualityChecks: res.quality_checks,
-    book: { whole: res.default_whole, drawn: [], selected: 0 },
+    book: { whole: res.default_whole, drawn: [], selected: 0, schemes: [] },
     settings,
   };
 }
@@ -167,4 +207,91 @@ export const useProjectStore = create<State>((set) => ({
     patchAngle(s, s.activeAngle, (a) => ({ ...a, preview: png, resultToken: token, error: undefined }))),
 
   setError: (msg) => set((s) => patchAngle(s, s.activeAngle, (a) => ({ ...a, error: msg }))),
+
+  setSurface: (g, surface) => set((s) => patchBook(s, (b) => {
+    if (g === 0) return { ...b, whole: { ...b.whole, surface } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], surface };
+    return { ...b, drawn };
+  })),
+
+  setTone: (g, tone) => set((s) => patchBook(s, (b) => {
+    if (g === 0) return { ...b, whole: { ...b.whole, tone } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], tone };
+    return { ...b, drawn };
+  })),
+
+  setMaterial: (g, material) => set((s) => patchBook(s, (b) => {
+    if (g === 0) return { ...b, whole: { ...b.whole, material } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], material };
+    return { ...b, drawn };
+  })),
+
+  setHeroHex: (hex) => set((s) => patchBook(s, (b) => ({ ...b, hero_hex: hex }))),
+
+  setMood: (mood) => set((s) => patchBook(s, (b) => ({ ...b, mood }))),
+
+  setVariant: (variant) => set((s) => patchBook(s, (b) => ({ ...b, variant }))),
+
+  setRampState: (g, midtone, variant) => set((s) => patchBook(s, (b) => {
+    if (g === 0) return { ...b, whole: { ...b.whole, ramp_midtone: midtone, ramp_variant: variant } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], ramp_midtone: midtone, ramp_variant: variant };
+    return { ...b, drawn };
+  })),
+
+  setPaletteAt: (g, palette) => set((s) => patchBook(s, (b) => {
+    if (g === 0) return { ...b, whole: { ...b.whole, palette } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], palette };
+    return { ...b, drawn };
+  })),
+
+  setPaletteSlot: (g, i, paint) => set((s) => patchBook(s, (b) => {
+    const region = g === 0 ? b.whole : b.drawn[g - 1];
+    if (!region) return b;
+    const palette = region.palette.slice();
+    palette[i] = paint;
+    if (g === 0) return { ...b, whole: { ...b.whole, palette } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], palette };
+    return { ...b, drawn };
+  })),
+
+  setHexSlot: (g, i, hex) => set((s) => patchBook(s, (b) => {
+    const region = g === 0 ? b.whole : b.drawn[g - 1];
+    if (!region) return b;
+    const palette = region.palette.slice();
+    palette[i] = { name: "custom", hex, code: "", finish: palette[i]?.finish ?? "matte" };
+    if (g === 0) return { ...b, whole: { ...b.whole, palette } };
+    const drawn = b.drawn.slice();
+    drawn[g - 1] = { ...drawn[g - 1], palette };
+    return { ...b, drawn };
+  })),
+
+  saveScheme: (name) => set((s) => patchBook(s, (b) => {
+    const palettes: { [id: string]: PaintColor[] } = {};
+    palettes["__whole__"] = b.whole.palette.slice();
+    for (const r of b.drawn) palettes[r.id] = r.palette.slice();
+    const scheme: Scheme = { id: newId(), name, palettes, anchor_hex: b.hero_hex };
+    return { ...b, schemes: [...b.schemes, scheme] };
+  })),
+
+  applyScheme: (id) => set((s) => patchBook(s, (b) => {
+    const scheme = b.schemes.find((sc) => sc.id === id);
+    if (!scheme) return b;
+    const wholePal = scheme.palettes["__whole__"];
+    const whole = wholePal ? { ...b.whole, palette: wholePal.slice() } : b.whole;
+    const drawn = b.drawn.map((r) => {
+      const pal = scheme.palettes[r.id];
+      return pal ? { ...r, palette: pal.slice() } : r;
+    });
+    return { ...b, whole, drawn };
+  })),
+
+  deleteScheme: (id) => set((s) => patchBook(s, (b) => ({
+    ...b, schemes: b.schemes.filter((sc) => sc.id !== id),
+  }))),
 }));

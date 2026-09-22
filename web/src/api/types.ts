@@ -21,3 +21,37 @@ export interface PhotoResponse {
 }
 export interface AnalyzeResponse { preview_png: string; result_token: string; }
 export interface SamplePhoto { id: string; name: string; }
+
+// Colour-panel request/response types
+export interface RegionColorSpec {
+  region_name: string; surface: string; tone?: string;
+  n_bands: number; is_anchor: boolean;
+}
+export interface SchemeGenerateRequest {
+  specs: RegionColorSpec[]; anchor_name: string; anchor_hex: string;
+  mood: string; variant: string; owned_codes: string[];
+}
+export interface SchemeGenerateResponse {
+  palettes: { [region_name: string]: PaintColor[] };
+}
+export interface RampGenerateRequest {
+  midtone_hex?: string; n: number; variant: string;
+  blend_hexes?: [string, string];
+}
+export interface RampGenerateResponse { hexes: string[]; }
+export interface MatchRequest { hex: string; finish: string; owned_codes: string[]; }
+export interface MatchResult {
+  tier: string; phrase: string; name?: string; hex?: string; delta_e: number;
+}
+export interface RecipeStep { label: string; hex: string; paint_ref?: string | null; }
+export interface Recipe { name: string; steps: RecipeStep[]; }
+export interface CatalogResponse { paints: PaintColor[]; }
+
+// Constants (mirrors Python)
+export const MOODS = ["neutral", "grimdark", "heroic", "natural"] as const;
+export const VARIANTS = ["complementary", "analogous", "triadic", "split-complementary"] as const;
+export const RAMP_VARIANTS = ["ramp", "complementary", "warm", "cool"] as const;
+export const SURFACES = [
+  "skin", "bone", "metal", "wood", "leather", "fur", "cloth",
+  "cloak", "robe", "gem", "accent", "other",
+] as const;

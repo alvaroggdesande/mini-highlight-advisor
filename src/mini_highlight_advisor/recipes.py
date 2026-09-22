@@ -30,22 +30,22 @@ def _parse(data: dict) -> list[Recipe]:
     ]
 
 
-def load_builtin(path: Path = BUILTIN_PATH) -> list[Recipe]:
-    path = Path(path)
+def load_builtin(path: Path | None = None) -> list[Recipe]:
+    path = Path(path) if path is not None else BUILTIN_PATH
     if not path.exists():
         return []
     return _parse(json.loads(path.read_text(encoding="utf-8")))
 
 
-def load_user(path: Path = USER_PATH) -> list[Recipe]:
-    path = Path(path)
+def load_user(path: Path | None = None) -> list[Recipe]:
+    path = Path(path) if path is not None else USER_PATH
     if not path.exists():
         return []
     return _parse(json.loads(path.read_text(encoding="utf-8")))
 
 
-def save_user(recipe: Recipe, path: Path = USER_PATH) -> None:
-    path = Path(path)
+def save_user(recipe: Recipe, path: Path | None = None) -> None:
+    path = Path(path) if path is not None else USER_PATH
     existing = [r for r in load_user(path) if r.name != recipe.name]
     existing.append(recipe)
     payload = {"recipes": [
@@ -57,7 +57,7 @@ def save_user(recipe: Recipe, path: Path = USER_PATH) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def load_all(builtin_path: Path = BUILTIN_PATH, user_path: Path = USER_PATH) -> list[Recipe]:
+def load_all(builtin_path: Path | None = None, user_path: Path | None = None) -> list[Recipe]:
     return load_builtin(builtin_path) + load_user(user_path)
 
 
