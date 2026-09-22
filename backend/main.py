@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -133,7 +134,7 @@ def match_paint(req: MatchRequest):
         "phrase": result.phrase,
         "name": result.paints[0].name if result.paints else None,
         "hex": result.paints[0].hex if result.paints else None,
-        "delta_e": result.delta_e,
+        "delta_e": result.delta_e if math.isfinite(result.delta_e) else 999.0,
     }
 
 
@@ -229,9 +230,11 @@ def export_recipes():
 
 @app.post("/api/recipes/import")
 async def import_recipes(file: UploadFile = File(...)):
-    from mini_highlight_advisor.recipes import import_from_json_bytes, load_all
+    from mini_highlight_advisor.recipes import import_from_json_bytes, load_all, save_user
     data = await file.read()
-    import_from_json_bytes(data)
+    new_recipes = import_from_json_bytes(data)
+    for recipe in new_recipes:
+        save_user(recipe)
     recipes = load_all()
     return {"recipes": [{"name": r.name,
                          "steps": [{"label": s.label, "hex": s.hex, "paint_ref": s.paint_ref}
