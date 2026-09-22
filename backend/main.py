@@ -11,9 +11,20 @@ from mini_highlight_advisor.regions import Region, polygons_to_mask
 from mini_highlight_advisor.input_check import check_input
 from mini_highlight_advisor import samples
 from backend.cache import LRU
-from backend.core_adapters import decode_image, default_whole, paint_from_model
-from backend.schemas import AnalyzeRequest
+from backend.core_adapters import decode_image, default_whole, paint_from_model, paint_to_dict
+from backend.schemas import AnalyzeRequest, RegionColorSpec as RegionColorSpecModel, SchemeGenerateRequest, MatchRequest, RecipeModel
 from backend.serialize import png_data_uri, to_png_bytes
+
+from mini_highlight_advisor.catalog import load_catalog as _load_catalog_raw
+
+_catalog_cache: list | None = None
+
+
+def _catalog():
+    global _catalog_cache
+    if _catalog_cache is None:
+        _catalog_cache = _load_catalog_raw()
+    return _catalog_cache
 
 app = FastAPI(title="Mini Highlight Advisor API")
 
@@ -103,6 +114,89 @@ def photo_image(photo_id: str):
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
     rgb, _alpha, _shading = cached
     return Response(content=to_png_bytes(rgb), media_type="image/png")
+
+
+@app.get("/api/catalog")
+def get_catalog():
+    return {"paints": [paint_to_dict(p) for p in _catalog()]}
+
+
+@app.post("/api/match")
+def match_paint(req: MatchRequest):
+    from mini_highlight_advisor.matching import Target, match
+    catalog = _catalog()
+    owned = [p for p in catalog if p.code in set(req.owned_codes)]
+    target = Target(hex=req.hex, finish=req.finish)
+    result = match(target, owned, catalog)
+    return {
+        "tier": result.tier,
+        "phrase": result.phrase,
+        "name": result.paints[0].name if result.paints else None,
+        "hex": result.paints[0].hex if result.paints else None,
+        "delta_e": result.delta_e,
+    }
+
+
+@app.post("/api/scheme/generate")
+def scheme_generate(req: SchemeGenerateRequest):
+    from mini_highlight_advisor.scheme_gen import RegionColorSpec as PySpec
+    from mini_highlight_advisor.scheme_build import build_scheme
+    catalog = _catalog()
+    owned_set = set(req.owned_codes)
+    owned = [p for p in catalog if p.code in owned_set]
+    owned_only = len(req.owned_codes) > 0
+    py_specs = [
+        PySpec(name=s.region_name, surface=s.surface, tone=s.tone, n_bands=s.n_bands)
+        for s in req.specs
+    ]
+    scheme = build_scheme(
+        name="generated",
+        specs=py_specs,
+        anchor_name=req.anchor_name,
+        anchor_hex=req.anchor_hex,
+        mood=req.mood,
+        variant=req.variant,
+        owned=owned,
+        catalog=catalog,
+        owned_only=owned_only,
+    )
+    return {"palettes": {name: [paint_to_dict(p) for p in pal]
+                         for name, pal in scheme.palettes.items()}}
+
+
+@app.get("/api/recipes")
+def list_recipes():
+    from mini_highlight_advisor.recipes import load_all
+    recipes = load_all()
+    return {"recipes": [{"name": r.name,
+                         "steps": [{"label": s.label, "hex": s.hex, "paint_ref": s.paint_ref}
+                                   for s in r.steps]}
+                        for r in recipes]}
+
+
+@app.post("/api/recipes")
+def save_recipe(req: RecipeModel):
+    from mini_highlight_advisor.recipes import Recipe, RecipeStep, save_user
+    recipe = Recipe(
+        name=req.name,
+        steps=[RecipeStep(label=s.label, hex=s.hex, paint_ref=s.paint_ref) for s in req.steps],
+    )
+    save_user(recipe)
+    return {"ok": True}
+
+
+@app.get("/api/collection")
+def get_collection():
+    from mini_highlight_advisor.collection import load
+    return {"owned": sorted(load())}
+
+
+@app.put("/api/collection")
+def put_collection(body: dict):
+    from mini_highlight_advisor.collection import save
+    owned = set(body.get("owned", []))
+    save(owned)
+    return {"ok": True}
 
 
 # Serve the built React SPA in production (after `npm run build`).
