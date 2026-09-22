@@ -1,8 +1,15 @@
 import json
+import pytest
+from pathlib import Path
 from fastapi.testclient import TestClient
 from backend.main import app
 
 _client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_collection(tmp_path, monkeypatch):
+    monkeypatch.setattr("mini_highlight_advisor.collection.COLLECTION_PATH", tmp_path / "collection.json")
 
 
 def test_get_collection_returns_list():

@@ -45,8 +45,8 @@ export function RecipeManager() {
         <button onClick={() => recipeImportRef.current?.click()}>{t("recipes.import")}</button>
         <input ref={recipeImportRef} type="file" accept=".json" style={{ display: "none" }}
           onChange={handleImportRecipes} />
-        <button onClick={handleExportCollection}>{t("colour.owned_only")} export</button>
-        <button onClick={() => collectionImportRef.current?.click()}>collection import</button>
+        <button onClick={handleExportCollection}>{t("recipes.collection_export")}</button>
+        <button onClick={() => collectionImportRef.current?.click()}>{t("recipes.collection_import")}</button>
         <input ref={collectionImportRef} type="file" accept=".json" style={{ display: "none" }}
           onChange={handleImportCollection} />
       </div>

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { BandSlot } from "./BandSlot";
-import { useProjectStore } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import * as client from "../../api/client";
 import type { PaintColor } from "../../api/types";

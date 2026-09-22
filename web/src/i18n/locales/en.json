@@ -49,7 +49,9 @@
   },
   "recipes": {
     "export": "Export recipes",
-    "import": "Import recipes"
+    "import": "Import recipes",
+    "collection_export": "Export collection",
+    "collection_import": "Import collection"
   },
   "surfaces": {
     "skin": "Skin",

@@ -19,7 +19,7 @@ function defaultCoverage(n: number): number[] {
 
 interface Props { g: number; n: number; coverage: number[]; }
 
-export function CoverageEditor({ g, n, coverage }: Props) {
+export function CoverageEditor({ g: _g, n, coverage }: Props) {
   const { t } = useTranslation();
   const setCoverage = useProjectStore((s) => s.setCoverage);
   const names = roleNames(n);

@@ -1,8 +1,15 @@
 import json
+import pytest
+from pathlib import Path
 from fastapi.testclient import TestClient
 from backend.main import app
 
 _client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_recipes(tmp_path, monkeypatch):
+    monkeypatch.setattr("mini_highlight_advisor.recipes.USER_PATH", tmp_path / "recipes.json")
 
 
 def test_list_recipes_returns_list():
