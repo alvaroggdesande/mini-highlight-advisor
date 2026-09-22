@@ -10,6 +10,14 @@ class PaintColorModel(BaseModel):
     finish: str = "matte"
 
 
+class RegionModel(BaseModel):
+    name: str
+    rings: list[list[tuple[float, float]]]
+    palette: list[PaintColorModel]
+    coverage: list[float]
+    material: str = "matte"
+
+
 class WholeModel(BaseModel):
     palette: list[PaintColorModel]
     coverage: list[float]
@@ -28,3 +36,4 @@ class AnalyzeRequest(BaseModel):
     photo_id: str
     whole: WholeModel
     settings: SettingsModel = Field(default_factory=SettingsModel)
+    regions: list[RegionModel] = Field(default_factory=list)

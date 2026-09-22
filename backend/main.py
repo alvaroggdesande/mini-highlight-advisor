@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -6,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from mini_highlight_advisor.pipeline import analyze_regions, prepare_shading
+from mini_highlight_advisor.regions import Region, polygons_to_mask
 from mini_highlight_advisor.input_check import check_input
 from mini_highlight_advisor import samples
 from backend.cache import LRU
@@ -17,6 +19,7 @@ app = FastAPI(title="Mini Highlight Advisor API")
 
 shading_cache = LRU(maxsize=8)
 result_cache = LRU(maxsize=16)
+mask_cache = LRU(maxsize=64)
 
 
 @app.get("/api/health")
@@ -48,9 +51,25 @@ def analyze(req: AnalyzeRequest):
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
     rgb, alpha, shading = cached
+    h, w = rgb.shape[:2]
     palette = [paint_from_model(p) for p in req.whole.palette]
+
+    regions = []
+    for rm in req.regions:
+        rings = [[(float(x), float(y)) for x, y in ring] for ring in rm.rings]
+        key = (req.photo_id, hashlib.sha256(json.dumps(rings).encode()).hexdigest())
+        mask = mask_cache.get(key)
+        if mask is None:
+            mask = polygons_to_mask(rings, (h, w)) & shading.mask
+            mask_cache.set(key, mask)
+        regions.append(Region(
+            name=rm.name, mask=mask,
+            palette=[paint_from_model(p) for p in rm.palette],
+            coverage=list(rm.coverage), material=rm.material,
+        ))
+
     result = analyze_regions(
-        rgb, alpha, palette, list(req.whole.coverage), [],
+        rgb, alpha, palette, list(req.whole.coverage), regions,
         edges=req.settings.edge_hl,
         extreme_edge=req.settings.edge_extreme,
         edge_sensitivity=req.settings.edge_sens,
@@ -59,9 +78,7 @@ def analyze(req: AnalyzeRequest):
         whole_material=req.whole.material,
         shading=shading,
     )
-    token = hashlib.sha256(
-        (req.photo_id + req.model_dump_json()).encode("utf-8")
-    ).hexdigest()[:16]
+    token = hashlib.sha256((req.photo_id + req.model_dump_json()).encode("utf-8")).hexdigest()[:16]
     result_cache.set(token, result)
     return {"preview_png": png_data_uri(result.combined_rgb), "result_token": token}
 
