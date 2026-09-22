@@ -87,3 +87,12 @@ to run independently. The React app does not replace it; both are available.
 3. Run frontend: `cd web && npm run dev` (opens http://localhost:5173)
 
 See `backend/README.md` and `web/README.md` for test commands and more detail.
+
+**Deploying to production (Fly.io):**
+```
+cd web && npm run build && cd ..   # build SPA into web/dist (FastAPI serves it)
+fly launch     # first time — registers the app; updates fly.toml app name
+fly deploy     # subsequent deploys
+```
+FastAPI serves the built SPA from `web/dist` at `/`; `/api/*` routes take precedence.
+Project files (`user_data/`) are ephemeral on free-tier containers — use JSON export to persist.
