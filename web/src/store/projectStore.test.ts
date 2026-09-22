@@ -100,6 +100,12 @@ describe("projectStore colour extensions", () => {
     expect(activeBookOf(useProjectStore.getState())!.drawn[0].surface).toBe("bone");
   });
 
+  it("setTone updates whole when g=0", () => {
+    useProjectStore.getState().initFromPhoto(photo("p1"));
+    useProjectStore.getState().setTone(0, "warm");
+    expect(activeBookOf(useProjectStore.getState())!.whole.tone).toBe("warm");
+  });
+
   it("setMaterial updates whole material", () => {
     useProjectStore.getState().initFromPhoto(photo("p1"));
     useProjectStore.getState().setMaterial(0, "metallic");
