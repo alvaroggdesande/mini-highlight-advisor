@@ -1,8 +1,8 @@
 # Stage 1: build the React SPA
 FROM node:20-alpine AS frontend
 WORKDIR /app/web
-COPY web/package*.json ./
-RUN npm ci
+COPY web/package.json ./
+RUN npm install
 COPY web/ ./
 RUN npm run build
 
