@@ -2,6 +2,7 @@ import { SchemeGenerator } from "./SchemeGenerator";
 import { RampEditor } from "./RampEditor";
 import { BandEditor } from "./BandEditor";
 import { SchemeManager } from "./SchemeManager";
+import { RecipeManager } from "./RecipeManager";
 
 export function ColourPanel() {
   return (
@@ -10,6 +11,7 @@ export function ColourPanel() {
       <RampEditor />
       <BandEditor />
       <SchemeManager />
+      <RecipeManager />
     </div>
   );
 }
