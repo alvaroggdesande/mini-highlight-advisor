@@ -1,9 +1,11 @@
 import hashlib
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
 from mini_highlight_advisor.pipeline import analyze_regions, prepare_shading
 from mini_highlight_advisor.input_check import check_input
+from mini_highlight_advisor import samples
 from backend.cache import LRU
 from backend.core_adapters import decode_image, default_whole, paint_from_model
 from backend.schemas import AnalyzeRequest
@@ -60,3 +62,16 @@ def analyze(req: AnalyzeRequest):
     ).hexdigest()[:16]
     result_cache.set(token, result)
     return {"preview_png": png_data_uri(result.combined_rgb), "result_token": token}
+
+
+@app.get("/api/samples/photos")
+def sample_photos():
+    return [{"id": p.path.stem, "name": p.name} for p in samples.list_photos()]
+
+
+@app.get("/api/samples/photos/{sid}")
+def sample_photo(sid: str):
+    for p in samples.list_photos():
+        if p.path.stem == sid:
+            return FileResponse(p.path)
+    raise HTTPException(status_code=404, detail="unknown sample id")
