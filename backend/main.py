@@ -3,7 +3,7 @@ import json
 import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from mini_highlight_advisor.pipeline import analyze_regions, prepare_shading
@@ -12,7 +12,7 @@ from mini_highlight_advisor.input_check import check_input
 from mini_highlight_advisor import samples
 from backend.cache import LRU
 from backend.core_adapters import decode_image, default_whole, paint_from_model, paint_to_dict
-from backend.schemas import AnalyzeRequest, RegionColorSpec as RegionColorSpecModel, SchemeGenerateRequest, MatchRequest, RecipeModel
+from backend.schemas import AnalyzeRequest, RegionColorSpec as RegionColorSpecModel, SchemeGenerateRequest, RampGenerateRequest, MatchRequest, RecipeModel
 from backend.serialize import png_data_uri, to_png_bytes
 
 from mini_highlight_advisor.catalog import load_catalog as _load_catalog_raw
@@ -197,6 +197,65 @@ def put_collection(body: dict):
     owned = set(body.get("owned", []))
     save(owned)
     return {"ok": True}
+
+
+_RAMP_DEGREES: dict[str, float] = {
+    "ramp": 0.0, "complementary": 180.0, "warm": 30.0, "cool": -30.0,
+}
+
+
+@app.post("/api/ramp/generate")
+def ramp_generate(req: RampGenerateRequest):
+    from mini_highlight_advisor.color import blend_hex_lab, hue_rotate, ramp_from_midtone
+    midtone = req.midtone_hex
+    if req.blend_hexes and len(req.blend_hexes) == 2:
+        midtone = blend_hex_lab(req.blend_hexes[0], req.blend_hexes[1])
+    degrees = _RAMP_DEGREES.get(req.variant, 0.0)
+    rotated = hue_rotate(midtone, degrees)
+    hexes = ramp_from_midtone(rotated, req.n)
+    return {"hexes": hexes}
+
+
+@app.get("/api/recipes/export")
+def export_recipes():
+    from mini_highlight_advisor.recipes import export_to_json_bytes, load_all, load_builtin
+    all_recipes = load_all()
+    builtin = {r.name for r in load_builtin()}
+    user_recipes = [r for r in all_recipes if r.name not in builtin]
+    data = export_to_json_bytes(user_recipes)
+    return Response(content=data, media_type="application/json",
+                    headers={"Content-Disposition": "attachment; filename=recipes.json"})
+
+
+@app.post("/api/recipes/import")
+async def import_recipes(file: UploadFile = File(...)):
+    from mini_highlight_advisor.recipes import import_from_json_bytes, load_all
+    data = await file.read()
+    import_from_json_bytes(data)
+    recipes = load_all()
+    return {"recipes": [{"name": r.name,
+                         "steps": [{"label": s.label, "hex": s.hex, "paint_ref": s.paint_ref}
+                                   for s in r.steps]}
+                        for r in recipes]}
+
+
+@app.get("/api/collection/export")
+def export_collection():
+    from mini_highlight_advisor.collection import export_to_json_bytes, load
+    data = export_to_json_bytes(load())
+    return Response(content=data, media_type="application/json",
+                    headers={"Content-Disposition": "attachment; filename=collection.json"})
+
+
+@app.post("/api/collection/import")
+async def import_collection(file: UploadFile = File(...)):
+    from mini_highlight_advisor.collection import import_from_json_bytes, load, save
+    data = await file.read()
+    new_owned = import_from_json_bytes(data, _catalog())
+    existing = load()
+    merged = existing | new_owned
+    save(merged)
+    return {"owned": sorted(merged)}
 
 
 # Serve the built React SPA in production (after `npm run build`).
