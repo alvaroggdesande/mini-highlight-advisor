@@ -349,4 +349,16 @@ own feature branch + PR, rather than one monolithic plan.
   acceptable given outlines are already immutable, but worth a parity check.
 - **react-konva coordinate scaling** (canvas display size vs. image pixels) must
   reuse the same convention as `regions.scale_points` so masks land correctly.
+
+
+## 15. Starting app
+- Terminal 1 — backend:
+cd C:\Users\ag\alvaro\git\mini-highlight-advisor
+.venv\Scripts\python -m uvicorn backend.main:app --reload --port 8000
+
+- Terminal 2 — frontend:
+cd C:\Users\ag\alvaro\git\mini-highlight-advisor\web
+npm run dev
+
+- Then open http://localhost:5173. The Vite dev server proxies /api → :8000, so both processes need to be running.
 ```
