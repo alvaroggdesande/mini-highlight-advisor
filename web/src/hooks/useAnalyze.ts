@@ -4,7 +4,7 @@ import { useProjectStore } from "../store/projectStore";
 
 export function useAnalyze(delay = 150) {
   const { photoId, whole, settings, setPreview, setError } = useProjectStore();
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (!photoId || !whole) return;
     clearTimeout(timer.current);

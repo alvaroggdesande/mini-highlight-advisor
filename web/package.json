@@ -17,6 +17,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@oxlint/binding-win32-x64-msvc": "^1.81.0",
     "@rolldown/binding-win32-x64-msvc": "^1.2.9",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

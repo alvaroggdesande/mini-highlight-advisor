@@ -24,7 +24,13 @@ export function PhotoUploader() {
         <div>
           <p>Or start from a sample:</p>
           {samples.map((s) => (
-            <button key={s.id} onClick={async () => handleBlob(await samplePhotoBlob(s.id), `${s.id}.png`)}>
+            <button key={s.id} onClick={async () => {
+              try {
+                handleBlob(await samplePhotoBlob(s.id), `${s.id}.png`);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : String(e));
+              }
+            }}>
               {s.name}
             </button>
           ))}
