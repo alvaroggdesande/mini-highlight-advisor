@@ -36,6 +36,15 @@ use it. A React front end with an explicit state model removes all three.
 - **Paints inventory** (catalog browse, owned toggles, import/export).
 - **Project save / load** (filesystem + JSON blob up/download).
 - **i18n** — stays multilingual (EN + ES today), ported to react-i18next.
+- **Sample / demo data** — the existing bundled photos, projects, and recipes
+  are served so a first-run user (or a demo) has something to work with without
+  supplying a photo. They already live in the core:
+  `src/mini_highlight_advisor/data/samples/photos/`,
+  `.../data/samples/projects/*.json`, and `.../data/recipes_builtin.json`
+  (plus paint catalogs `data/{citadel,vallejo,ak_interactive}_paints.json`).
+  The React app surfaces them via the `/api/samples/*` and `/api/recipes`
+  endpoints (§5): a "use a sample" picker in the uploader and a sample-projects
+  list in the project library, mirroring today's Streamlit behavior.
 
 ### Out of scope (explicitly cut from the React app)
 - **PS mode** (photoscanner normal-map import; `tools/ps_tool.py`, torch).
@@ -110,6 +119,11 @@ endpoints later if payload size ever hurts).
 | `PUT /api/projects/{slug}` | manifest JSON | `{slug}` | `projects.save_project` |
 | `DELETE /api/projects/{slug}` | — | `{ok}` | `projects.delete_project` |
 | `GET /api/projects/{slug}/download` · `POST /api/projects/upload` | JSON blob | manifest | `project_to/from_json_bytes` |
+| `GET /api/samples/photos` | — | `[{id,name,thumb_png}]` | `samples.list_photos` |
+| `GET /api/samples/photos/{id}` | — | image bytes → feeds `/api/photo` | `samples.list_photos` |
+| `GET /api/samples/projects` | — | `[{id,name}]` | `samples.list_projects` |
+| `GET /api/samples/projects/{id}` | — | project manifest JSON | `project_from_json_bytes` |
+| `GET /api/recipes` | — | built-in recipes for the recipe manager | `recipes.py` |
 
 ### The `/analyze` ↔ `/steps` split
 `analyze_regions` computes the combined preview *and* the per-band step images
