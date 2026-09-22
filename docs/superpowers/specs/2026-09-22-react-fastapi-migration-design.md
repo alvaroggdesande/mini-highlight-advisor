@@ -56,8 +56,14 @@ expose them. Photo mode never passes `light_field` / `normal_field`, so
 `analyze_regions` runs its matte path. Revisiting them is a future, separate
 effort.
 
+### Deployment goal
+- **Publicly deployable, mirroring today's Streamlit Community Cloud app** — the
+  rewrite must end up reachable in a browser without running anything locally,
+  just like the current version. Dev is two localhost processes; production is a
+  single publicly-hosted service (see §4.1). Localhost-first, deploy-ready by
+  design — nothing in the architecture precludes hosting.
+
 ### Non-goals
-- No hosting / deployment. This is a personal, localhost tool (two dev servers).
 - No UX redesign *during* the port — see §11 (faithful port first).
 
 ## 3. Locked decisions
@@ -96,6 +102,34 @@ repo root
   proxies `/api` to FastAPI to avoid CORS in dev).
 - Dev run: `uvicorn backend.main:app --reload` (:8000) + `npm run dev` in
   `web/` (:5173). Streamlit `streamlit run app.py` (:8501) remains available.
+
+### 4.1 Deployment topology (public hosting)
+
+The app must be publicly reachable like today's Streamlit Community Cloud
+version (§2). The chosen topology is **single-origin**:
+
+- **Production = one service.** `npm run build` in `web/` emits static assets;
+  **FastAPI serves those built files** (a `StaticFiles` mount at `/`) *and* the
+  `/api/*` routes from the **same origin**. One URL, one deploy, **no CORS**
+  (the SPA calls same-origin `/api`, identical to the dev Vite proxy). This
+  mirrors the single-URL Streamlit model.
+- **Dev stays two-process** (Vite :5173 proxying `/api` → uvicorn :8000). The
+  `/api` base path is identical in dev and prod, so no environment-specific API
+  URLs are needed.
+- **Host target:** a container platform that runs the FastAPI service (Fly.io /
+  Render / Railway — free/cheap tiers). The image needs the Python core +
+  `opencv-python-headless` (already a dependency; headless is
+  container-friendly). A CI step runs `npm run build` before the image is built.
+- **Persistence caveat:** filesystem project storage (`user_data/projects`) is
+  **ephemeral** on free container hosts (lost on restart/redeploy) — the same
+  limitation the Streamlit deployment has. Durable projects rely on the existing
+  **JSON export/import** blob endpoints; a mounted volume can be added later if
+  server-side persistence must survive restarts. Bundled sample data ships in
+  the image (read-only), so demos always work.
+- **Design implication for earlier phases:** because prod is single-origin under
+  `/api`, **all endpoints are already same-origin-safe** and Phase 0 needs no
+  rework to become deployable — the `StaticFiles` mount + a Dockerfile are an
+  additive later slice, not a refactor.
 
 ## 5. Backend API contract
 
@@ -240,6 +274,12 @@ sends points to `/analyze`; the server rasterizes. Therefore:
 - **Then, feature by feature:** Studio regions → ColourPanel → Paint steps →
   Paints inventory → Angles gallery → Schemes → project save/load → i18n port →
   Capture guide.
+- **Deployment slice (public hosting, §4.1):** add the `StaticFiles` mount so
+  FastAPI serves the built SPA, a `web/` build step, and a Dockerfile + host
+  config (Fly.io/Render/Railway). Can land early as a thin "hello, it's live"
+  deploy right after Phase 0 to de-risk hosting, then keep shipping features to
+  the same URL — or once parity is reached. Deploying early is recommended so
+  hosting surprises surface before the app is large.
 - **Coexistence is permanent until you decide otherwise.** Streamlit
   (`streamlit run app.py`, :8501) stays fully runnable throughout. The two apps
   share `src/` and the on-disk project format, so a project saved in one opens
