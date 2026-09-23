@@ -14,7 +14,7 @@
     "metallic": "Metálico"
   },
   "colour": {
-    "scheme_generator": "Generador de esquemas (N1)",
+    "generate_whole_mini": "Generate palette (whole mini)",
     "anchor_region": "Región principal",
     "hero_colour": "Color principal",
     "mood": "Estado de ánimo",
@@ -38,11 +38,17 @@
     "save_recipe": "Guardar receta",
     "recipe_saved": "Receta guardada",
     "load_recipe": "Cargar",
+    "preview_recipe": "Vista previa",
+    "apply_recipe": "Aplicar",
+    "cancel": "Cancelar",
     "select_recipe": "Seleccionar receta…",
     "custom": "(personalizado)",
     "blend": "Mezclar",
     "add_band": "Añadir banda",
-    "delete_band": "Eliminar banda"
+    "delete_band": "Eliminar banda",
+    "auto": "auto",
+    "coverage": "Cobertura",
+    "undo": "Deshacer"
   },
   "schemes": {
     "title": "Esquemas de color",
@@ -114,6 +120,11 @@
     "react_delete": "Eliminar",
     "react_empty": "Aún no hay proyectos guardados.",
     "react_confirm_delete": "¿Eliminar el proyecto \"{{name}}\"?"
+  },
+  "region": {
+    "editing": "Editando:",
+    "whole_mini": "Mini completa",
+    "manage": "Gestionar regiones"
   },
   "gallery": {
     "heading": "Todos los ángulos",

@@ -50,6 +50,7 @@ interface State {
   angles: Angle[];
   projectName: string | null;
   slug: string | null;
+  undoSnapshot: { angle: number; book: Book } | null;
   initFromPhoto(res: PhotoResponse): void;
   addAngle(res: PhotoResponse): void;
   switchAngle(i: number): void;
@@ -79,6 +80,8 @@ interface State {
   deleteScheme(id: string): void;
   setProjectMeta(name: string, slug: string | null): void;
   initFromProject(manifest: ProjectManifestDto): void;
+  snapshotUndo(): void;
+  undo(): void;
 }
 
 export const activeAngleOf = (s: { angles: Angle[]; activeAngle: number }): Angle | undefined =>
@@ -127,7 +130,7 @@ function neutralRegion(book: Book): DrawnRegion {
   };
 }
 
-const INITIAL_STATE = { activeAngle: 0, angles: [] as Angle[], projectName: null as string | null, slug: null as string | null };
+const INITIAL_STATE = { activeAngle: 0, angles: [] as Angle[], projectName: null as string | null, slug: null as string | null, undoSnapshot: null as { angle: number; book: Book } | null };
 
 export const useProjectStore = create<State>((set) => ({
   ...INITIAL_STATE,
@@ -137,6 +140,7 @@ export const useProjectStore = create<State>((set) => ({
     angles: [makeAngle(res, "angle 1", DEFAULT_SETTINGS)],
     projectName: null,
     slug: null,
+    undoSnapshot: null,
   }),
 
   addAngle: (res) => set((s) => {
@@ -323,5 +327,21 @@ export const useProjectStore = create<State>((set) => ({
     })),
     projectName: manifest.name,
     slug: manifest.slug,
+    undoSnapshot: null,
+  }),
+
+  snapshotUndo: () => set((s) => {
+    const b = activeBookOf(s);
+    return b ? { undoSnapshot: { angle: s.activeAngle, book: structuredClone(b) } } : {};
+  }),
+
+  undo: () => set((s) => {
+    const snap = s.undoSnapshot;
+    if (!snap) return {};
+    const angle = s.angles[snap.angle];
+    if (!angle) return { undoSnapshot: null };
+    const angles = s.angles.slice();
+    angles[snap.angle] = { ...angle, book: snap.book };
+    return { angles, undoSnapshot: null };
   }),
 }));

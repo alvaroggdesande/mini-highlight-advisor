@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge, Card, Center, Group, Image, SimpleGrid, Stack, Text } from "@mantine/core";
+import { ActionIcon, Badge, Card, Center, Group, Image, SimpleGrid, Stack, Text, TextInput } from "@mantine/core";
 import { analyze } from "../api/client";
 import { useProjectStore } from "../store/projectStore";
 import type { AnalyzeRequest } from "../api/types";
@@ -23,6 +23,9 @@ export function AngleGallery() {
   const { t } = useTranslation();
   const angles = useProjectStore((s) => s.angles);
   const activeAngle = useProjectStore((s) => s.activeAngle);
+  const switchAngle = useProjectStore((s) => s.switchAngle);
+  const renameAngle = useProjectStore((s) => s.renameAngle);
+  const removeAngle = useProjectStore((s) => s.removeAngle);
 
   const [previews, setPreviews] = useState<Record<string, PreviewState>>(() => {
     const init: Record<string, PreviewState> = {};
@@ -58,7 +61,9 @@ export function AngleGallery() {
           const isActive = idx === activeAngle;
           return (
             <Card key={angle.id} withBorder padding="xs"
-              style={{ borderColor: isActive ? "var(--mantine-color-violet-5)" : undefined }}>
+              data-testid={`angle-card-${idx}`}
+              onClick={() => switchAngle(idx)}
+              style={{ borderColor: isActive ? "var(--mantine-color-violet-5)" : undefined, cursor: "pointer" }}>
               {!angle.photoId ? (
                 <Center h={160}><Text size="sm" c="dimmed">{t("gallery.no_photo")}</Text></Center>
               ) : preview === null ? (
@@ -68,11 +73,12 @@ export function AngleGallery() {
               ) : (
                 <Image src={preview} alt={angle.label} w="100%" style={{ display: "block", objectFit: "contain" }} />
               )}
-              <Group gap="xs" mt="xs">
-                <Text size="xs" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {angle.label}
-                </Text>
+              <Group gap="xs" mt="xs" onClick={(e) => e.stopPropagation()}>
+                <TextInput size="xs" aria-label="Rename angle" value={angle.label}
+                  onChange={(e) => renameAngle(idx, e.target.value)} style={{ flex: 1 }} />
                 {isActive && <Badge size="xs" variant="light">{t("gallery.active_badge")}</Badge>}
+                <ActionIcon size="sm" variant="subtle" color="red" aria-label="Remove angle"
+                  disabled={angles.length === 1} onClick={() => removeAngle(idx)}>✕</ActionIcon>
               </Group>
             </Card>
           );

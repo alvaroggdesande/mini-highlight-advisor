@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Container, Group, Stack, Tabs, Title } from "@mantine/core";
+import { Container, Group, Tabs, Title } from "@mantine/core";
 import { PhotoUploader } from "./components/PhotoUploader";
-import { PreviewImage } from "./components/PreviewImage";
-import { RegionSelector } from "./components/RegionSelector";
+import { StudioPanel } from "./components/StudioPanel";
 import { AngleBar } from "./components/AngleBar";
-import { RightPanel } from "./components/RightPanel";
 import { PaintTab } from "./components/PaintTab";
 import { PaintsTab } from "./components/PaintsTab";
 import { AnglesTab } from "./components/AnglesTab";
@@ -53,13 +51,7 @@ export default function App() {
           </Tabs.List>
 
           <Tabs.Panel value="studio">
-            <Group align="flex-start" gap="xl" wrap="nowrap">
-              <PreviewImage />
-              <Stack style={{ flex: 1 }}>
-                <RegionSelector />
-                <RightPanel />
-              </Stack>
-            </Group>
+            <StudioPanel />
           </Tabs.Panel>
           <Tabs.Panel value="paint"><PaintTab /></Tabs.Panel>
           <Tabs.Panel value="paints"><PaintsTab /></Tabs.Panel>
