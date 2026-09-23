@@ -189,20 +189,27 @@ Below the band cards, a recipe-level footer: **`+ Add band` · `Ramp` · `Load�
 - **Save** (`RecipeSaver`) unchanged.
 - **Undo** (see §4).
 
-**Decision (was open):** the `RightPanel` `Manage | Colour | Technique` sub-tab strip is removed for
-the colour flow. The colour/region editor described in §3.2–§3.5 becomes the **default Studio surface** —
-it is no longer behind a `Colour` tab. The other two panels are relocated, not deleted:
+**Decision (was open):** the `RightPanel` `Manage | Colour | Technique` sub-tab strip is removed. The
+colour/region editor described in §3.2–§3.5 becomes the **default Studio surface** — it is no longer
+behind a `Colour` tab. The other two panels are handled as follows:
 
-- **Technique** (`TechniquePanel`) becomes a **slim secondary tab** inside the region editor (one small
-  tab strip scoped to the selected region: `Colour` | `Technique`, defaulting to `Colour`). It stays
-  region-scoped and one click away, without burying the colour flow behind it.
-- **Manage regions** (`ManagePanel`: add / rename / remove / blank) is kept as a **compact control near
-  the region header**. The header owns *switch* (`EDITING: [region ▾]`); Manage owns *add / rename /
-  remove / blank*. This resolves the duplication (two surfaces that both changed regions) into one clear
-  split, mirroring the angles switch-vs-CRUD split in §5.
+- **Technique** (`TechniquePanel`) is **removed as a separate surface.** Its only current control is
+  `material` (matte / metallic), which is precisely the region-local **finish** that moves into the
+  region header (§3.3). Keeping a slim Technique tab would duplicate that one control, and advanced
+  technique (NMM etc.) is excluded from the web app entirely. So material/finish lives in the region
+  header, and `TechniquePanel` is retired. (If a future technique surface is needed, it returns as its
+  own region-scoped block — but YAGNI for now.)
+- **Manage regions** (`ManagePanel`: draw / add / rename / remove, plus the `blank`/visible toggle
+  relocated from the retired `RegionSelector`) is kept as a **compact control near the region header**.
+  The header owns *switch* (`EDITING: [region ▾]`); Manage owns *draw / add / rename / remove / visible*.
+  This resolves the duplication (two surfaces — `RegionSelector` radio + `ManagePanel` — that both
+  touched regions) into one clear split, mirroring the angles switch-vs-CRUD split in §5. `RegionSelector`
+  (the radio list) is retired; its selection role moves to the header switcher and its `visible` toggle
+  moves into `ManagePanel`.
 
-Net: colour editing is the default surface; Technique is a slim per-region tab; region CRUD is one
-compact control by the header.
+Net: colour editing is the default surface; the region header owns switch + surface/tone/finish; region
+CRUD (incl. visible) is one compact Manage control by the header; Technique and the old RegionSelector
+radio are retired.
 
 ---
 
@@ -256,9 +263,11 @@ unchanged — this is an input-handling improvement only, isolated to `RegionCan
 | Area | File(s) | Change | Cost |
 |---|---|---|---|
 | Studio layout | `App.tsx` | Sticky preview column; editor column becomes the scroll region | Small |
-| Scope lift | `RightPanel.tsx`, `ColourPanel.tsx` | Colour flow becomes default Studio surface; Generate lifted to top, collapsible; region editor below | Medium |
-| Generate panel | `SchemeGenerator.tsx` | Drop per-region surface/tone editing (moves to header); add collapse state | Small–Med |
-| Region header | new (e.g. `RegionHeader.tsx`) | `EDITING: [region ▾]` switcher + surface/tone/finish | Small |
+| Scope lift | `App.tsx`, `RightPanel.tsx` (retired), `ColourPanel.tsx` | Colour flow becomes default Studio surface; sub-tab strip removed; Generate lifted to top, collapsible; region editor below | Medium |
+| Generate panel | `SchemeGenerator.tsx` | Drop per-region surface/tone editing (moves to header; still read as generate inputs from region state); add collapse state | Small–Med |
+| Region header | new (e.g. `RegionHeader.tsx`) | `EDITING: [region ▾]` switcher + surface/tone/finish(material) | Small |
+| Technique retired | `TechniquePanel.tsx` | Removed; its only control (material/finish) moves to region header | Small |
+| Region select | `RegionSelector.tsx` (retired), `ManagePanel.tsx` | Radio retired; selection → header switcher; `visible`/blank toggle → `ManagePanel` | Small |
 | Band cards | `BandEditor.tsx`, `BandSlot.tsx` → card | Role name, live colour control + match hint, in-card coverage, auto chip, single Add-band footer, no reorder | Medium |
 | Coverage | `CoverageEditor.tsx` | Dissolved into band cards (last band → auto chip) | Small |
 | Ramp | `RampEditor.tsx` | Demote to footer tool / popover | Small |
