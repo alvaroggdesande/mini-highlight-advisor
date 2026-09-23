@@ -46,7 +46,7 @@ export function RecipeLoader({ onRecipeLoaded }: Props) {
   return (
     <Stack gap="xs">
       <Group gap="xs">
-        <NativeSelect size="xs" value={selected} onChange={(e) => setSelected(e.target.value)} style={{ flex: 1 }}>
+        <NativeSelect size="xs" value={selected} onChange={(e) => { setSelected(e.target.value); setPreview(null); }} style={{ flex: 1 }}>
           {recipes.length === 0 && <option value="">{t("colour.select_recipe")}</option>}
           {recipes.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
         </NativeSelect>
