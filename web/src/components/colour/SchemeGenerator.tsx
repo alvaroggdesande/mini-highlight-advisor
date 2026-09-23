@@ -86,7 +86,7 @@ export function SchemeGenerator() {
           onChange={(e) => setVariantLocal(e.target.value)}
           data={VARIANTS.map((v) => ({ value: v, label: t(`variants.${v}`) }))} />
       </Group>
-      <Table size="xs">
+      <Table>
         <Table.Thead>
           <Table.Tr><Table.Th>Region</Table.Th><Table.Th>Surface</Table.Th><Table.Th>Tone</Table.Th></Table.Tr>
         </Table.Thead>
