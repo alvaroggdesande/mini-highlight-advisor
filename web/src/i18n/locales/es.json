@@ -115,6 +115,10 @@
     "react_empty": "Aún no hay proyectos guardados.",
     "react_confirm_delete": "¿Eliminar el proyecto \"{{name}}\"?"
   },
+  "region": {
+    "editing": "Editando:",
+    "manage": "Gestionar regiones"
+  },
   "gallery": {
     "heading": "Todos los ángulos",
     "caption": "Solo lectura — edita la paleta y la configuración en la pestaña Estudio.",

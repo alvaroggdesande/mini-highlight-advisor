@@ -115,6 +115,10 @@
     "react_empty": "No saved projects yet.",
     "react_confirm_delete": "Delete project \"{{name}}\"?"
   },
+  "region": {
+    "editing": "Editing:",
+    "manage": "Manage regions"
+  },
   "gallery": {
     "heading": "All Angles",
     "caption": "Read-only — edit palette and settings in the Studio tab.",
