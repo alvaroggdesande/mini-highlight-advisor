@@ -8,6 +8,7 @@ import type { PhotoResponse } from "../api/types";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 // RegionCanvas uses react-konva (canvas) which jsdom cannot render — stub it.
 vi.mock("./RegionCanvas", () => ({ RegionCanvas: () => null }));
+vi.mock("./colour/RecipeLoader", () => ({ RecipeLoader: () => null }));
 
 const photo = (): PhotoResponse => ({
   photo_id: "p1", width: 10, height: 10, quality_checks: [],
