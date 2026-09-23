@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { ActionIcon, Button, Group, Stack, TextInput } from "@mantine/core";
 import { useProjectStore } from "../store/projectStore";
 import { uploadPhoto } from "../api/client";
 
@@ -9,6 +11,8 @@ export function AngleBar() {
   const renameAngle = useProjectStore((s) => s.renameAngle);
   const removeAngle = useProjectStore((s) => s.removeAngle);
   const setError = useProjectStore((s) => s.setError);
+  const fileRef = useRef<HTMLInputElement>(null);
+
   if (angles.length === 0) return null;
 
   async function onAdd(file: File) {
@@ -17,21 +21,34 @@ export function AngleBar() {
   }
 
   return (
-    <div>
-      <strong>Angles</strong>
-      <div style={{ display: "flex", gap: 8 }}>
+    <Stack gap="xs" mb="sm">
+      <Group gap="xs" wrap="wrap">
         {angles.map((a, i) => (
-          <button key={a.id} onClick={() => switchAngle(i)}
-                  style={{ fontWeight: i === active ? "bold" : "normal" }}>{a.label}</button>
+          <Button key={a.id} size="xs"
+            variant={i === active ? "filled" : "default"}
+            onClick={() => switchAngle(i)}>
+            {a.label}
+          </Button>
         ))}
-      </div>
-      <input value={angles[active].label} onChange={(e) => renameAngle(active, e.target.value)} />
-      <button disabled={angles.length === 1} onClick={() => removeAngle(active)}>Remove angle</button>
-      <label> Add angle:
-        <input type="file" accept="image/png,image/jpeg" onChange={(e) => {
-          const f = e.target.files?.[0]; if (f) onAdd(f);
-        }} />
-      </label>
-    </div>
+        <Button size="xs" variant="subtle" onClick={() => fileRef.current?.click()}>+ angle</Button>
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg" style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onAdd(f); }} />
+      </Group>
+      <Group gap="xs">
+        <TextInput
+          size="xs"
+          value={angles[active].label}
+          onChange={(e) => renameAngle(active, e.target.value)}
+          aria-label="Rename angle"
+          style={{ maxWidth: 200 }}
+        />
+        <ActionIcon size="sm" variant="subtle" color="red"
+          disabled={angles.length === 1}
+          onClick={() => removeAngle(active)}
+          aria-label="Remove angle">
+          ✕
+        </ActionIcon>
+      </Group>
+    </Stack>
   );
 }

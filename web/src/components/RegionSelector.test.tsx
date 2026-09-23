@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { useProjectStore } from "../store/projectStore";
 import { RegionSelector } from "./RegionSelector";
 
@@ -13,7 +14,7 @@ describe("RegionSelector", () => {
     const st = useProjectStore.getState();
     st.initFromPhoto(photo());
     st.addRegion([[[0, 0], [1, 0], [1, 1]]], "helmet");
-    render(<RegionSelector />);
+    render(<MantineProvider><RegionSelector /></MantineProvider>);
     fireEvent.click(screen.getByText(/Whole mini/));
     expect(useProjectStore.getState().angles[0].book.selected).toBe(0);
     fireEvent.click(screen.getByText(/helmet/));
