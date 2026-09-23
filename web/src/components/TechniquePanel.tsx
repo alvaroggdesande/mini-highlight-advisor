@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { NativeSelect, Stack } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../store/projectStore";
 
 export function TechniquePanel() {
@@ -12,15 +13,17 @@ export function TechniquePanel() {
   const setMaterial = useProjectStore((s) => s.setMaterial);
 
   return (
-    <div style={{ padding: 8 }}>
-      <label>
-        {t("technique.material")}
-        {" "}
-        <select value={material} onChange={(e) => setMaterial(selected, e.target.value)}>
-          <option value="matte">{t("technique.matte")}</option>
-          <option value="metallic">{t("technique.metallic")}</option>
-        </select>
-      </label>
-    </div>
+    <Stack p="xs" gap="sm">
+      <NativeSelect
+        label={t("technique.material")}
+        size="xs"
+        value={material}
+        onChange={(e) => setMaterial(selected, e.target.value)}
+        data={[
+          { value: "matte", label: t("technique.matte") },
+          { value: "metallic", label: t("technique.metallic") },
+        ]}
+      />
+    </Stack>
   );
 }
