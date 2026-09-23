@@ -6,12 +6,13 @@ import { RegionSelector } from "./components/RegionSelector";
 import { AngleBar } from "./components/AngleBar";
 import { RightPanel } from "./components/RightPanel";
 import { PaintTab } from "./components/PaintTab";
+import { PaintsTab } from "./components/PaintsTab";
 import { useAnalyze } from "./hooks/useAnalyze";
 import { useProjectStore, activeAngleOf } from "./store/projectStore";
 import { useCatalogStore } from "./store/catalogStore";
 import { ProjectLibrary } from "./components/ProjectLibrary";
 
-type MainTab = "studio" | "paint";
+type MainTab = "studio" | "paint" | "paints";
 
 export default function App() {
   const { t } = useTranslation();
@@ -24,6 +25,12 @@ export default function App() {
   useEffect(() => {
     if (hasAngle) fetchCatalog();
   }, [hasAngle, fetchCatalog]);
+
+  const loadCollection = useCatalogStore((s) => s.loadCollection);
+  const catalogStatus = useCatalogStore((s) => s.status);
+  useEffect(() => {
+    if (catalogStatus === "ready") loadCollection();
+  }, [catalogStatus, loadCollection]);
 
   const tabBtn = (id: MainTab, disabled = false): React.CSSProperties => ({
     padding: "6px 18px", marginRight: 4,
@@ -54,6 +61,12 @@ export default function App() {
             >
               {t("tabs.paint")}
             </button>
+            <button
+              style={tabBtn("paints")}
+              onClick={() => setTab("paints")}
+            >
+              {t("tabs.paints")}
+            </button>
           </nav>
           {tab === "studio" && (
             <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
@@ -67,6 +80,7 @@ export default function App() {
             </div>
           )}
           {tab === "paint" && <PaintTab />}
+          {tab === "paints" && <PaintsTab />}
         </>
       )}
     </main>
