@@ -41,3 +41,79 @@ describe("catalogStore", () => {
     expect(useCatalogStore.getState().status).toBe("error");
   });
 });
+
+describe("catalogStore — collection", () => {
+  const reset = () =>
+    useCatalogStore.setState({
+      paints: [],
+      status: "idle",
+      error: undefined,
+      ownedCodes: new Set(),
+      collectionStatus: "idle",
+    });
+
+  beforeEach(() => {
+    reset();
+    vi.restoreAllMocks();
+  });
+
+  it("loadCollection transitions idle → loading → ready and stores codes", async () => {
+    vi.spyOn(client, "getCollection").mockResolvedValue({ owned: ["X1", "X2"] });
+    expect(useCatalogStore.getState().collectionStatus).toBe("idle");
+    await useCatalogStore.getState().loadCollection();
+    const s = useCatalogStore.getState();
+    expect(s.collectionStatus).toBe("ready");
+    expect(s.ownedCodes).toEqual(new Set(["X1", "X2"]));
+  });
+
+  it("loadCollection is idempotent — second call is a no-op", async () => {
+    const spy = vi.spyOn(client, "getCollection").mockResolvedValue({ owned: ["X1"] });
+    await useCatalogStore.getState().loadCollection();
+    await useCatalogStore.getState().loadCollection();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggleOwned adds a code and persists", async () => {
+    vi.spyOn(client, "getCollection").mockResolvedValue({ owned: [] });
+    vi.spyOn(client, "putCollection").mockResolvedValue({ ok: true });
+    await useCatalogStore.getState().loadCollection();
+    await useCatalogStore.getState().toggleOwned("C1");
+    const s = useCatalogStore.getState();
+    expect(s.ownedCodes.has("C1")).toBe(true);
+    expect(client.putCollection).toHaveBeenCalledWith(expect.arrayContaining(["C1"]));
+  });
+
+  it("toggleOwned removes an already-owned code and persists", async () => {
+    vi.spyOn(client, "getCollection").mockResolvedValue({ owned: ["C1", "C2"] });
+    vi.spyOn(client, "putCollection").mockResolvedValue({ ok: true });
+    await useCatalogStore.getState().loadCollection();
+    await useCatalogStore.getState().toggleOwned("C1");
+    const s = useCatalogStore.getState();
+    expect(s.ownedCodes.has("C1")).toBe(false);
+    expect(s.ownedCodes.has("C2")).toBe(true);
+    expect(client.putCollection).toHaveBeenCalledWith(expect.arrayContaining(["C2"]));
+    expect(client.putCollection).toHaveBeenCalledWith(expect.not.arrayContaining(["C1"]));
+  });
+
+  it("toggleOwned reverts on API error", async () => {
+    vi.spyOn(client, "getCollection").mockResolvedValue({ owned: [] });
+    vi.spyOn(client, "putCollection").mockRejectedValue(new Error("network"));
+    await useCatalogStore.getState().loadCollection();
+    await useCatalogStore.getState().toggleOwned("C1");
+    expect(useCatalogStore.getState().ownedCodes.has("C1")).toBe(false);
+  });
+
+  it("setOwnedFromImport replaces the owned set", async () => {
+    vi.spyOn(client, "getCollection").mockResolvedValue({ owned: ["OLD"] });
+    await useCatalogStore.getState().loadCollection();
+    useCatalogStore.getState().setOwnedFromImport(["NEW1", "NEW2"]);
+    const s = useCatalogStore.getState();
+    expect(s.ownedCodes).toEqual(new Set(["NEW1", "NEW2"]));
+  });
+
+  it("loadCollection sets error on rejection", async () => {
+    vi.spyOn(client, "getCollection").mockRejectedValue(new Error("net"));
+    await useCatalogStore.getState().loadCollection();
+    expect(useCatalogStore.getState().collectionStatus).toBe("error");
+  });
+});
