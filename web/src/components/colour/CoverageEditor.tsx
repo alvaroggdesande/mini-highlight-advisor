@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Button, Group, Slider, Stack, Text } from "@mantine/core";
 import { useProjectStore } from "../../store/projectStore";
 
 const _ROLES: Record<number, string[]> = {
@@ -24,11 +25,10 @@ export function CoverageEditor({ g: _g, n, coverage }: Props) {
   const setCoverage = useProjectStore((s) => s.setCoverage);
   const names = roleNames(n);
 
-  const handleSlider = (i: number, raw: string) => {
-    const val = Number(raw) / 100;
+  const handleSlider = (i: number, val: number) => {
+    const valFraction = val / 100;
     const others = coverage.reduce((sum, v, j) => (j !== i && j !== n - 1 ? sum + v : sum), 0);
-    const max = Math.max(0, 1 - others - 0.03);
-    const clamped = Math.min(val, max);
+    const clamped = Math.min(valFraction, Math.max(0, 1 - others - 0.03));
     const newCov = coverage.slice();
     newCov[i] = clamped;
     const remainder = 1 - newCov.slice(0, n - 1).reduce((a, b) => a + b, 0);
@@ -37,27 +37,20 @@ export function CoverageEditor({ g: _g, n, coverage }: Props) {
   };
 
   return (
-    <div>
+    <Stack gap="xs" mt="xs">
       {Array.from({ length: n - 1 }, (_, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ minWidth: 120, fontSize: 12 }}>{names[i]}</span>
-          <input
-            type="range" min={0} max={100}
-            value={Math.round((coverage[i] ?? 0) * 100)}
-            onChange={(e) => handleSlider(i, e.target.value)}
-            onMouseUp={() => { /* setCoverage is called on every change; mouseUp is a no-op */ }}
-          />
-          <span style={{ fontSize: 12, minWidth: 32 }}>
-            {Math.round((coverage[i] ?? 0) * 100)}%
-          </span>
-        </div>
+        <Group key={i} gap="xs" align="center" wrap="nowrap">
+          <Text size="xs" miw={110}>{names[i]}</Text>
+          <Slider value={Math.round((coverage[i] ?? 0) * 100)}
+            onChange={(val) => handleSlider(i, val)}
+            min={0} max={100} step={1} size="sm" style={{ flex: 1 }} />
+          <Text size="xs" miw={32} ta="right">{Math.round((coverage[i] ?? 0) * 100)}%</Text>
+        </Group>
       ))}
-      <div style={{ fontSize: 12, color: "#888" }}>
-        {names[n - 1]}: {Math.round((coverage[n - 1] ?? 0) * 100)}% (auto)
-      </div>
-      <button onClick={() => setCoverage(defaultCoverage(n))} style={{ marginTop: 4 }}>
+      <Text size="xs" c="dimmed">{names[n - 1]}: {Math.round((coverage[n - 1] ?? 0) * 100)}% (auto)</Text>
+      <Button variant="subtle" size="xs" onClick={() => setCoverage(defaultCoverage(n))}>
         {t("colour.reset_coverage")}
-      </button>
-    </div>
+      </Button>
+    </Stack>
   );
 }
