@@ -17,7 +17,7 @@ export function RegionHeader() {
   if (!book) return null;
   const g = book.selected;
   const region = g === 0 ? book.whole : book.drawn[g - 1];
-  const names = ["Whole mini", ...book.drawn.map((r) => r.name)];
+  const names = [t("region.whole_mini"), ...book.drawn.map((r) => r.name)];
 
   return (
     <Paper withBorder p="xs">
