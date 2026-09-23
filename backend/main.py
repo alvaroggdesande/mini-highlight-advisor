@@ -347,19 +347,19 @@ async def upload_project_blob(file: UploadFile = File(...)):
     data = await file.read()
     try:
         manifest, photos = project_store.project_from_blob(data)
-    except (json.JSONDecodeError, KeyError) as exc:
+        for photo_id, (suffix, photo_bytes) in photos.items():
+            project_store.save_photo(photo_id, suffix, photo_bytes)
+            if shading_cache.get(photo_id) is None:
+                try:
+                    rgb, alpha = decode_image(photo_bytes, f"photo{suffix}")
+                    shading = prepare_shading(rgb, alpha)
+                    shading_cache.set(photo_id, (rgb, alpha, shading))
+                except Exception:
+                    pass
+        slug = project_store.save_project(manifest["name"], manifest)
+        return project_store.load_project(slug)
+    except (json.JSONDecodeError, KeyError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=f"invalid project blob: {exc}")
-    for photo_id, (suffix, photo_bytes) in photos.items():
-        project_store.save_photo(photo_id, suffix, photo_bytes)
-        if shading_cache.get(photo_id) is None:
-            try:
-                rgb, alpha = decode_image(photo_bytes, f"photo{suffix}")
-                shading = prepare_shading(rgb, alpha)
-                shading_cache.set(photo_id, (rgb, alpha, shading))
-            except Exception:
-                pass
-    slug = project_store.save_project(manifest["name"], manifest)
-    return project_store.load_project(slug)
 
 
 @app.get("/api/projects/{slug}")

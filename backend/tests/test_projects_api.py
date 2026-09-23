@@ -175,3 +175,11 @@ def test_upload_invalid_blob_422():
     r = _client.post("/api/projects/upload",
                      files={"file": ("bad.json", b"not json", "application/json")})
     assert r.status_code == 422
+
+
+def test_upload_blob_missing_name_422():
+    import json as _json
+    bad_blob = _json.dumps({"schema_version": 6, "active_angle": 0, "angles": []}).encode()
+    r = _client.post("/api/projects/upload",
+                     files={"file": ("bad.json", bad_blob, "application/json")})
+    assert r.status_code == 422
