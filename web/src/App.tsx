@@ -7,12 +7,13 @@ import { AngleBar } from "./components/AngleBar";
 import { RightPanel } from "./components/RightPanel";
 import { PaintTab } from "./components/PaintTab";
 import { PaintsTab } from "./components/PaintsTab";
+import { AnglesTab } from "./components/AnglesTab";
 import { useAnalyze } from "./hooks/useAnalyze";
 import { useProjectStore, activeAngleOf } from "./store/projectStore";
 import { useCatalogStore } from "./store/catalogStore";
 import { ProjectLibrary } from "./components/ProjectLibrary";
 
-type MainTab = "studio" | "paint" | "paints";
+type MainTab = "studio" | "paint" | "paints" | "angles";
 
 export default function App() {
   const { t } = useTranslation();
@@ -67,6 +68,12 @@ export default function App() {
             >
               {t("tabs.paints")}
             </button>
+            <button
+              style={tabBtn("angles")}
+              onClick={() => setTab("angles")}
+            >
+              {t("tabs.angles")}
+            </button>
           </nav>
           {tab === "studio" && (
             <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
@@ -81,6 +88,7 @@ export default function App() {
           )}
           {tab === "paint" && <PaintTab />}
           {tab === "paints" && <PaintsTab />}
+          {tab === "angles" && <AnglesTab />}
         </>
       )}
     </main>

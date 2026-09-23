@@ -5,7 +5,8 @@
     "technique": "Technique",
     "studio": "Studio",
     "paint": "Paint",
-    "paints": "Paints"
+    "paints": "Paints",
+    "angles": "Angles"
   },
   "technique": {
     "material": "Material",
@@ -102,5 +103,14 @@
     "importing": "Importing…",
     "import_success": "Imported {{count}} paints",
     "import_error": "Import failed: {{err}}"
+  },
+  "gallery": {
+    "heading": "All Angles",
+    "caption": "Read-only — edit palette and settings in the Studio tab.",
+    "no_angles": "No angles yet. Upload a photo to get started.",
+    "active_badge": "● active",
+    "loading": "Rendering…",
+    "preview_error": "Preview failed",
+    "no_photo": "No photo"
   }
 }
