@@ -14,7 +14,6 @@
     "metallic": "Metálico"
   },
   "colour": {
-    "scheme_generator": "Generador de esquemas (N1)",
     "generate_whole_mini": "Generate palette (whole mini)",
     "anchor_region": "Región principal",
     "hero_colour": "Color principal",

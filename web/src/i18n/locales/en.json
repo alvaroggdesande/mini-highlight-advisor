@@ -14,7 +14,6 @@
     "metallic": "Metallic"
   },
   "colour": {
-    "scheme_generator": "Scheme Generator (L1)",
     "generate_whole_mini": "Generate palette (whole mini)",
     "anchor_region": "Anchor region",
     "hero_colour": "Hero colour",
