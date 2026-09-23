@@ -173,10 +173,11 @@ above it, *everything below the header edits the selected region only*.
   meaningless to the renderer. "Obvious ordering" is achieved by showing the tonal progression
   (top = shadow, swatches darkening→lightening down the stack), not by making it draggable.
 
-**Add / remove band become recipe-level, single actions.** Today every `BandSlot` carries its own
+**Add / remove band become clear, single actions.** Today every `BandSlot` carries its own
 `＋`/`✕` (adding a band is a recipe action rendered N times). Pull them out: a single **`+ Add band`**
-button in the recipe footer, and remove-band as a per-card affordance (e.g. a small `✕` on the card)
-or a footer control — but the *add* is one button, not one-per-row. Clamp stays 3–7 (`setBandCount`).
+button in the recipe footer for adding, and **remove-band as a per-card `✕`** — the card owns its own
+removal, consistent with the card being the primary object. The `✕` is disabled at the 3-band floor;
+`+ Add band` is disabled at the 7-band ceiling. Clamp stays 3–7 (`setBandCount`).
 
 ### 3.5 Recipe footer + what happens to Manage / Technique
 
@@ -188,14 +189,20 @@ Below the band cards, a recipe-level footer: **`+ Add band` · `Ramp` · `Load�
 - **Save** (`RecipeSaver`) unchanged.
 - **Undo** (see §4).
 
-The current `RightPanel` sub-tabs (`Manage | Colour | Technique`) collapse for the colour flow:
-the colour editing that was under **Colour** becomes the region editor described above. **Manage**
-(region add/rename/remove/blank — `ManagePanel`) and **Technique** (`TechniquePanel`) are retained
-but relocated: region CRUD that duplicates the new header switcher is consolidated (the header owns
-*switch*; Manage owns *add/rename/remove/blank*), and Technique remains a distinct panel reachable
-from the region editor. The implementation plan will decide exact placement (a slim secondary tab
-for Technique vs. an accordion), but the **colour flow is no longer behind a tab** — it is the
-default Studio surface.
+**Decision (was open):** the `RightPanel` `Manage | Colour | Technique` sub-tab strip is removed for
+the colour flow. The colour/region editor described in §3.2–§3.5 becomes the **default Studio surface** —
+it is no longer behind a `Colour` tab. The other two panels are relocated, not deleted:
+
+- **Technique** (`TechniquePanel`) becomes a **slim secondary tab** inside the region editor (one small
+  tab strip scoped to the selected region: `Colour` | `Technique`, defaulting to `Colour`). It stays
+  region-scoped and one click away, without burying the colour flow behind it.
+- **Manage regions** (`ManagePanel`: add / rename / remove / blank) is kept as a **compact control near
+  the region header**. The header owns *switch* (`EDITING: [region ▾]`); Manage owns *add / rename /
+  remove / blank*. This resolves the duplication (two surfaces that both changed regions) into one clear
+  split, mirroring the angles switch-vs-CRUD split in §5.
+
+Net: colour editing is the default surface; Technique is a slim per-region tab; region CRUD is one
+compact control by the header.
 
 ---
 
