@@ -13,7 +13,11 @@ from mini_highlight_advisor.input_check import check_input
 from mini_highlight_advisor import samples
 from backend.cache import LRU
 from backend.core_adapters import decode_image, default_whole, paint_from_model, paint_to_dict
-from backend.schemas import AnalyzeRequest, RegionColorSpec as RegionColorSpecModel, SchemeGenerateRequest, RampGenerateRequest, MatchRequest, RecipeModel
+from backend.schemas import (
+    AnalyzeRequest, RegionColorSpec as RegionColorSpecModel,
+    SchemeGenerateRequest, RampGenerateRequest, MatchRequest, RecipeModel,
+    StepsResponse, RegionPlanDto, StepImageDto,
+)
 from backend.serialize import png_data_uri, to_png_bytes
 
 from mini_highlight_advisor.catalog import load_catalog as _load_catalog_raw
@@ -93,6 +97,41 @@ def analyze(req: AnalyzeRequest):
     token = hashlib.sha256((req.photo_id + req.model_dump_json()).encode("utf-8")).hexdigest()[:16]
     result_cache.set(token, result)
     return {"preview_png": png_data_uri(result.combined_rgb), "result_token": token}
+
+
+@app.get("/api/steps")
+def get_steps(token: str) -> StepsResponse:
+    result = result_cache.get(token)
+    if result is None:
+        raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
+    plans_out: list[RegionPlanDto] = []
+    for plan in result.plans:
+        steps_out: list[StepImageDto] = []
+        for step in plan.steps:
+            if step.kind == "osl":
+                continue  # OSL excluded from the web app
+            label = step.label
+            if label is None:
+                # Band steps don't set label; derive from the plan's role names
+                label = (plan.roles[step.index]
+                         if step.index < len(plan.roles)
+                         else f"Band {step.index + 1}")
+            steps_out.append(StepImageDto(
+                index=step.index,
+                label=label,
+                kind=step.kind,
+                zone_png=png_data_uri(step.zone_rgb),
+                cumulative_png=png_data_uri(step.cumulative_rgb),
+                exact_png=png_data_uri(step.exact_rgb) if step.exact_rgb is not None else None,
+                is_last=step.is_last,
+            ))
+        plans_out.append(RegionPlanDto(
+            name=plan.name,
+            roles=plan.roles,
+            coverage=plan.coverage,
+            steps=steps_out,
+        ))
+    return StepsResponse(plans=plans_out)
 
 
 @app.get("/api/samples/photos")
