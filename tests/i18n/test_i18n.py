@@ -80,7 +80,7 @@ def _flatten_keys(d: dict, prefix: str = "") -> list[str]:
 
 
 def test_no_dead_keys():
-    """Every key in en.json is referenced in at least one t() call in ui/ or app.py."""
+    """Every key in en.json is referenced in at least one t() call in ui/, app.py, or web/src/."""
     locales = Path(__file__).parents[2] / "locales"
     root = Path(__file__).parents[2]
     en_keys = set(_flatten_keys(json.loads((locales / "en.json").read_text(encoding="utf-8"))))
@@ -90,6 +90,11 @@ def test_no_dead_keys():
     for py in (root / "ui").rglob("*.py"):
         used.update(pattern.findall(py.read_text(encoding="utf-8")))
     used.update(pattern.findall((root / "app.py").read_text(encoding="utf-8")))
+    # React frontend uses the same t("key") call signature
+    for ts in (root / "web" / "src").rglob("*.ts"):
+        used.update(pattern.findall(ts.read_text(encoding="utf-8")))
+    for tsx in (root / "web" / "src").rglob("*.tsx"):
+        used.update(pattern.findall(tsx.read_text(encoding="utf-8")))
 
     dead = en_keys - used
-    assert not dead, f"Dead keys in en.json not referenced in ui/ or app.py: {sorted(dead)}"
+    assert not dead, f"Dead keys in en.json not referenced in ui/, app.py, or web/src/: {sorted(dead)}"
