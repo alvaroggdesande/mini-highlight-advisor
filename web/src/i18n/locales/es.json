@@ -1,9 +1,87 @@
 {
   "tabs": {
+    "manage": "Gestionar",
+    "colour": "Color",
+    "technique": "Técnica",
     "studio": "Estudio",
     "paint": "Pintura",
     "paints": "Pinturas",
     "angles": "Ángulos"
+  },
+  "technique": {
+    "material": "Material",
+    "matte": "Mate",
+    "metallic": "Metálico"
+  },
+  "colour": {
+    "scheme_generator": "Generador de esquemas (N1)",
+    "anchor_region": "Región principal",
+    "hero_colour": "Color principal",
+    "mood": "Estado de ánimo",
+    "harmony": "Variante de armonía",
+    "surface": "Superficie",
+    "tone": "Tono",
+    "owned_only": "Solo pinturas propias",
+    "generate": "Generar",
+    "generating": "Generando…",
+    "ramp_editor": "Generador de rampas (N2)",
+    "midtone": "Tono medio",
+    "use_scheme_colour": "Usar color del esquema",
+    "ramp": "Rampa",
+    "complementary": "Complementario",
+    "warm": "Cálido",
+    "cool": "Frío",
+    "band_editor": "Editor de bandas (N3)",
+    "band_count": "Bandas",
+    "reset_coverage": "Restablecer cobertura",
+    "recipe_name": "Nombre de la receta",
+    "save_recipe": "Guardar receta",
+    "recipe_saved": "Receta guardada",
+    "load_recipe": "Cargar",
+    "select_recipe": "Seleccionar receta…",
+    "custom": "(personalizado)",
+    "blend": "Mezclar",
+    "add_band": "Añadir banda",
+    "delete_band": "Eliminar banda"
+  },
+  "schemes": {
+    "title": "Esquemas de color",
+    "name_placeholder": "Nombre del esquema",
+    "save": "Guardar instantánea",
+    "apply": "Aplicar",
+    "delete": "Eliminar"
+  },
+  "recipes": {
+    "export": "Exportar recetas",
+    "import": "Importar recetas",
+    "collection_export": "Exportar colección",
+    "collection_import": "Importar colección"
+  },
+  "surfaces": {
+    "skin": "Piel",
+    "bone": "Hueso",
+    "metal": "Metal",
+    "wood": "Madera",
+    "leather": "Cuero",
+    "fur": "Pelaje",
+    "cloth": "Tela",
+    "cloak": "Capa",
+    "robe": "Túnica",
+    "gem": "Gema",
+    "accent": "Acento",
+    "other": "Otro"
+  },
+  "moods": {
+    "neutral": "Neutro",
+    "grimdark": "Grimdark",
+    "heroic": "Heroico",
+    "natural": "Natural"
+  },
+  "variants": {
+    "complementary": "Complementaria",
+    "analogous": "Análoga",
+    "triadic": "Triádica",
+    "split-complementary": "Complementaria dividida"
   },
   "paint": {
     "loading": "Cargando pasos…",
@@ -17,22 +95,35 @@
     "search_placeholder": "Buscar por nombre, código o gama…",
     "owned_count": "{{owned}} / {{total}} propias",
     "filtered_suffix": "mostradas",
-    "no_results": "Ninguna pintura coincide.",
+    "no_results": "Ninguna pintura coincide con tu búsqueda.",
     "loading": "Cargando catálogo…",
     "manage_section": "Gestionar colección",
     "export_btn": "Exportar colección",
     "import_btn": "Importar colección",
     "importing": "Importando…",
-    "import_success": "Importadas {{count}} pinturas",
+    "import_success": "Se importaron {{count}} pinturas",
     "import_error": "Error al importar: {{err}}"
+  },
+  "projects": {
+    "react_toggle": "Proyectos",
+    "react_name_placeholder": "Nombre del proyecto",
+    "react_save": "Guardar",
+    "react_saving": "Guardando…",
+    "react_import": "Importar proyecto",
+    "react_importing": "Importando…",
+    "react_load": "Cargar",
+    "react_export": "Exportar",
+    "react_delete": "Eliminar",
+    "react_empty": "Aún no hay proyectos guardados.",
+    "react_confirm_delete": "¿Eliminar el proyecto \"{{name}}\"?"
   },
   "gallery": {
     "heading": "Todos los ángulos",
-    "caption": "Solo lectura — edita en la pestaña Estudio.",
+    "caption": "Solo lectura — edita la paleta y la configuración en la pestaña Estudio.",
     "no_angles": "Aún no hay ángulos. Sube una foto para empezar.",
     "active_badge": "● activo",
     "loading": "Renderizando…",
-    "preview_error": "Error al renderizar",
+    "preview_error": "Error en la vista previa",
     "no_photo": "Sin foto"
   }
 }

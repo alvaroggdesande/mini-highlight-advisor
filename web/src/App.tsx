@@ -12,6 +12,7 @@ import { useAnalyze } from "./hooks/useAnalyze";
 import { useProjectStore, activeAngleOf } from "./store/projectStore";
 import { useCatalogStore } from "./store/catalogStore";
 import { ProjectLibrary } from "./components/ProjectLibrary";
+import { LanguageSelector } from "./components/LanguageSelector";
 
 type MainTab = "studio" | "paint" | "paints" | "angles";
 
@@ -44,7 +45,10 @@ export default function App() {
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
-      <h1>Mini Highlight Advisor</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <h1 style={{ margin: 0 }}>Mini Highlight Advisor</h1>
+        <LanguageSelector />
+      </div>
       <ProjectLibrary />
       {!hasAngle ? (
         <PhotoUploader />

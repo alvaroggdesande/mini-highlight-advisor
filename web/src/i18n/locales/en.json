@@ -104,6 +104,19 @@
     "import_success": "Imported {{count}} paints",
     "import_error": "Import failed: {{err}}"
   },
+  "projects": {
+    "react_toggle": "Projects",
+    "react_name_placeholder": "Project name",
+    "react_save": "Save",
+    "react_saving": "Saving…",
+    "react_import": "Import project",
+    "react_importing": "Importing…",
+    "react_load": "Load",
+    "react_export": "Export",
+    "react_delete": "Delete",
+    "react_empty": "No saved projects yet.",
+    "react_confirm_delete": "Delete project \"{{name}}\"?"
+  },
   "gallery": {
     "heading": "All Angles",
     "caption": "Read-only — edit palette and settings in the Studio tab.",
