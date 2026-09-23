@@ -66,7 +66,7 @@ export function AngleGallery() {
               ) : preview === "error" ? (
                 <Center h={160}><Text size="sm" c="red">{t("gallery.preview_error")}</Text></Center>
               ) : (
-                <Image src={preview} alt={angle.label} fit="contain" h={160} />
+                <Image src={preview} alt={angle.label} w="100%" style={{ display: "block", objectFit: "contain" }} />
               )}
               <Group gap="xs" mt="xs">
                 <Text size="xs" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
