@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { it, expect, vi, beforeEach } from "vitest";
+import { MantineProvider } from "@mantine/core";
 import { PaintInventory } from "./PaintInventory";
 import { useCatalogStore } from "../store/catalogStore";
 
@@ -30,7 +31,7 @@ beforeEach(() => {
 
 it("renders a row for each paint in the catalog", () => {
   seedCatalog(["C1", "C2", "C3"]);
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   expect(screen.getByText("Paint C1")).toBeInTheDocument();
   expect(screen.getByText("Paint C2")).toBeInTheDocument();
   expect(screen.getByText("Paint C3")).toBeInTheDocument();
@@ -38,7 +39,7 @@ it("renders a row for each paint in the catalog", () => {
 
 it("owned paints have their checkbox checked", () => {
   seedCatalog(["C1", "C2"], ["C1"]);
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   const checkboxes = screen.getAllByRole("checkbox");
   expect(checkboxes[0]).toBeChecked();
   expect(checkboxes[1]).not.toBeChecked();
@@ -48,7 +49,7 @@ it("clicking an unchecked row calls toggleOwned", async () => {
   seedCatalog(["C1"], []);
   const toggleSpy = vi.fn().mockResolvedValue(undefined);
   useCatalogStore.setState({ toggleOwned: toggleSpy } as any);
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   fireEvent.click(screen.getByRole("checkbox"));
   expect(toggleSpy).toHaveBeenCalledWith("C1");
 });
@@ -57,7 +58,7 @@ it("clicking an owned row calls toggleOwned to unmark it", async () => {
   seedCatalog(["C1"], ["C1"]);
   const toggleSpy = vi.fn().mockResolvedValue(undefined);
   useCatalogStore.setState({ toggleOwned: toggleSpy } as any);
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   fireEvent.click(screen.getByRole("checkbox"));
   expect(toggleSpy).toHaveBeenCalledWith("C1");
 });
@@ -68,7 +69,7 @@ it("search filters catalog rows by name", () => {
     paints: [fakePaint("C1", "Abaddon Black"), fakePaint("C2", "White Scar")],
     status: "ready",
   });
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   const search = screen.getByRole("searchbox");
   fireEvent.change(search, { target: { value: "black" } });
   expect(screen.getByText("Abaddon Black")).toBeInTheDocument();
@@ -81,7 +82,7 @@ it("search filters by code", () => {
     paints: [fakePaint("C1", "Paint A"), fakePaint("C2", "Paint B")],
     status: "ready",
   });
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "C2" } });
   expect(screen.queryByText("Paint A")).not.toBeInTheDocument();
   expect(screen.getByText("Paint B")).toBeInTheDocument();
@@ -89,11 +90,11 @@ it("search filters by code", () => {
 
 it("shows owned and total count", () => {
   seedCatalog(["C1", "C2", "C3"], ["C1", "C2"]);
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   expect(screen.getByText(/2.*3|3.*2/)).toBeInTheDocument();
 });
 
 it("shows empty catalog message when no paints loaded", () => {
-  render(<PaintInventory />);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
   expect(screen.getByText(/paints\.loading/i)).toBeInTheDocument();
 });
