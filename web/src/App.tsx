@@ -9,6 +9,7 @@ import { PaintTab } from "./components/PaintTab";
 import { useAnalyze } from "./hooks/useAnalyze";
 import { useProjectStore, activeAngleOf } from "./store/projectStore";
 import { useCatalogStore } from "./store/catalogStore";
+import { ProjectLibrary } from "./components/ProjectLibrary";
 
 type MainTab = "studio" | "paint";
 
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
       <h1>Mini Highlight Advisor</h1>
+      <ProjectLibrary />
       {!hasAngle ? (
         <PhotoUploader />
       ) : (

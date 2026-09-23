@@ -156,7 +156,18 @@
     "no_mini_caption": "No mini loaded yet.",
     "prepare_btn": "Prepare download",
     "download_btn": "⬇ Download {slug}.json",
-    "samples_header": "Sample projects"
+    "samples_header": "Sample projects",
+    "react_toggle": "Projects",
+    "react_name_placeholder": "Project name",
+    "react_save": "Save",
+    "react_saving": "Saving…",
+    "react_import": "Import JSON",
+    "react_importing": "Uploading…",
+    "react_empty": "No saved projects",
+    "react_load": "Load",
+    "react_export": "↓",
+    "react_delete": "×",
+    "react_confirm_delete": "Delete \"{{name}}\"?"
   },
   "ps": {
     "info": "Import a photometric-stereo bundle produced by `tools/ps_tool.py`: a normal map and its mask. See docs/ps-capture-guide.md.",
