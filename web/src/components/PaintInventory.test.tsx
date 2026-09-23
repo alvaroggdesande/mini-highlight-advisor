@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { it, expect, vi, beforeEach } from "vitest";
 import { PaintInventory } from "./PaintInventory";
 import { useCatalogStore } from "../store/catalogStore";
 
