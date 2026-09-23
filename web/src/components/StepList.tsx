@@ -1,45 +1,29 @@
 import { useTranslation } from "react-i18next";
+import { Image, Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import type { RegionPlanDto, StepImageDto } from "../api/types";
 
 function StepCard({ step }: { step: StepImageDto }) {
   const { t } = useTranslation();
-  const imgStyle: React.CSSProperties = { width: "100%", display: "block" };
-  const captionStyle: React.CSSProperties = {
-    fontSize: 12, color: "#aaa", textAlign: "center", marginTop: 4,
-  };
-  const colStyle: React.CSSProperties = { display: "flex", flexDirection: "column" };
-
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>{step.label}</div>
-      {step.is_last ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <div style={colStyle}>
-            <img src={step.zone_png} alt={t("paint.step_zone")} style={imgStyle} />
-            <span style={captionStyle}>{t("paint.step_zone")}</span>
-          </div>
-          <div style={colStyle}>
-            <img src={step.cumulative_png} alt={t("paint.step_cumulative")} style={imgStyle} />
-            <span style={captionStyle}>{t("paint.step_cumulative")}</span>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          <div style={colStyle}>
-            <img src={step.zone_png} alt={t("paint.step_zone")} style={imgStyle} />
-            <span style={captionStyle}>{t("paint.step_zone")}</span>
-          </div>
-          <div style={colStyle}>
-            <img src={step.cumulative_png} alt={t("paint.step_cumulative")} style={imgStyle} />
-            <span style={captionStyle}>{t("paint.step_cumulative")}</span>
-          </div>
-          <div style={colStyle}>
-            <img src={step.exact_png!} alt={t("paint.step_exact")} style={imgStyle} />
-            <span style={captionStyle}>{t("paint.step_exact")}</span>
-          </div>
-        </div>
-      )}
-    </div>
+    <Paper p="sm" withBorder mb="sm">
+      <Text fw={600} mb="xs">{step.label}</Text>
+      <SimpleGrid cols={step.is_last ? 2 : 3} spacing="xs">
+        <Stack gap={4}>
+          <Image src={step.zone_png} alt={t("paint.step_zone")} />
+          <Text size="xs" c="dimmed" ta="center">{t("paint.step_zone")}</Text>
+        </Stack>
+        <Stack gap={4}>
+          <Image src={step.cumulative_png} alt={t("paint.step_cumulative")} />
+          <Text size="xs" c="dimmed" ta="center">{t("paint.step_cumulative")}</Text>
+        </Stack>
+        {!step.is_last && step.exact_png && (
+          <Stack gap={4}>
+            <Image src={step.exact_png} alt={t("paint.step_exact")} />
+            <Text size="xs" c="dimmed" ta="center">{t("paint.step_exact")}</Text>
+          </Stack>
+        )}
+      </SimpleGrid>
+    </Paper>
   );
 }
 
@@ -47,17 +31,15 @@ export interface StepListProps { plans: RegionPlanDto[]; }
 
 export function StepList({ plans }: StepListProps) {
   return (
-    <div>
+    <Stack gap="xl">
       {plans.map((plan) => (
-        <section key={plan.name} style={{ marginBottom: 32 }}>
-          <h3 style={{ borderBottom: "1px solid #333", paddingBottom: 8, marginBottom: 16 }}>
-            {plan.name}
-          </h3>
+        <div key={plan.name}>
+          <Title order={4} mb="sm">{plan.name}</Title>
           {plan.steps.map((step) => (
             <StepCard key={`${step.kind}-${step.index}`} step={step} />
           ))}
-        </section>
+        </div>
       ))}
-    </div>
+    </Stack>
   );
 }

@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { it, expect, vi, beforeEach } from "vitest";
+import { MantineProvider } from "@mantine/core";
 import { AngleGallery } from "./AngleGallery";
 import { useProjectStore } from "../store/projectStore";
 import * as client from "../api/client";
@@ -42,7 +43,7 @@ beforeEach(() => {
 });
 
 it("shows an info message when there are no angles", () => {
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   expect(screen.getByText(/gallery\.no_angles/i)).toBeInTheDocument();
 });
 
@@ -52,7 +53,7 @@ it("renders one card per angle", async () => {
     result_token: "tok",
   });
   seedAngles(2);
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   await waitFor(() => {
     expect(screen.getByText("Angle 1")).toBeInTheDocument();
     expect(screen.getByText("Angle 2")).toBeInTheDocument();
@@ -65,7 +66,7 @@ it("uses store preview for active angle (no extra API call)", async () => {
     result_token: "tok",
   });
   seedAngles(2, [0]); // angle 0 already has a preview
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   await waitFor(() => {
     // Only angle 1 should have triggered analyze (angle 0 used store preview)
     expect(spy).toHaveBeenCalledTimes(1);
@@ -77,7 +78,7 @@ it("marks the active angle with an indicator", async () => {
     preview_png: "data:image/png;base64,ABC", result_token: "tok",
   });
   seedAngles(2);
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   await waitFor(() => screen.getAllByAltText(/Angle/));
   expect(screen.getByText(/gallery\.active_badge/i)).toBeInTheDocument();
 });
@@ -86,14 +87,14 @@ it("shows a loading indicator while preview is fetching", () => {
   // analyze never resolves → stays in loading state
   vi.spyOn(client, "analyze").mockImplementation(() => new Promise(() => {}));
   seedAngles(1);
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   expect(screen.getByText(/gallery\.loading/i)).toBeInTheDocument();
 });
 
 it("shows an error state when analyze fails for an angle", async () => {
   vi.spyOn(client, "analyze").mockRejectedValue(new Error("network"));
   seedAngles(1);
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   await waitFor(() => {
     expect(screen.getByText(/gallery\.preview_error/i)).toBeInTheDocument();
   });
@@ -112,7 +113,7 @@ it("skips fetch for angles without a photoId", async () => {
     }],
     activeAngle: 0,
   });
-  render(<AngleGallery />);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
   // Brief wait; no fetch should fire
   await new Promise((r) => setTimeout(r, 50));
   expect(spy).not.toHaveBeenCalled();
