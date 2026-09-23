@@ -21,3 +21,23 @@ describe("api client", () => {
     await expect(listSamplePhotos()).rejects.toThrow(/404/);
   });
 });
+
+import { fetchSteps, TokenExpiredError } from "./client";
+
+describe("fetchSteps", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("throws TokenExpiredError on 409", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 409, ok: false }));
+    await expect(fetchSteps("bad-token")).rejects.toBeInstanceOf(TokenExpiredError);
+  });
+
+  it("returns parsed JSON on 200", async () => {
+    const body = { plans: [] };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      status: 200, ok: true, json: () => Promise.resolve(body),
+    }));
+    const result = await fetchSteps("good-token");
+    expect(result).toEqual(body);
+  });
+});
