@@ -2,6 +2,7 @@ import hashlib
 import json
 import math
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -16,9 +17,10 @@ from backend.core_adapters import decode_image, default_whole, paint_from_model,
 from backend.schemas import (
     AnalyzeRequest, RegionColorSpec as RegionColorSpecModel,
     SchemeGenerateRequest, RampGenerateRequest, MatchRequest, RecipeModel,
-    StepsResponse, RegionPlanDto, StepImageDto,
+    StepsResponse, RegionPlanDto, StepImageDto, SaveProjectRequest,
 )
 from backend.serialize import png_data_uri, to_png_bytes
+from backend import project_store
 
 from mini_highlight_advisor.catalog import load_catalog as _load_catalog_raw
 
@@ -54,6 +56,8 @@ async def upload_photo(file: UploadFile = File(...)):
         shading_cache.set(photo_id, (rgb, alpha, shading))
     else:
         rgb, alpha, shading = cached
+    suffix = Path(file.filename or "upload.png").suffix or ".png"
+    project_store.save_photo(photo_id, suffix, data)
     checks = [{"label": c.label, "ok": c.ok, "detail": c.detail}
               for c in check_input(rgb, shading.mask)]
     h, w = rgb.shape[:2]
@@ -298,6 +302,92 @@ async def import_collection(file: UploadFile = File(...)):
     merged = existing | new_owned
     save(merged)
     return {"owned": sorted(merged)}
+
+
+@app.get("/api/projects")
+def list_projects():
+    return {"projects": project_store.list_projects()}
+
+
+@app.put("/api/projects")
+def save_project(req: SaveProjectRequest):
+    for angle in req.angles:
+        photo_id = angle.get("photo_id")
+        if photo_id and project_store.load_photo_bytes(photo_id) is None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"photo {photo_id!r} not found on disk; re-upload the photo before saving",
+            )
+    manifest = {
+        "schema_version": 6,
+        "name": req.name,
+        "active_angle": req.active_angle,
+        "angles": req.angles,
+    }
+    slug = project_store.save_project(req.name, manifest)
+    saved = project_store.load_project(slug)
+    return {"slug": slug, "name": req.name, "updated_at": saved["updated_at"]}
+
+
+@app.get("/api/projects/{slug}/download")
+def download_project(slug: str):
+    try:
+        blob = project_store.project_to_blob(slug)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="project not found")
+    return Response(
+        content=blob,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={slug}.json"},
+    )
+
+
+@app.post("/api/projects/upload")
+async def upload_project_blob(file: UploadFile = File(...)):
+    data = await file.read()
+    try:
+        manifest, photos = project_store.project_from_blob(data)
+        for photo_id, (suffix, photo_bytes) in photos.items():
+            project_store.save_photo(photo_id, suffix, photo_bytes)
+            if shading_cache.get(photo_id) is None:
+                try:
+                    rgb, alpha = decode_image(photo_bytes, f"photo{suffix}")
+                    shading = prepare_shading(rgb, alpha)
+                    shading_cache.set(photo_id, (rgb, alpha, shading))
+                except Exception:
+                    pass
+        slug = project_store.save_project(manifest["name"], manifest)
+        return project_store.load_project(slug)
+    except (json.JSONDecodeError, KeyError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"invalid project blob: {exc}")
+
+
+@app.get("/api/projects/{slug}")
+def get_project(slug: str):
+    try:
+        manifest = project_store.load_project(slug)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="project not found")
+    for angle in manifest.get("angles", []):
+        photo_id = angle.get("photo_id")
+        if photo_id and shading_cache.get(photo_id) is None:
+            result = project_store.load_photo_bytes(photo_id)
+            if result is None:
+                continue
+            photo_bytes, suffix = result
+            try:
+                rgb, alpha = decode_image(photo_bytes, f"photo{suffix}")
+                shading = prepare_shading(rgb, alpha)
+                shading_cache.set(photo_id, (rgb, alpha, shading))
+            except Exception:
+                continue
+    return manifest
+
+
+@app.delete("/api/projects/{slug}")
+def delete_project(slug: str):
+    project_store.delete_project(slug)
+    return {"ok": True}
 
 
 # Serve the built React SPA in production (after `npm run build`).

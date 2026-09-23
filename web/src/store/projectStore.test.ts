@@ -212,3 +212,83 @@ describe("projectStore colour extensions", () => {
     expect(activeBookOf(useProjectStore.getState())!.schemes[0].name).toBe("B");
   });
 });
+
+describe("projectStore project persistence", () => {
+  beforeEach(reset);
+
+  it("initFromProject hydrates angles and sets project meta", () => {
+    const manifest: import("../api/types").ProjectManifestDto = {
+      name: "Iron Warrior",
+      slug: "iron-warrior",
+      active_angle: 0,
+      updated_at: "2026-01-01T00:00:00Z",
+      angles: [
+        {
+          id: "a1",
+          label: "front",
+          photo_id: "ph001",
+          width: 640,
+          height: 480,
+          book: {
+            whole: { palette: [{ name: "base", hex: "#333" }], coverage: [1], material: "matte" },
+            drawn: [],
+            selected: 0,
+            schemes: [],
+          },
+          settings: {
+            edge_hl: true, edge_extreme: false, edge_sens: 0.5,
+            relief_cap: true, per_region_norm: false,
+          },
+        },
+      ],
+    };
+    useProjectStore.getState().initFromProject(manifest);
+    const s = useProjectStore.getState();
+    expect(s.projectName).toBe("Iron Warrior");
+    expect(s.slug).toBe("iron-warrior");
+    expect(s.activeAngle).toBe(0);
+    expect(s.angles).toHaveLength(1);
+    expect(s.angles[0].id).toBe("a1");
+    expect(s.angles[0].photoId).toBe("ph001");
+    expect(s.angles[0].width).toBe(640);
+    expect(s.angles[0].height).toBe(480);
+    expect(s.angles[0].qualityChecks).toEqual([]);
+    expect(s.angles[0].preview).toBeUndefined();
+    expect(s.angles[0].resultToken).toBeUndefined();
+  });
+
+  it("initFromPhoto clears projectName and slug", () => {
+    useProjectStore.getState().setProjectMeta("old name", "old-slug");
+    useProjectStore.getState().initFromPhoto({
+      photo_id: "p2", width: 100, height: 100, quality_checks: [],
+      default_whole: { palette: [], coverage: [], material: "matte" },
+    });
+    const s = useProjectStore.getState();
+    expect(s.projectName).toBeNull();
+    expect(s.slug).toBeNull();
+  });
+
+  it("setProjectMeta stores name and slug", () => {
+    useProjectStore.getState().setProjectMeta("My Mini", "my-mini");
+    expect(useProjectStore.getState().projectName).toBe("My Mini");
+    expect(useProjectStore.getState().slug).toBe("my-mini");
+  });
+
+  it("initFromProject preserves drawn region blank flag default", () => {
+    const manifest: import("../api/types").ProjectManifestDto = {
+      name: "Test", slug: "test", active_angle: 0, updated_at: "",
+      angles: [{
+        id: "a1", label: "angle 1", photo_id: "ph1",
+        book: {
+          whole: { palette: [], coverage: [], material: "matte" },
+          drawn: [{ id: "r1", name: "helm", rings: [], palette: [], coverage: [], material: "matte" }],
+          selected: 0, schemes: [],
+        },
+        settings: { edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false },
+      }],
+    };
+    useProjectStore.getState().initFromProject(manifest);
+    const drawn = useProjectStore.getState().angles[0].book.drawn;
+    expect(drawn[0].blank).toBe(false);
+  });
+});

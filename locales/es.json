@@ -156,7 +156,18 @@
     "no_mini_caption": "Aún no hay miniatura cargada.",
     "prepare_btn": "Preparar descarga",
     "download_btn": "⬇ Descargar {slug}.json",
-    "samples_header": "Proyectos de muestra"
+    "samples_header": "Proyectos de muestra",
+    "react_toggle": "Proyectos",
+    "react_name_placeholder": "Nombre del proyecto",
+    "react_save": "Guardar",
+    "react_saving": "Guardando…",
+    "react_import": "Importar JSON",
+    "react_importing": "Subiendo…",
+    "react_empty": "No hay proyectos guardados",
+    "react_load": "Cargar",
+    "react_export": "↓",
+    "react_delete": "×",
+    "react_confirm_delete": "¿Eliminar \"{{name}}\"?"
   },
   "ps": {
     "info": "Importa un paquete de estéreo fotométrico producido por `tools/ps_tool.py`: un mapa de normales y su máscara. Ver docs/ps-capture-guide.md.",
