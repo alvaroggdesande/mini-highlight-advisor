@@ -9,7 +9,7 @@ const COLS = 3;
 
 function buildRequest(angle: Angle): AnalyzeRequest {
   return {
-    photo_id: angle.photoId,
+    photo_id: angle.photoId!,
     whole: angle.book.whole,
     regions: angle.book.drawn
       .filter((r) => !r.blank)
@@ -96,8 +96,7 @@ export function AngleGallery() {
           key={ri}
           style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 16, marginBottom: 16 }}
         >
-          {row.map((angle, ci) => {
-            const idx = ri * COLS + ci;
+          {row.map((angle) => {
             const preview = previews[angle.id];
             const isActive = angle.id === angles[activeAngle]?.id;
 
