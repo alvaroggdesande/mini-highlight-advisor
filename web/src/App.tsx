@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Container, Group, Stack, Tabs, Title } from "@mantine/core";
 import { PhotoUploader } from "./components/PhotoUploader";
 import { PreviewImage } from "./components/PreviewImage";
 import { RegionSelector } from "./components/RegionSelector";
@@ -24,77 +25,47 @@ export default function App() {
   const fetchCatalog = useCatalogStore((s) => s.fetch);
   const [tab, setTab] = useState<MainTab>("studio");
 
-  useEffect(() => {
-    if (hasAngle) fetchCatalog();
-  }, [hasAngle, fetchCatalog]);
+  useEffect(() => { if (hasAngle) fetchCatalog(); }, [hasAngle, fetchCatalog]);
 
   const loadCollection = useCatalogStore((s) => s.loadCollection);
   const catalogStatus = useCatalogStore((s) => s.status);
-  useEffect(() => {
-    if (catalogStatus === "ready") loadCollection();
-  }, [catalogStatus, loadCollection]);
-
-  const tabBtn = (id: MainTab, disabled = false): React.CSSProperties => ({
-    padding: "6px 18px", marginRight: 4,
-    background: "none", border: "none",
-    borderBottom: tab === id ? "2px solid #eee" : "2px solid transparent",
-    color: disabled ? "#555" : tab === id ? "#eee" : "#888",
-    fontSize: 14, fontWeight: tab === id ? 600 : 400,
-    cursor: disabled ? "default" : "pointer",
-  });
+  useEffect(() => { if (catalogStatus === "ready") loadCollection(); }, [catalogStatus, loadCollection]);
 
   return (
-    <main style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <h1 style={{ margin: 0 }}>Mini Highlight Advisor</h1>
+    <Container size="xl" p="md">
+      <Group justify="space-between" mb="xs">
+        <Title order={3}>Mini Highlight Advisor</Title>
         <LanguageSelector />
-      </div>
+      </Group>
+
       <ProjectLibrary />
+
       {!hasAngle ? (
         <PhotoUploader />
       ) : (
-        <>
+        <Tabs value={tab} onChange={(v) => setTab((v as MainTab) ?? "studio")}>
           <AngleBar />
-          <nav style={{ borderBottom: "1px solid #333", marginBottom: 16 }}>
-            <button style={tabBtn("studio")} onClick={() => setTab("studio")}>
-              {t("tabs.studio")}
-            </button>
-            <button
-              style={tabBtn("paint", !resultToken)}
-              onClick={() => { if (resultToken) setTab("paint"); }}
-              disabled={!resultToken}
-            >
-              {t("tabs.paint")}
-            </button>
-            <button
-              style={tabBtn("paints")}
-              onClick={() => setTab("paints")}
-            >
-              {t("tabs.paints")}
-            </button>
-            <button
-              style={tabBtn("angles")}
-              onClick={() => setTab("angles")}
-            >
-              {t("tabs.angles")}
-            </button>
-          </nav>
-          {tab === "studio" && (
-            <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-              <div style={{ flex: "0 0 auto" }}>
-                <PreviewImage />
-              </div>
-              <div style={{ flex: 1 }}>
+          <Tabs.List mb="md">
+            <Tabs.Tab value="studio">{t("tabs.studio")}</Tabs.Tab>
+            <Tabs.Tab value="paint" disabled={!resultToken}>{t("tabs.paint")}</Tabs.Tab>
+            <Tabs.Tab value="paints">{t("tabs.paints")}</Tabs.Tab>
+            <Tabs.Tab value="angles">{t("tabs.angles")}</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="studio">
+            <Group align="flex-start" gap="xl" wrap="nowrap">
+              <PreviewImage />
+              <Stack style={{ flex: 1 }}>
                 <RegionSelector />
                 <RightPanel />
-              </div>
-            </div>
-          )}
-          {tab === "paint" && <PaintTab />}
-          {tab === "paints" && <PaintsTab />}
-          {tab === "angles" && <AnglesTab />}
-        </>
+              </Stack>
+            </Group>
+          </Tabs.Panel>
+          <Tabs.Panel value="paint"><PaintTab /></Tabs.Panel>
+          <Tabs.Panel value="paints"><PaintsTab /></Tabs.Panel>
+          <Tabs.Panel value="angles"><AnglesTab /></Tabs.Panel>
+        </Tabs>
       )}
-    </main>
+    </Container>
   );
 }

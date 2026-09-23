@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { CoverageEditor } from "./CoverageEditor";
 import { useProjectStore } from "../../store/projectStore";
 import type { PhotoResponse } from "../../api/types";
@@ -20,14 +21,14 @@ describe("CoverageEditor", () => {
   });
 
   it("renders n-1 sliders for n bands", () => {
-    render(<CoverageEditor g={0} n={3} coverage={[0.5, 0.3, 0.2]} />);
+    render(<MantineProvider><CoverageEditor g={0} n={3} coverage={[0.5, 0.3, 0.2]} /></MantineProvider>);
     const sliders = screen.getAllByRole("slider");
     expect(sliders).toHaveLength(2);
   });
 
   it("Reset button dispatches default coverage", () => {
     const spy = vi.spyOn(useProjectStore.getState(), "setCoverage");
-    render(<CoverageEditor g={0} n={3} coverage={[0.5, 0.3, 0.2]} />);
+    render(<MantineProvider><CoverageEditor g={0} n={3} coverage={[0.5, 0.3, 0.2]} /></MantineProvider>);
     fireEvent.click(screen.getByText("colour.reset_coverage"));
     expect(spy).toHaveBeenCalled();
   });

@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { it, expect, vi, beforeEach, afterEach } from "vitest";
+import { MantineProvider } from "@mantine/core";
 import { ProjectLibrary } from "./ProjectLibrary";
 import * as client from "../api/client";
 import { useProjectStore } from "../store/projectStore";
@@ -37,13 +38,22 @@ afterEach(() => {
 });
 
 it("renders collapsed by default", () => {
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   expect(screen.getByText(/projects\.react_toggle/i)).toBeInTheDocument();
-  expect(screen.queryByPlaceholderText(/react_name_placeholder/i)).not.toBeInTheDocument();
+  const input = screen.queryByPlaceholderText(/react_name_placeholder/i);
+  expect(input).not.toBeVisible();
 });
 
 it("expands on click and loads project list", async () => {
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   fireEvent.click(screen.getByRole("button", { name: /projects\.react_toggle/i }));
   await waitFor(() => {
     expect(screen.getByPlaceholderText(/react_name_placeholder/i)).toBeInTheDocument();
@@ -52,17 +62,25 @@ it("expands on click and loads project list", async () => {
 });
 
 it("collapses when toggle clicked again", async () => {
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   const btn = screen.getByRole("button", { name: /projects\.react_toggle/i });
   fireEvent.click(btn);
-  await waitFor(() => screen.getByText("My Mini"));
+  await waitFor(() => expect(screen.getByText("My Mini")).toBeVisible());
   fireEvent.click(btn);
-  expect(screen.queryByText("My Mini")).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByText("My Mini")).not.toBeVisible());
 });
 
 it("calls loadProjectApi and initFromProject when Load is clicked", async () => {
   vi.spyOn(useProjectStore.getState(), "initFromProject");
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   fireEvent.click(screen.getByRole("button", { name: /projects\.react_toggle/i }));
   await waitFor(() => screen.getByText("My Mini"));
   fireEvent.click(screen.getByText(/projects\.react_load/));
@@ -71,7 +89,11 @@ it("calls loadProjectApi and initFromProject when Load is clicked", async () => 
 
 it("calls deleteProjectApi after confirmation", async () => {
   vi.spyOn(window, "confirm").mockReturnValue(true);
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   fireEvent.click(screen.getByRole("button", { name: /projects\.react_toggle/i }));
   await waitFor(() => screen.getByText("My Mini"));
   fireEvent.click(screen.getByText(/projects\.react_delete/));
@@ -80,7 +102,11 @@ it("calls deleteProjectApi after confirmation", async () => {
 
 it("does NOT call deleteProjectApi if user cancels confirmation", async () => {
   vi.spyOn(window, "confirm").mockReturnValue(false);
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   fireEvent.click(screen.getByRole("button", { name: /projects\.react_toggle/i }));
   await waitFor(() => screen.getByText("My Mini"));
   fireEvent.click(screen.getByText(/projects\.react_delete/));
@@ -89,7 +115,11 @@ it("does NOT call deleteProjectApi if user cancels confirmation", async () => {
 
 it("shows 'No saved projects' when list is empty", async () => {
   vi.mocked(client.listProjects).mockResolvedValue([]);
-  render(<ProjectLibrary />);
+  render(
+    <MantineProvider>
+      <ProjectLibrary />
+    </MantineProvider>
+  );
   fireEvent.click(screen.getByRole("button", { name: /projects\.react_toggle/i }));
   await waitFor(() => screen.getByText(/projects\.react_empty/));
 });

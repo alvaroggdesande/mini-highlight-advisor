@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, ColorInput, Group, Stack, Text } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { generateRamp } from "../../api/client";
 import { RAMP_VARIANTS } from "../../api/types";
@@ -32,42 +33,30 @@ export function RampEditor() {
       const res = await generateRamp({ midtone_hex: midtoneHex, n, variant });
       res.hexes.forEach((hex, i) => setHexSlot(g, i, hex));
       setRampState(g, midtoneHex, variant);
-    } finally {
-      setLoading(null);
-    }
+    } finally { setLoading(null); }
   };
 
   return (
-    <section>
-      <h4 style={{ margin: "0 0 8px" }}>{t("colour.ramp_editor")}</h4>
-      <label>
-        {t("colour.midtone")}:{" "}
-        <input type="color" value={midtoneHex} onChange={(e) => setMidtoneHex(e.target.value)} />
-        <input type="text" value={midtoneHex} style={{ width: 80, marginLeft: 4 }}
-          onChange={(e) => setMidtoneHex(e.target.value)} />
-      </label>
-
-      {book.hero_hex && (
-        <>
-          {" "}
-          <button onClick={() => setMidtoneHex(book.hero_hex!)}
-            style={{ marginLeft: 8 }}>
+    <Stack gap="xs">
+      <Text size="sm" fw={500}>{t("colour.ramp_editor")}</Text>
+      <Group gap="xs" align="flex-end">
+        <ColorInput label={t("colour.midtone")} value={midtoneHex} onChange={setMidtoneHex}
+          format="hex" size="xs" withEyeDropper={false} style={{ flex: 1 }} />
+        {book.hero_hex && (
+          <Button size="xs" variant="subtle" onClick={() => setMidtoneHex(book.hero_hex!)}>
             {t("colour.use_scheme_colour")}
-          </button>
-        </>
-      )}
-
-      <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+          </Button>
+        )}
+      </Group>
+      <Button.Group>
         {RAMP_VARIANTS.map((variant) => (
-          <button
-            key={variant}
+          <Button key={variant} size="xs" variant="default"
             onClick={() => handleVariant(variant)}
-            disabled={loading !== null}
-          >
-            {loading === variant ? "…" : t(`colour.${variant}`)}
-          </button>
+            loading={loading === variant} disabled={loading !== null}>
+            {t(`colour.${variant}`)}
+          </Button>
         ))}
-      </div>
-    </section>
+      </Button.Group>
+    </Stack>
   );
 }

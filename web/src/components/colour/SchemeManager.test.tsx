@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { SchemeManager } from "./SchemeManager";
 import { useProjectStore } from "../../store/projectStore";
 import type { PhotoResponse } from "../../api/types";
@@ -16,7 +17,7 @@ describe("SchemeManager", () => {
   beforeEach(() => { reset(); useProjectStore.getState().initFromPhoto(photo()); });
 
   it("saves a scheme when name entered and Save clicked", () => {
-    render(<SchemeManager />);
+    render(<MantineProvider><SchemeManager /></MantineProvider>);
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "My Scheme" } });
     fireEvent.click(screen.getByText("schemes.save"));
     expect(screen.getByText("My Scheme")).toBeTruthy();
@@ -24,7 +25,7 @@ describe("SchemeManager", () => {
 
   it("deletes a scheme", () => {
     useProjectStore.getState().saveScheme("ToDelete");
-    render(<SchemeManager />);
+    render(<MantineProvider><SchemeManager /></MantineProvider>);
     fireEvent.click(screen.getByText("schemes.delete"));
     expect(screen.queryByText("ToDelete")).toBeNull();
   });
@@ -32,7 +33,7 @@ describe("SchemeManager", () => {
   it("applies a scheme by clicking Apply", () => {
     useProjectStore.getState().saveScheme("snap");
     const spy = vi.spyOn(useProjectStore.getState(), "applyScheme");
-    render(<SchemeManager />);
+    render(<MantineProvider><SchemeManager /></MantineProvider>);
     fireEvent.click(screen.getByText("schemes.apply"));
     expect(spy).toHaveBeenCalled();
   });

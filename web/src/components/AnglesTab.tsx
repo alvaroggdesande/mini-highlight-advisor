@@ -1,9 +1,10 @@
+import { Box } from "@mantine/core";
 import { AngleGallery } from "./AngleGallery";
 
 export function AnglesTab() {
   return (
-    <div style={{ padding: "0 4px" }}>
+    <Box p="sm">
       <AngleGallery />
-    </div>
+    </Box>
   );
 }

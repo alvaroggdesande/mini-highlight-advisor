@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 
 export function SchemeManager() {
@@ -11,25 +12,25 @@ export function SchemeManager() {
   const [name, setName] = useState("");
 
   return (
-    <section>
-      <h4 style={{ margin: "0 0 8px" }}>{t("schemes.title")}</h4>
-      <div style={{ display: "flex", gap: 4 }}>
-        <input type="text" value={name} placeholder={t("schemes.name_placeholder")}
+    <Stack gap="xs">
+      <Text size="sm" fw={500}>{t("schemes.title")}</Text>
+      <Group gap="xs">
+        <TextInput size="xs" value={name} placeholder={t("schemes.name_placeholder")}
           onChange={(e) => setName(e.target.value)} style={{ flex: 1 }} />
-        <button onClick={() => { if (name.trim()) { saveScheme(name.trim()); setName(""); } }}
-          disabled={!name.trim()}>
+        <Button size="xs" disabled={!name.trim()}
+          onClick={() => { if (name.trim()) { saveScheme(name.trim()); setName(""); } }}>
           {t("schemes.save")}
-        </button>
-      </div>
-      <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0" }}>
+        </Button>
+      </Group>
+      <Stack gap={4}>
         {schemes.map((sc) => (
-          <li key={sc.id} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
-            <span style={{ flex: 1 }}>{sc.name}</span>
-            <button onClick={() => applyScheme(sc.id)}>{t("schemes.apply")}</button>
-            <button onClick={() => deleteScheme(sc.id)}>{t("schemes.delete")}</button>
-          </li>
+          <Group key={sc.id} gap="xs">
+            <Text size="xs" style={{ flex: 1 }}>{sc.name}</Text>
+            <Button size="xs" variant="subtle" onClick={() => applyScheme(sc.id)}>{t("schemes.apply")}</Button>
+            <Button size="xs" variant="subtle" color="red" onClick={() => deleteScheme(sc.id)}>{t("schemes.delete")}</Button>
+          </Group>
         ))}
-      </ul>
-    </section>
+      </Stack>
+    </Stack>
   );
 }

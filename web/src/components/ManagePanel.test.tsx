@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { useProjectStore } from "../store/projectStore";
 
 vi.mock("./RegionCanvas", () => ({
@@ -17,7 +18,7 @@ describe("ManagePanel", () => {
 
   it("draw -> capture stroke -> Add commits a region", () => {
     useProjectStore.getState().initFromPhoto(photo());
-    render(<ManagePanel />);
+    render(<MantineProvider><ManagePanel /></MantineProvider>);
     fireEvent.click(screen.getByText(/Draw region/));
     fireEvent.click(screen.getByText("mock-draw"));   // draft gets one ring
     fireEvent.click(screen.getByText(/^Add/));
@@ -28,8 +29,8 @@ describe("ManagePanel", () => {
     const st = useProjectStore.getState();
     st.initFromPhoto(photo());
     st.addRegion([[[0, 0], [1, 0], [1, 1]]], "helmet");  // selected = 1
-    render(<ManagePanel />);
-    fireEvent.click(screen.getByText(/Delete/));
+    render(<MantineProvider><ManagePanel /></MantineProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Delete region" }));
     expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(0);
   });
 });

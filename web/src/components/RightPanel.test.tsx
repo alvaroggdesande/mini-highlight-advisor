@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { RightPanel } from "./RightPanel";
 
 vi.mock("./ManagePanel", () => ({ ManagePanel: () => <div>ManagePanel</div> }));
@@ -11,19 +12,20 @@ vi.mock("react-i18next", () => ({
 
 describe("RightPanel", () => {
   it("renders ManagePanel by default", () => {
-    render(<RightPanel />);
+    render(<MantineProvider><RightPanel /></MantineProvider>);
     expect(screen.getByText("ManagePanel")).toBeTruthy();
   });
 
   it("clicking Colour tab renders ColourPanel", () => {
-    render(<RightPanel />);
+    render(<MantineProvider><RightPanel /></MantineProvider>);
     fireEvent.click(screen.getByText("tabs.colour"));
     expect(screen.getByText("ColourPanel")).toBeTruthy();
-    expect(screen.queryByText("ManagePanel")).toBeNull();
+    // Verify that ManagePanel is not visible in the active tabpanel
+    expect(screen.queryByText("ManagePanel")).not.toBeVisible();
   });
 
   it("clicking Technique tab renders TechniquePanel", () => {
-    render(<RightPanel />);
+    render(<MantineProvider><RightPanel /></MantineProvider>);
     fireEvent.click(screen.getByText("tabs.technique"));
     expect(screen.getByText("TechniquePanel")).toBeTruthy();
   });

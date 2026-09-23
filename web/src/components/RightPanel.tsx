@@ -1,36 +1,26 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Tabs } from "@mantine/core";
 import { ManagePanel } from "./ManagePanel";
 import { ColourPanel } from "./colour/ColourPanel";
 import { TechniquePanel } from "./TechniquePanel";
 
 type Tab = "manage" | "colour" | "technique";
-const TABS: Tab[] = ["manage", "colour", "technique"];
 
 export function RightPanel() {
   const { t } = useTranslation();
   const [active, setActive] = useState<Tab>("manage");
 
   return (
-    <div>
-      <div role="tablist" style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={active === tab}
-            onClick={() => setActive(tab)}
-            style={{ fontWeight: active === tab ? "bold" : "normal" }}
-          >
-            {t(`tabs.${tab}`)}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel">
-        {active === "manage" && <ManagePanel />}
-        {active === "colour" && <ColourPanel />}
-        {active === "technique" && <TechniquePanel />}
-      </div>
-    </div>
+    <Tabs value={active} onChange={(v) => setActive((v as Tab) ?? "manage")}>
+      <Tabs.List mb="sm">
+        <Tabs.Tab value="manage">{t("tabs.manage")}</Tabs.Tab>
+        <Tabs.Tab value="colour">{t("tabs.colour")}</Tabs.Tab>
+        <Tabs.Tab value="technique">{t("tabs.technique")}</Tabs.Tab>
+      </Tabs.List>
+      <Tabs.Panel value="manage"><ManagePanel /></Tabs.Panel>
+      <Tabs.Panel value="colour"><ColourPanel /></Tabs.Panel>
+      <Tabs.Panel value="technique"><TechniquePanel /></Tabs.Panel>
+    </Tabs>
   );
 }

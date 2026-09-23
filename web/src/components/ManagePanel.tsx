@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActionIcon, Button, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../store/projectStore";
 import { RegionCanvas } from "./RegionCanvas";
 
@@ -23,25 +24,29 @@ export function ManagePanel() {
   function cancel() { setDrawing(false); setDraftRings([]); setName(""); }
 
   return (
-    <div>
+    <Stack gap="xs">
       <RegionCanvas drawing={drawing} draftRings={draftRings} onDraftChange={setDraftRings} />
       {!drawing ? (
-        <button onClick={() => setDrawing(true)}>Draw region</button>
+        <Button size="xs" variant="default" onClick={() => setDrawing(true)}>Draw region</Button>
       ) : (
-        <div>
-          <input placeholder={defaultName} value={name} onChange={(e) => setName(e.target.value)} />
-          <button onClick={commit}>Add region</button>
-          <button onClick={cancel}>Cancel</button>
-          {draftRings.length > 0 && <span> {draftRings.length} stroke(s)</span>}
-        </div>
+        <Group gap="xs" align="center">
+          <TextInput size="xs" placeholder={defaultName} value={name}
+            onChange={(e) => setName(e.target.value)} style={{ flex: 1 }} />
+          <Button size="xs" onClick={commit}>Add region</Button>
+          <Button size="xs" variant="subtle" onClick={cancel}>Cancel</Button>
+          {draftRings.length > 0 && (
+            <Text size="xs" c="dimmed">{draftRings.length} stroke(s)</Text>
+          )}
+        </Group>
       )}
       {!drawing && sel >= 1 && (
-        <div>
-          <input value={book.drawn[sel - 1].name}
-                 onChange={(e) => renameRegion(sel, e.target.value)} />
-          <button onClick={() => removeRegion(sel)}>Delete region</button>
-        </div>
+        <Group gap="xs">
+          <TextInput size="xs" value={book.drawn[sel - 1].name}
+            onChange={(e) => renameRegion(sel, e.target.value)} style={{ flex: 1 }} />
+          <ActionIcon size="sm" variant="subtle" color="red"
+            onClick={() => removeRegion(sel)} aria-label="Delete region">✕</ActionIcon>
+        </Group>
       )}
-    </div>
+    </Stack>
   );
 }
