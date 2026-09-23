@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { it, expect, vi, beforeEach } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { AngleGallery } from "./AngleGallery";
@@ -55,8 +55,8 @@ it("renders one card per angle", async () => {
   seedAngles(2);
   render(<MantineProvider><AngleGallery /></MantineProvider>);
   await waitFor(() => {
-    expect(screen.getByText("Angle 1")).toBeInTheDocument();
-    expect(screen.getByText("Angle 2")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Angle 1")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Angle 2")).toBeInTheDocument();
   });
 });
 
@@ -118,4 +118,18 @@ it("skips fetch for angles without a photoId", async () => {
   await new Promise((r) => setTimeout(r, 50));
   expect(spy).not.toHaveBeenCalled();
   expect(screen.getByText(/gallery\.no_photo/i)).toBeInTheDocument();
+});
+
+it("clicking a gallery card selects that angle", () => {
+  seedAngles(2); // activeAngle = 0
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
+  fireEvent.click(screen.getByTestId("angle-card-1"));
+  expect(useProjectStore.getState().activeAngle).toBe(1);
+});
+
+it("gallery exposes rename and delete", () => {
+  seedAngles(2);
+  render(<MantineProvider><AngleGallery /></MantineProvider>);
+  expect(screen.getAllByLabelText("Rename angle").length).toBeGreaterThan(0);
+  expect(screen.getAllByLabelText("Remove angle").length).toBeGreaterThan(0);
 });

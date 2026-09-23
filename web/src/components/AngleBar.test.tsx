@@ -19,9 +19,12 @@ describe("AngleBar", () => {
     expect(useProjectStore.getState().activeAngle).toBe(0);
   });
 
-  it("remove is disabled with a single angle", () => {
-    useProjectStore.getState().initFromPhoto(photo("p0"));
+  it("does not expose rename or delete in the bar", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p0"));
+    st.addAngle(photo("p1"));
     render(<MantineProvider><AngleBar /></MantineProvider>);
-    expect((screen.getByRole("button", { name: "Remove angle" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByLabelText("Rename angle")).toBeNull();
+    expect(screen.queryByLabelText("Remove angle")).toBeNull();
   });
 });
