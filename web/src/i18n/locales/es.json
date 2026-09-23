@@ -2,7 +2,8 @@
   "tabs": {
     "studio": "Estudio",
     "paint": "Pintura",
-    "paints": "Pinturas"
+    "paints": "Pinturas",
+    "angles": "Ángulos"
   },
   "paint": {
     "loading": "Cargando pasos…",
@@ -24,5 +25,14 @@
     "importing": "Importando…",
     "import_success": "Importadas {{count}} pinturas",
     "import_error": "Error al importar: {{err}}"
+  },
+  "gallery": {
+    "heading": "Todos los ángulos",
+    "caption": "Solo lectura — edita en la pestaña Estudio.",
+    "no_angles": "Aún no hay ángulos. Sube una foto para empezar.",
+    "active_badge": "● activo",
+    "loading": "Renderizando…",
+    "preview_error": "Error al renderizar",
+    "no_photo": "Sin foto"
   }
 }
