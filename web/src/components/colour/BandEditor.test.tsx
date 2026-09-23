@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { BandEditor } from "./BandEditor";
 import { useProjectStore } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
@@ -28,7 +29,7 @@ describe("BandEditor", () => {
   });
 
   it("renders one BandSlot per palette entry", () => {
-    render(<BandEditor />);
+    render(<MantineProvider><BandEditor /></MantineProvider>);
     expect(screen.getByText("slot-0")).toBeTruthy();
     expect(screen.getByText("slot-1")).toBeTruthy();
   });

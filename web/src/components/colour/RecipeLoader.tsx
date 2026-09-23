@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Group, NativeSelect } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import { listRecipes } from "../../api/client";
@@ -19,15 +20,11 @@ export function RecipeLoader({ onRecipeLoaded }: Props) {
   const book = useProjectStore((s) => activeBookOf(s));
   const catalogPaints = useCatalogStore((s) => s.paints);
   const setPaletteAt = useProjectStore((s) => s.setPaletteAt);
-
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selected, setSelected] = useState<string>("");
 
   useEffect(() => {
-    listRecipes().then((res) => {
-      setRecipes(res.recipes);
-      if (res.recipes.length > 0) setSelected(res.recipes[0].name);
-    });
+    listRecipes().then((res) => { setRecipes(res.recipes); if (res.recipes.length > 0) setSelected(res.recipes[0].name); });
   }, []);
 
   if (!book) return null;
@@ -35,19 +32,19 @@ export function RecipeLoader({ onRecipeLoaded }: Props) {
   const handleLoad = () => {
     const recipe = recipes.find((r) => r.name === selected);
     if (!recipe) return;
-    const palette = toPalette(recipe, catalogPaints);
-    setPaletteAt(book.selected, palette);
+    setPaletteAt(book.selected, toPalette(recipe, catalogPaints));
     onRecipeLoaded();
   };
 
   return (
-    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-      <select value={selected} onChange={(e) => setSelected(e.target.value)}
-        style={{ flex: 1 }}>
+    <Group gap="xs">
+      <NativeSelect size="xs" value={selected} onChange={(e) => setSelected(e.target.value)} style={{ flex: 1 }}>
         {recipes.length === 0 && <option value="">{t("colour.select_recipe")}</option>}
         {recipes.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
-      </select>
-      <button onClick={handleLoad} disabled={!selected}>{t("colour.load_recipe")}</button>
-    </div>
+      </NativeSelect>
+      <Button size="xs" variant="default" onClick={handleLoad} disabled={!selected}>
+        {t("colour.load_recipe")}
+      </Button>
+    </Group>
   );
 }
