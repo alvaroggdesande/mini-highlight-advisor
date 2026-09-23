@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActionIcon, Button, Group, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Checkbox, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../store/projectStore";
 import { RegionCanvas } from "./RegionCanvas";
 
@@ -8,6 +8,7 @@ export function ManagePanel() {
   const addRegion = useProjectStore((s) => s.addRegion);
   const removeRegion = useProjectStore((s) => s.removeRegion);
   const renameRegion = useProjectStore((s) => s.renameRegion);
+  const toggleBlank = useProjectStore((s) => s.toggleBlank);
   const [drawing, setDrawing] = useState(false);
   const [draftRings, setDraftRings] = useState<number[][][]>([]);
   const [name, setName] = useState("");
@@ -40,9 +41,11 @@ export function ManagePanel() {
         </Group>
       )}
       {!drawing && sel >= 1 && (
-        <Group gap="xs">
+        <Group gap="xs" align="center">
           <TextInput size="xs" value={book.drawn[sel - 1].name}
             onChange={(e) => renameRegion(sel, e.target.value)} style={{ flex: 1 }} />
+          <Checkbox size="xs" aria-label="visible" label="visible"
+            checked={!book.drawn[sel - 1].blank} onChange={() => toggleBlank(sel)} />
           <ActionIcon size="sm" variant="subtle" color="red"
             onClick={() => removeRegion(sel)} aria-label="Delete region">✕</ActionIcon>
         </Group>

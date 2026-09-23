@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { useProjectStore } from "../store/projectStore";
+import type { PhotoResponse } from "../api/types";
 
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock("./RegionCanvas", () => ({
   RegionCanvas: ({ onDraftChange }: any) => (
     <button onClick={() => onDraftChange([[[0, 0], [5, 0], [5, 5]]])}>mock-draw</button>
@@ -10,8 +12,16 @@ vi.mock("./RegionCanvas", () => ({
 }));
 import { ManagePanel } from "./ManagePanel";
 
-const photo = () => ({ photo_id: "p", width: 10, height: 10, quality_checks: [],
+const photo = (): PhotoResponse => ({ photo_id: "p", width: 10, height: 10, quality_checks: [],
   default_whole: { palette: [{ name: "a", hex: "#000" }], coverage: [1], material: "matte" } });
+
+const photo3 = (): PhotoResponse => ({
+  photo_id: "p1", width: 10, height: 10, quality_checks: [],
+  default_whole: { palette: [{ name: "a", hex: "#111" }, { name: "b", hex: "#aaa" }, { name: "c", hex: "#eee" }],
+                   coverage: [0.5, 0.3, 0.2], material: "matte" },
+});
+
+const reset = () => useProjectStore.setState(useProjectStore.getInitialState(), true);
 
 describe("ManagePanel", () => {
   beforeEach(() => useProjectStore.setState(useProjectStore.getInitialState(), true));
@@ -32,5 +42,20 @@ describe("ManagePanel", () => {
     render(<MantineProvider><ManagePanel /></MantineProvider>);
     fireEvent.click(screen.getByRole("button", { name: "Delete region" }));
     expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(0);
+  });
+});
+
+describe("ManagePanel visible toggle", () => {
+  beforeEach(() => {
+    reset();
+    useProjectStore.getState().initFromPhoto(photo3());
+    useProjectStore.getState().addRegion([[[1, 1], [2, 2], [3, 1]]], "Cloak"); // selects region 1
+  });
+
+  it("toggles blank on the selected drawn region", () => {
+    render(<MantineProvider><ManagePanel /></MantineProvider>);
+    const before = useProjectStore.getState().angles[0].book.drawn[0].blank;
+    fireEvent.click(screen.getByLabelText("visible"));
+    expect(useProjectStore.getState().angles[0].book.drawn[0].blank).toBe(!before);
   });
 });
