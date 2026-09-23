@@ -20,6 +20,8 @@ describe("RightPanel", () => {
     render(<MantineProvider><RightPanel /></MantineProvider>);
     fireEvent.click(screen.getByText("tabs.colour"));
     expect(screen.getByText("ColourPanel")).toBeTruthy();
+    // Verify that ManagePanel is not visible in the active tabpanel
+    expect(screen.queryByText("ManagePanel")).not.toBeVisible();
   });
 
   it("clicking Technique tab renders TechniquePanel", () => {
