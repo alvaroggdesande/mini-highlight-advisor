@@ -1,7 +1,8 @@
 {
   "tabs": {
     "studio": "Estudio",
-    "paint": "Pintura"
+    "paint": "Pintura",
+    "paints": "Pinturas"
   },
   "paint": {
     "loading": "Cargando pasos…",
@@ -9,5 +10,19 @@
     "step_zone": "Dónde pintar",
     "step_cumulative": "Resultado hasta aquí",
     "step_exact": "Esta capa"
+  },
+  "paints": {
+    "heading": "## 🎨 Pinturas",
+    "search_placeholder": "Buscar por nombre, código o gama…",
+    "owned_count": "{{owned}} / {{total}} propias",
+    "filtered_suffix": "mostradas",
+    "no_results": "Ninguna pintura coincide.",
+    "loading": "Cargando catálogo…",
+    "manage_section": "Gestionar colección",
+    "export_btn": "Exportar colección",
+    "import_btn": "Importar colección",
+    "importing": "Importando…",
+    "import_success": "Importadas {{count}} pinturas",
+    "import_error": "Error al importar: {{err}}"
   }
 }

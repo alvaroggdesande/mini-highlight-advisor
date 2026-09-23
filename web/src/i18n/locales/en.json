@@ -4,7 +4,8 @@
     "colour": "Colour",
     "technique": "Technique",
     "studio": "Studio",
-    "paint": "Paint"
+    "paint": "Paint",
+    "paints": "Paints"
   },
   "technique": {
     "material": "Material",
@@ -87,5 +88,19 @@
     "step_zone": "Where to paint",
     "step_cumulative": "Result so far",
     "step_exact": "This layer"
+  },
+  "paints": {
+    "heading": "## 🎨 Paints",
+    "search_placeholder": "Search by name, code or range…",
+    "owned_count": "{{owned}} / {{total}} owned",
+    "filtered_suffix": "shown",
+    "no_results": "No paints match your search.",
+    "loading": "Loading catalog…",
+    "manage_section": "Manage collection",
+    "export_btn": "Export collection",
+    "import_btn": "Import collection",
+    "importing": "Importing…",
+    "import_success": "Imported {{count}} paints",
+    "import_error": "Import failed: {{err}}"
   }
 }
