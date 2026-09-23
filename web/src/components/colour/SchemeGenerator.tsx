@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Checkbox, ColorInput, Group, NativeSelect, Stack, Table, Text } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import { generateScheme } from "../../api/client";
@@ -18,7 +19,6 @@ export function SchemeGenerator() {
   const setTone = useProjectStore((s) => s.setTone);
 
   const regionCount = book ? 1 + book.drawn.length : 1;
-
   const [anchorIndex, setAnchorIndex] = useState(0);
   const [heroHex, setHeroHexLocal] = useState(() => book?.hero_hex ?? "#c0392b");
   const [mood, setMoodLocal] = useState(() => book?.mood ?? "neutral");
@@ -32,18 +32,14 @@ export function SchemeGenerator() {
   const [ownedOnly, setOwnedOnly] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Grow perRegion if drawn regions were added after mount
   useEffect(() => {
     if (!book) return;
     const needed = 1 + book.drawn.length;
     if (perRegion.length < needed) {
-      setPerRegion((prev) => [
-        ...prev,
-        ...Array.from({ length: needed - prev.length }, (_, i) => {
-          const di = prev.length - 1 + i;
-          return { surface: book.drawn[di]?.surface ?? "skin", tone: book.drawn[di]?.tone ?? "" };
-        }),
-      ]);
+      setPerRegion((prev) => [...prev, ...Array.from({ length: needed - prev.length }, (_, i) => {
+        const di = prev.length - 1 + i;
+        return { surface: book.drawn[di]?.surface ?? "skin", tone: book.drawn[di]?.tone ?? "" };
+      })]);
     }
   }, [book?.drawn.length]);
 
@@ -63,92 +59,64 @@ export function SchemeGenerator() {
         n_bands: i === 0 ? book.whole.palette.length : book.drawn[i - 1].palette.length,
         is_anchor: i === anchorIndex,
       }));
-      const res = await generateScheme({
-        specs,
-        anchor_name: anchorName,
-        anchor_hex: heroHex,
-        mood,
-        variant,
-        owned_codes: ownedCodes,
-      });
-      regionNames.forEach((name, i) => {
-        const pal = res.palettes[name];
-        if (pal) setPaletteAt(i, pal);
-      });
-      setHeroHex(heroHex);
-      setMood(mood);
-      setVariant(variant);
-      regionNames.forEach((_, i) => {
-        setSurface(i, perRegion[i]?.surface ?? "skin");
-        if (perRegion[i]?.tone) setTone(i, perRegion[i].tone);
-      });
-    } finally {
-      setLoading(false);
-    }
+      const res = await generateScheme({ specs, anchor_name: anchorName, anchor_hex: heroHex, mood, variant, owned_codes: ownedCodes });
+      regionNames.forEach((name, i) => { const pal = res.palettes[name]; if (pal) setPaletteAt(i, pal); });
+      setHeroHex(heroHex); setMood(mood); setVariant(variant);
+      regionNames.forEach((_, i) => { setSurface(i, perRegion[i]?.surface ?? "skin"); if (perRegion[i]?.tone) setTone(i, perRegion[i].tone); });
+    } finally { setLoading(false); }
   };
 
   const updatePerRegion = (i: number, field: "surface" | "tone", value: string) =>
     setPerRegion((prev) => prev.map((r, j) => j === i ? { ...r, [field]: value } : r));
 
   return (
-    <section>
-      <h4 style={{ margin: "0 0 8px" }}>{t("colour.scheme_generator")}</h4>
-
-      <label>
-        {t("colour.anchor_region")}:{" "}
-        <select value={anchorIndex} onChange={(e) => setAnchorIndex(Number(e.target.value))}>
+    <Stack gap="xs">
+      <Text size="sm" fw={500}>{t("colour.scheme_generator")}</Text>
+      <Group gap="xs" align="flex-end" wrap="wrap">
+        <NativeSelect label={t("colour.anchor_region")} size="xs"
+          value={anchorIndex} onChange={(e) => setAnchorIndex(Number(e.target.value))}>
           {regionNames.map((name, i) => <option key={i} value={i}>{name}</option>)}
-        </select>
-      </label>
-
-      <br />
-      <label>
-        {t("colour.hero_colour")}:{" "}
-        <input type="color" value={heroHex} onChange={(e) => setHeroHexLocal(e.target.value)} />
-        <input type="text" value={heroHex} style={{ width: 80, marginLeft: 4 }}
-          onChange={(e) => setHeroHexLocal(e.target.value)} />
-      </label>
-
-      <br />
-      <label>
-        {t("colour.mood")}:{" "}
-        <select value={mood} onChange={(e) => setMoodLocal(e.target.value)}>
-          {MOODS.map((m) => <option key={m} value={m}>{t(`moods.${m}`)}</option>)}
-        </select>
-      </label>
-
-      <br />
-      <label>
-        {t("colour.harmony")}:{" "}
-        <select value={variant} onChange={(e) => setVariantLocal(e.target.value)}>
-          {VARIANTS.map((v) => <option key={v} value={v}>{t(`variants.${v}`)}</option>)}
-        </select>
-      </label>
-
-      <div style={{ marginTop: 8 }}>
-        {regionNames.map((name, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
-            <span style={{ minWidth: 80 }}>{name}</span>
-            <select value={perRegion[i]?.surface ?? "skin"}
-              onChange={(e) => updatePerRegion(i, "surface", e.target.value)}>
-              {SURFACES.map((s) => <option key={s} value={s}>{t(`surfaces.${s}`)}</option>)}
-            </select>
-            <input type="text" placeholder={t("colour.tone")} value={perRegion[i]?.tone ?? ""}
-              style={{ width: 100 }}
-              onChange={(e) => updatePerRegion(i, "tone", e.target.value)} />
-          </div>
-        ))}
-      </div>
-
-      <label>
-        <input type="checkbox" checked={ownedOnly} onChange={(e) => setOwnedOnly(e.target.checked)} />
-        {" "}{t("colour.owned_only")}
-      </label>
-
-      <br />
-      <button onClick={handleGenerate} disabled={loading} style={{ marginTop: 8 }}>
-        {loading ? t("colour.generating") : t("colour.generate")}
-      </button>
-    </section>
+        </NativeSelect>
+        <ColorInput label={t("colour.hero_colour")} value={heroHex} onChange={setHeroHexLocal}
+          format="hex" size="xs" withEyeDropper={false} />
+        <NativeSelect label={t("colour.mood")} size="xs" value={mood}
+          onChange={(e) => setMoodLocal(e.target.value)}
+          data={MOODS.map((m) => ({ value: m, label: t(`moods.${m}`) }))} />
+        <NativeSelect label={t("colour.harmony")} size="xs" value={variant}
+          onChange={(e) => setVariantLocal(e.target.value)}
+          data={VARIANTS.map((v) => ({ value: v, label: t(`variants.${v}`) }))} />
+      </Group>
+      <Table>
+        <Table.Thead>
+          <Table.Tr><Table.Th>Region</Table.Th><Table.Th>Surface</Table.Th><Table.Th>Tone</Table.Th></Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {regionNames.map((name, i) => (
+            <Table.Tr key={i}>
+              <Table.Td><Text size="xs">{name}</Text></Table.Td>
+              <Table.Td>
+                <NativeSelect size="xs" value={perRegion[i]?.surface ?? "skin"}
+                  onChange={(e) => updatePerRegion(i, "surface", e.target.value)}
+                  data={SURFACES.map((s) => ({ value: s, label: t(`surfaces.${s}`) }))} />
+              </Table.Td>
+              <Table.Td>
+                <input type="text" placeholder={t("colour.tone")} value={perRegion[i]?.tone ?? ""}
+                  onChange={(e) => updatePerRegion(i, "tone", e.target.value)}
+                  style={{ width: 80, fontSize: 12, background: "transparent",
+                    border: "1px solid var(--mantine-color-dark-4)", color: "inherit",
+                    borderRadius: 4, padding: "2px 4px" }} />
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <Group gap="sm">
+        <Checkbox size="xs" label={t("colour.owned_only")} checked={ownedOnly}
+          onChange={(e) => setOwnedOnly(e.currentTarget.checked)} />
+        <Button size="xs" onClick={handleGenerate} loading={loading}>
+          {t("colour.generate")}
+        </Button>
+      </Group>
+    </Stack>
   );
 }
