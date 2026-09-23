@@ -99,3 +99,9 @@ class RegionPlanDto(BaseModel):
 
 class StepsResponse(BaseModel):
     plans: list[RegionPlanDto]
+
+
+class SaveProjectRequest(BaseModel):
+    name: str
+    active_angle: int = 0
+    angles: list[dict] = Field(default_factory=list)
