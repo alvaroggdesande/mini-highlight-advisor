@@ -1,8 +1,12 @@
-import type { AnalyzeRequest, AnalyzeResponse, PhotoResponse, SamplePhoto } from "./types";
+import type { AnalyzeRequest, AnalyzeResponse, PhotoResponse, SamplePhoto, StepsResponse } from "./types";
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
+}
+
+export class TokenExpiredError extends Error {
+  constructor() { super("token expired"); }
 }
 
 export async function uploadPhoto(file: Blob, name = "upload.png"): Promise<PhotoResponse> {
@@ -98,4 +102,11 @@ export async function importCollection(file: File): Promise<{ owned: string[] }>
   const fd = new FormData();
   fd.append("file", file, file.name);
   return json<{ owned: string[] }>(await fetch("/api/collection/import", { method: "POST", body: fd }));
+}
+
+export async function fetchSteps(token: string): Promise<StepsResponse> {
+  const res = await fetch(`/api/steps?token=${encodeURIComponent(token)}`);
+  if (res.status === 409) throw new TokenExpiredError();
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json() as Promise<StepsResponse>;
 }

@@ -78,3 +78,24 @@ class RecipeStepModel(BaseModel):
 class RecipeModel(BaseModel):
     name: str
     steps: list[RecipeStepModel]
+
+
+class StepImageDto(BaseModel):
+    index: int
+    label: str
+    kind: str  # "band" | "edge" | "shade"
+    zone_png: str
+    cumulative_png: str
+    exact_png: str | None
+    is_last: bool
+
+
+class RegionPlanDto(BaseModel):
+    name: str
+    roles: list[str]
+    coverage: list[float]
+    steps: list[StepImageDto]
+
+
+class StepsResponse(BaseModel):
+    plans: list[RegionPlanDto]

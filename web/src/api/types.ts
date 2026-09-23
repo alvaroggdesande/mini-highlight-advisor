@@ -55,3 +55,24 @@ export const SURFACES = [
   "skin", "bone", "metal", "wood", "leather", "fur", "cloth",
   "cloak", "robe", "gem", "accent", "other",
 ] as const;
+
+export interface StepImageDto {
+  index: number;
+  label: string;
+  kind: string;  // "band" | "edge" | "shade"
+  zone_png: string;
+  cumulative_png: string;
+  exact_png: string | null;
+  is_last: boolean;
+}
+
+export interface RegionPlanDto {
+  name: string;
+  roles: string[];
+  coverage: number[];
+  steps: StepImageDto[];
+}
+
+export interface StepsResponse {
+  plans: RegionPlanDto[];
+}
