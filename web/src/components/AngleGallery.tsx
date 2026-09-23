@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { analyze } from "../api/client";
-import { useProjectStore, activeAngleOf } from "../store/projectStore";
+import { useProjectStore } from "../store/projectStore";
 import type { AnalyzeRequest } from "../api/types";
 import type { Angle } from "../store/projectStore";
 
@@ -104,7 +104,7 @@ export function AngleGallery() {
                   border: isActive ? "2px solid #888" : "2px solid #222",
                 }}
               >
-                <div style={{ position: "relative" }}>
+                <div>
                   {!angle.photoId ? (
                     <div
                       style={{
