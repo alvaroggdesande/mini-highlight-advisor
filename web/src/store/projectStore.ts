@@ -140,6 +140,7 @@ export const useProjectStore = create<State>((set) => ({
     angles: [makeAngle(res, "angle 1", DEFAULT_SETTINGS)],
     projectName: null,
     slug: null,
+    undoSnapshot: null,
   }),
 
   addAngle: (res) => set((s) => {
@@ -326,6 +327,7 @@ export const useProjectStore = create<State>((set) => ({
     })),
     projectName: manifest.name,
     slug: manifest.slug,
+    undoSnapshot: null,
   }),
 
   snapshotUndo: () => set((s) => {
