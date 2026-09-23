@@ -110,3 +110,61 @@ export async function fetchSteps(token: string): Promise<StepsResponse> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   return res.json() as Promise<StepsResponse>;
 }
+
+import type { ProjectMeta, ProjectManifestDto } from "./types";
+import type { Angle } from "../store/projectStore";
+
+function toProjectAngleDto(a: Angle): object {
+  return {
+    id: a.id,
+    label: a.label,
+    photo_id: a.photoId,
+    width: a.width,
+    height: a.height,
+    book: a.book,
+    settings: a.settings,
+  };
+}
+
+export async function listProjects(): Promise<ProjectMeta[]> {
+  const data = await json<{ projects: ProjectMeta[] }>(await fetch("/api/projects"));
+  return data.projects;
+}
+
+export async function saveProjectApi(
+  name: string,
+  activeAngle: number,
+  angles: Angle[],
+): Promise<{ slug: string; name: string; updated_at: string }> {
+  return json(await fetch("/api/projects", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, active_angle: activeAngle, angles: angles.map(toProjectAngleDto) }),
+  }));
+}
+
+export async function loadProjectApi(slug: string): Promise<ProjectManifestDto> {
+  return json<ProjectManifestDto>(await fetch(`/api/projects/${encodeURIComponent(slug)}`));
+}
+
+export async function deleteProjectApi(slug: string): Promise<void> {
+  await json(await fetch(`/api/projects/${encodeURIComponent(slug)}`, { method: "DELETE" }));
+}
+
+export async function downloadProjectBlob(slug: string): Promise<void> {
+  const res = await fetch(`/api/projects/${encodeURIComponent(slug)}/download`);
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slug}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function uploadProjectBlob(file: File): Promise<ProjectManifestDto> {
+  const fd = new FormData();
+  fd.append("file", file, file.name);
+  return json<ProjectManifestDto>(await fetch("/api/projects/upload", { method: "POST", body: fd }));
+}

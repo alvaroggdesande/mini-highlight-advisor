@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { PhotoResponse, Settings, Whole, PaintColor, QualityCheck } from "../api/types";
+import type { PhotoResponse, Settings, Whole, PaintColor, QualityCheck, ProjectManifestDto } from "../api/types";
 import { newId } from "../lib/id";
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -48,6 +48,8 @@ export interface Angle {
 interface State {
   activeAngle: number;
   angles: Angle[];
+  projectName: string | null;
+  slug: string | null;
   initFromPhoto(res: PhotoResponse): void;
   addAngle(res: PhotoResponse): void;
   switchAngle(i: number): void;
@@ -75,6 +77,8 @@ interface State {
   saveScheme(name: string): void;
   applyScheme(id: string): void;
   deleteScheme(id: string): void;
+  setProjectMeta(name: string, slug: string | null): void;
+  initFromProject(manifest: ProjectManifestDto): void;
 }
 
 export const activeAngleOf = (s: { angles: Angle[]; activeAngle: number }): Angle | undefined =>
@@ -123,12 +127,17 @@ function neutralRegion(book: Book): DrawnRegion {
   };
 }
 
-const INITIAL_STATE = { activeAngle: 0, angles: [] as Angle[] };
+const INITIAL_STATE = { activeAngle: 0, angles: [] as Angle[], projectName: null as string | null, slug: null as string | null };
 
 export const useProjectStore = create<State>((set) => ({
   ...INITIAL_STATE,
 
-  initFromPhoto: (res) => set({ activeAngle: 0, angles: [makeAngle(res, "angle 1", DEFAULT_SETTINGS)] }),
+  initFromPhoto: (res) => set({
+    activeAngle: 0,
+    angles: [makeAngle(res, "angle 1", DEFAULT_SETTINGS)],
+    projectName: null,
+    slug: null,
+  }),
 
   addAngle: (res) => set((s) => {
     const settings = s.angles[s.activeAngle]?.settings ?? DEFAULT_SETTINGS;
@@ -294,4 +303,25 @@ export const useProjectStore = create<State>((set) => ({
   deleteScheme: (id) => set((s) => patchBook(s, (b) => ({
     ...b, schemes: b.schemes.filter((sc) => sc.id !== id),
   }))),
+
+  setProjectMeta: (name, slug) => set({ projectName: name, slug }),
+
+  initFromProject: (manifest) => set({
+    activeAngle: manifest.active_angle,
+    angles: manifest.angles.map((a) => ({
+      id: a.id,
+      label: a.label,
+      photoId: a.photo_id,
+      width: a.width,
+      height: a.height,
+      qualityChecks: [] as QualityCheck[],
+      book: {
+        ...a.book,
+        drawn: a.book.drawn.map((d) => ({ ...d, blank: d.blank ?? false })),
+      },
+      settings: a.settings,
+    })),
+    projectName: manifest.name,
+    slug: manifest.slug,
+  }),
 }));

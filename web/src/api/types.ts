@@ -76,3 +76,40 @@ export interface RegionPlanDto {
 export interface StepsResponse {
   plans: RegionPlanDto[];
 }
+
+export interface ProjectMeta {
+  slug: string;
+  name: string;
+  updated_at: string;
+}
+
+export interface ProjectAngleDto {
+  id: string;
+  label: string;
+  photo_id: string;
+  width?: number;
+  height?: number;
+  book: {
+    whole: Whole;
+    drawn: {
+      id: string; name: string; rings: number[][][];
+      palette: PaintColor[]; coverage: number[]; material: string;
+      blank?: boolean;
+      surface?: string; tone?: string; ramp_midtone?: string; ramp_variant?: string;
+    }[];
+    selected: number;
+    hero_hex?: string;
+    mood?: string;
+    variant?: string;
+    schemes: { id: string; name: string; palettes: { [regionId: string]: PaintColor[] }; anchor_hex?: string }[];
+  };
+  settings: Settings;
+}
+
+export interface ProjectManifestDto {
+  name: string;
+  slug: string;
+  active_angle: number;
+  updated_at: string;
+  angles: ProjectAngleDto[];
+}
