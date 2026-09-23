@@ -43,27 +43,32 @@ export function AngleGallery() {
   useEffect(() => {
     let cancelled = false;
 
-    // Reset local state when angles list changes
-    const init: Record<string, PreviewState> = {};
-    for (const a of angles) {
-      init[a.id] = a.preview ?? null;
-    }
-    setPreviews(init);
+    // Merge: preserve existing local previews; only seed null for new/missing IDs
+    setPreviews((prev) => {
+      const next: Record<string, PreviewState> = {};
+      for (const a of angles) {
+        next[a.id] = a.preview ?? prev[a.id] ?? null;
+      }
+      return next;
+    });
 
-    // Kick off fetches for angles without a preview
     for (const angle of angles) {
-      if (angle.preview) continue;       // already rendered by useAnalyze
-      if (!angle.photoId) continue;      // no photo uploaded yet
+      if (angle.preview) continue;
+      if (!angle.photoId) continue;
 
       analyze(buildRequest(angle))
         .then((res) => {
           if (!cancelled) {
-            setPreviews((prev) => ({ ...prev, [angle.id]: res.preview_png }));
+            setPreviews((prev) => {
+              const existing = prev[angle.id];
+              if (existing && existing !== "error") return prev; // don't overwrite a good preview
+              return { ...prev, [angle.id]: res.preview_png };
+            });
           }
         })
         .catch(() => {
           if (!cancelled) {
-            setPreviews((prev) => ({ ...prev, [angle.id]: "error" }));
+            setPreviews((p) => ({ ...p, [angle.id]: "error" }));
           }
         });
     }
@@ -94,7 +99,7 @@ export function AngleGallery() {
           {row.map((angle, ci) => {
             const idx = ri * COLS + ci;
             const preview = previews[angle.id];
-            const isActive = idx === activeAngle;
+            const isActive = angle.id === angles[activeAngle]?.id;
 
             return (
               <div
