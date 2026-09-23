@@ -1,1 +1,13 @@
-{}
+{
+  "tabs": {
+    "studio": "Estudio",
+    "paint": "Pintura"
+  },
+  "paint": {
+    "loading": "Cargando pasos…",
+    "no_preview": "Analiza la foto primero para ver los pasos de pintura.",
+    "step_zone": "Dónde pintar",
+    "step_cumulative": "Resultado hasta aquí",
+    "step_exact": "Esta capa"
+  }
+}

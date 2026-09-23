@@ -2,7 +2,9 @@
   "tabs": {
     "manage": "Manage",
     "colour": "Colour",
-    "technique": "Technique"
+    "technique": "Technique",
+    "studio": "Studio",
+    "paint": "Paint"
   },
   "technique": {
     "material": "Material",
@@ -78,5 +80,12 @@
     "analogous": "Analogous",
     "triadic": "Triadic",
     "split-complementary": "Split-Complementary"
+  },
+  "paint": {
+    "loading": "Loading steps…",
+    "no_preview": "Analyze the photo first to see painting steps.",
+    "step_zone": "Where to paint",
+    "step_cumulative": "Result so far",
+    "step_exact": "This layer"
   }
 }
