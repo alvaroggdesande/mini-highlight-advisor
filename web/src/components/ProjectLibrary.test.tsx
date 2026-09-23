@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ProjectLibrary } from "./ProjectLibrary";
 import * as client from "../api/client";
 import { useProjectStore } from "../store/projectStore";
@@ -61,7 +61,7 @@ it("collapses when toggle clicked again", async () => {
 });
 
 it("calls loadProjectApi and initFromProject when Load is clicked", async () => {
-  const initSpy = vi.spyOn(useProjectStore.getState(), "initFromProject");
+  vi.spyOn(useProjectStore.getState(), "initFromProject");
   render(<ProjectLibrary />);
   fireEvent.click(screen.getByRole("button", { name: /projects\.react_toggle/i }));
   await waitFor(() => screen.getByText("My Mini"));
