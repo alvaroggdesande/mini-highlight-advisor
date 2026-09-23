@@ -42,7 +42,10 @@
     "custom": "(custom)",
     "blend": "Blend",
     "add_band": "Add band",
-    "delete_band": "Delete band"
+    "delete_band": "Delete band",
+    "auto": "auto",
+    "coverage": "Coverage",
+    "undo": "Undo"
   },
   "schemes": {
     "title": "Colour Schemes",

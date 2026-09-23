@@ -42,7 +42,10 @@
     "custom": "(personalizado)",
     "blend": "Mezclar",
     "add_band": "Añadir banda",
-    "delete_band": "Eliminar banda"
+    "delete_band": "Eliminar banda",
+    "auto": "auto",
+    "coverage": "Cobertura",
+    "undo": "Deshacer"
   },
   "schemes": {
     "title": "Esquemas de color",
