@@ -33,3 +33,27 @@ def test_ramp_blend_hexes_overrides_midtone():
     })
     assert r.status_code == 200
     assert len(r.json()["hexes"]) == 3
+
+
+def test_ramp_rejects_blank_midtone_hex():
+    r = _ramp("ramp", midtone="")
+    assert r.status_code == 422
+
+
+def test_ramp_rejects_invalid_blend_hexes():
+    r = _client.post("/api/ramp/generate", json={
+        "n": 3,
+        "variant": "ramp",
+        "blend_hexes": ["#200000", ""],
+    })
+    assert r.status_code == 422
+
+
+def test_ramp_accepts_blend_hexes_without_midtone():
+    r = _client.post("/api/ramp/generate", json={
+        "n": 3,
+        "variant": "ramp",
+        "blend_hexes": ["#200", "#ff8080"],
+    })
+    assert r.status_code == 200
+    assert len(r.json()["hexes"]) == 3

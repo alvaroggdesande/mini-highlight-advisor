@@ -70,10 +70,21 @@ class SchemeGenerateRequest(BaseModel):
 
 
 class RampGenerateRequest(BaseModel):
-    midtone_hex: str = ""
+    midtone_hex: str = "#808080"
     n: int
     variant: str = "ramp"
     blend_hexes: list[str] | None = None
+
+    _validate_midtone_hex = field_validator("midtone_hex")(_normalise_hex)
+
+    @field_validator("blend_hexes")
+    @classmethod
+    def _validate_blend_hexes(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        if len(value) != 2:
+            raise ValueError("expected exactly two blend colors")
+        return [_normalise_hex(hex_value) for hex_value in value]
 
 
 class MatchRequest(BaseModel):
