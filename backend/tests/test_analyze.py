@@ -44,6 +44,17 @@ def test_analyze_unknown_photo_404():
     assert client.post("/api/analyze", json=req).status_code == 404
 
 
+def test_analyze_rejects_blank_region_hex():
+    pid, w, h = _upload_sample()
+    ring = [[w * 0.3, h * 0.3], [w * 0.7, h * 0.3], [w * 0.7, h * 0.7], [w * 0.3, h * 0.7]]
+    req = {"photo_id": pid, "whole": _whole(),
+        "regions": [{"name": "helmet", "rings": [ring],
+               "palette": [{"name": "custom", "hex": ""}, {"name": "b", "hex": "#e0e0e0"}],
+               "coverage": [0.5, 0.5], "material": "matte"}],
+        "settings": {}}
+    assert client.post("/api/analyze", json=req).status_code == 422
+
+
 def test_analyze_with_region_returns_preview_and_token():
     pid, w, h = _upload_sample()
     ring = [[w * 0.3, h * 0.3], [w * 0.7, h * 0.3], [w * 0.7, h * 0.7], [w * 0.3, h * 0.7]]

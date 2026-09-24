@@ -1,4 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from mini_highlight_advisor.palette import valid_hex
+
+
+def _normalise_hex(value: str) -> str:
+    normalised = valid_hex(value)
+    if normalised is None:
+        raise ValueError("expected a hex color like #aabbcc")
+    return normalised
 
 
 class PaintColorModel(BaseModel):
@@ -8,6 +17,8 @@ class PaintColorModel(BaseModel):
     paint_range: str | None = None
     code: str = ""
     finish: str = "matte"
+
+    _validate_hex = field_validator("hex")(_normalise_hex)
 
 
 class RegionModel(BaseModel):
@@ -55,6 +66,8 @@ class SchemeGenerateRequest(BaseModel):
     variant: str = "complementary"
     owned_codes: list[str] = Field(default_factory=list)
 
+    _validate_anchor_hex = field_validator("anchor_hex")(_normalise_hex)
+
 
 class RampGenerateRequest(BaseModel):
     midtone_hex: str = ""
@@ -68,11 +81,15 @@ class MatchRequest(BaseModel):
     finish: str = "matte"
     owned_codes: list[str] = Field(default_factory=list)
 
+    _validate_hex = field_validator("hex")(_normalise_hex)
+
 
 class RecipeStepModel(BaseModel):
     label: str
     hex: str
     paint_ref: str | None = None
+
+    _validate_hex = field_validator("hex")(_normalise_hex)
 
 
 class RecipeModel(BaseModel):

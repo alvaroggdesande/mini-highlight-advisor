@@ -5,6 +5,7 @@ import { useProjectStore } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import { matchPaint, generateRamp } from "../../api/client";
 import type { PaintColor, MatchResult } from "../../api/types";
+import { validHex } from "../../lib/color";
 
 interface Props {
   g: number; i: number; paint: PaintColor; finish: string; n: number; palette: PaintColor[];
@@ -32,9 +33,11 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
 
   useEffect(() => {
     if (!isCustom) { setMatchResult(null); return; }
+    const normalizedHex = validHex(paint.hex);
+    if (!normalizedHex) { setMatchResult(null); return; }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      try { setMatchResult(await matchPaint({ hex: paint.hex, finish, owned_codes: [] })); } catch { /* ignore */ }
+      try { setMatchResult(await matchPaint({ hex: normalizedHex, finish, owned_codes: [] })); } catch { /* ignore */ }
     }, 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [paint.hex, isCustom, finish]);
@@ -63,7 +66,7 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
               onClick={() => { if (n > 3) setBandCount(n - 1); }} aria-label={t("colour.delete_band")}>✕</ActionIcon>}
       </Group>
       <Group gap={4} align="center" wrap="nowrap">
-        <ColorSwatch color={paint.hex} size={22} style={{ flexShrink: 0 }} />
+        <ColorSwatch color={validHex(paint.hex) ?? "#808080"} size={22} style={{ flexShrink: 0 }} />
         {isCustom ? (
           <ColorInput value={paint.hex} onChange={(hex) => setHexSlot(g, i, hex)}
             format="hex" size="xs" style={{ flex: 1 }} withEyeDropper={false} />
