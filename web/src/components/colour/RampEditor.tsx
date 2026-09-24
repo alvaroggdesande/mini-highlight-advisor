@@ -4,6 +4,7 @@ import { Button, ColorInput, Group, Stack, Text } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { generateRamp } from "../../api/client";
 import { RAMP_VARIANTS } from "../../api/types";
+import { validHex } from "../../lib/color";
 
 export function RampEditor() {
   const { t } = useTranslation();
@@ -26,13 +27,15 @@ export function RampEditor() {
 
   const g = book.selected;
   const n = activeRegion.palette.length;
+  const normalizedMidtoneHex = validHex(midtoneHex);
 
   const handleVariant = async (variant: string) => {
+    if (!normalizedMidtoneHex) return;
     setLoading(variant);
     try {
-      const res = await generateRamp({ midtone_hex: midtoneHex, n, variant });
+      const res = await generateRamp({ midtone_hex: normalizedMidtoneHex, n, variant });
       res.hexes.forEach((hex, i) => setHexSlot(g, i, hex));
-      setRampState(g, midtoneHex, variant);
+      setRampState(g, normalizedMidtoneHex, variant);
     } finally { setLoading(null); }
   };
 
@@ -52,7 +55,7 @@ export function RampEditor() {
         {RAMP_VARIANTS.map((variant) => (
           <Button key={variant} size="xs" variant="default"
             onClick={() => handleVariant(variant)}
-            loading={loading === variant} disabled={loading !== null}>
+            loading={loading === variant} disabled={loading !== null || !normalizedMidtoneHex}>
             {t(`colour.${variant}`)}
           </Button>
         ))}

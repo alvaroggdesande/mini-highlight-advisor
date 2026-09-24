@@ -1,6 +1,7 @@
 from backend.schemas import PaintColorModel, WholeModel, AnalyzeRequest
 from backend.core_adapters import paint_from_model, paint_to_dict, default_whole
 from mini_highlight_advisor.palette import PaintColor
+import pytest
 
 
 def test_paint_roundtrip():
@@ -9,6 +10,12 @@ def test_paint_roundtrip():
     assert isinstance(p, PaintColor) and p.hex == "#804020"
     d = paint_to_dict(p)
     assert d["name"] == "Test" and d["code"] == "ABC" and d["finish"] == "matte"
+
+
+def test_paint_hex_normalized_and_rejects_blank():
+    assert PaintColorModel(name="Test", hex="#abc").hex == "#aabbcc"
+    with pytest.raises(ValueError):
+        PaintColorModel(name="Test", hex="")
 
 
 def test_default_whole_shape():

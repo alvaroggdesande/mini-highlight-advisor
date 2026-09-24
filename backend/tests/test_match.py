@@ -27,6 +27,11 @@ def test_match_unreachable_when_no_owned():
     assert res.json()["tier"] in ("exact", "close", "mix", "unreachable")
 
 
+def test_match_rejects_blank_hex():
+    res = _client.post("/api/match", json={"hex": "", "finish": "matte", "owned_codes": []})
+    assert res.status_code == 422
+
+
 def test_match_response_has_required_fields():
     res = _client.post("/api/match", json={"hex": "#aabbcc", "finish": "matte", "owned_codes": []})
     body = res.json()
