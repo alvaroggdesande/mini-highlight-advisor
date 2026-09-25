@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 def _largest_blob(binary: np.ndarray) -> np.ndarray:
@@ -42,17 +42,19 @@ def mask_from_grabcut(rgb: np.ndarray, iters: int = 5, border: int = 8) -> np.nd
 def load_image(path: str, max_side: int = 768) -> tuple[np.ndarray, np.ndarray | None]:
     im = Image.open(path)
     has_alpha = im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info)
+    # Decode JPEGs at reduced scale (no-op for PNG) and shrink BEFORE converting
+    # mode, so a 12 MP phone photo never materialises full-res in RAM.
+    im.draft("RGB", (max_side, max_side))
+    im = ImageOps.exif_transpose(im)  # honour phone orientation
+    im.thumbnail((max_side, max_side))
     if has_alpha:
         rgba = im.convert("RGBA")
-        rgba.thumbnail((max_side, max_side))
         arr = np.asarray(rgba)
         alpha = arr[..., 3].copy()
         bg = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
         rgb = np.asarray(Image.alpha_composite(bg, rgba).convert("RGB"))
         return rgb, alpha
-    rgb_im = im.convert("RGB")
-    rgb_im.thumbnail((max_side, max_side))
-    return np.asarray(rgb_im), None
+    return np.asarray(im.convert("RGB")), None
 
 
 def compute_mask(rgb: np.ndarray, alpha: np.ndarray | None, alpha_thresh: int = 128) -> np.ndarray:
