@@ -3,6 +3,7 @@ import { Button, Group, Stack, Text } from "@mantine/core";
 import { listSamplePhotos, samplePhotoBlob, uploadPhoto } from "../api/client";
 import type { SamplePhoto } from "../api/types";
 import { useProjectStore } from "../store/projectStore";
+import { downscaleImage } from "../lib/downscale";
 
 export function PhotoUploader() {
   const initFromPhoto = useProjectStore((s) => s.initFromPhoto);
@@ -13,7 +14,7 @@ export function PhotoUploader() {
   useEffect(() => { listSamplePhotos().then(setSamples).catch(() => setSamples([])); }, []);
 
   async function handleBlob(blob: Blob, name: string) {
-    try { initFromPhoto(await uploadPhoto(blob, name)); }
+    try { initFromPhoto(await uploadPhoto(await downscaleImage(blob), name)); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   }
 

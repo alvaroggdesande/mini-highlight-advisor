@@ -35,9 +35,12 @@ def _catalog():
 
 app = FastAPI(title="Mini Highlight Advisor API")
 
-shading_cache = LRU(maxsize=8)
-result_cache = LRU(maxsize=16)
-mask_cache = LRU(maxsize=64)
+# Sized for a single interactive user on a 512 MB free tier: each result_cache
+# entry retains every per-band step image (multiple full RGB arrays x bands x
+# regions), so keep it small — only the current + last couple of analyses.
+shading_cache = LRU(maxsize=4)
+result_cache = LRU(maxsize=3)
+mask_cache = LRU(maxsize=24)
 
 
 @app.get("/api/health")
