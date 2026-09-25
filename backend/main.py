@@ -69,11 +69,31 @@ async def upload_photo(file: UploadFile = File(...)):
             "quality_checks": checks, "default_whole": default_whole()}
 
 
+def _get_shading(photo_id: str):
+    """Return (rgb, alpha, shading) for a photo, rebuilding it from the persisted
+    bytes on a cache miss. The in-memory cache is volatile — it is lost whenever
+    the worker restarts (free-tier OOM auto-restart, idle spin-down, redeploy) —
+    so falling back to disk keeps analysis working instead of 404-ing on an old
+    photo_id the client still holds. Returns None only if the photo is truly gone."""
+    cached = shading_cache.get(photo_id)
+    if cached is not None:
+        return cached
+    loaded = project_store.load_photo_bytes(photo_id)
+    if loaded is None:
+        return None
+    data, suffix = loaded
+    rgb, alpha = decode_image(data, f"{photo_id}{suffix}")
+    shading = prepare_shading(rgb, alpha)
+    entry = (rgb, alpha, shading)
+    shading_cache.set(photo_id, entry)
+    return entry
+
+
 def _build_result(req: AnalyzeRequest, *, with_steps: bool):
     """Rebuild the analysis for a request. with_steps=False skips the heavy
     per-band step images (used for the live preview); True renders them (used
     only when the Paint tab requests the paint-along guide)."""
-    cached = shading_cache.get(req.photo_id)
+    cached = _get_shading(req.photo_id)
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
     rgb, alpha, shading = cached
@@ -121,10 +141,8 @@ def get_steps(token: str) -> StepsResponse:
     req = result_cache.get(token)
     if req is None:
         raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
-    if shading_cache.get(req.photo_id) is None:
-        # Photo evicted since analysis; the client re-analyzes on 409, re-priming it.
-        raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
     # Heavy step images built here, on demand, and freed when the response is sent.
+    # _build_result rebuilds shading from disk on a cache miss (worker restart).
     result = _build_result(req, with_steps=True)
     plans_out: list[RegionPlanDto] = []
     for plan in result.plans:
@@ -171,7 +189,7 @@ def sample_photo(sid: str):
 
 @app.get("/api/photo/{photo_id}/image")
 def photo_image(photo_id: str):
-    cached = shading_cache.get(photo_id)
+    cached = _get_shading(photo_id)
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
     rgb, _alpha, _shading = cached
