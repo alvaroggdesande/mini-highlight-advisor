@@ -35,12 +35,13 @@ def _catalog():
 
 app = FastAPI(title="Mini Highlight Advisor API")
 
-# Sized for a single interactive user on a 512 MB free tier: each result_cache
-# entry retains every per-band step image (multiple full RGB arrays x bands x
-# regions), so keep it small — only the current + last couple of analyses.
-shading_cache = LRU(maxsize=4)
-result_cache = LRU(maxsize=3)
-mask_cache = LRU(maxsize=24)
+# Memory budget (512 MB free tier): the heavy objects are the decoded photos in
+# shading_cache (~4 MB each). result_cache holds only the small AnalyzeRequest
+# per token — step images are rendered on demand in /api/steps and freed after
+# the response, never cached — so it can be large and cheap.
+shading_cache = LRU(maxsize=8)
+result_cache = LRU(maxsize=32)
+mask_cache = LRU(maxsize=32)
 
 
 @app.get("/api/health")
@@ -68,8 +69,10 @@ async def upload_photo(file: UploadFile = File(...)):
             "quality_checks": checks, "default_whole": default_whole()}
 
 
-@app.post("/api/analyze")
-def analyze(req: AnalyzeRequest):
+def _build_result(req: AnalyzeRequest, *, with_steps: bool):
+    """Rebuild the analysis for a request. with_steps=False skips the heavy
+    per-band step images (used for the live preview); True renders them (used
+    only when the Paint tab requests the paint-along guide)."""
     cached = shading_cache.get(req.photo_id)
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
@@ -91,7 +94,7 @@ def analyze(req: AnalyzeRequest):
             coverage=list(rm.coverage), material=rm.material,
         ))
 
-    result = analyze_regions(
+    return analyze_regions(
         rgb, alpha, palette, list(req.whole.coverage), regions,
         edges=req.settings.edge_hl,
         extreme_edge=req.settings.edge_extreme,
@@ -99,18 +102,30 @@ def analyze(req: AnalyzeRequest):
         relief_cap=req.settings.relief_cap,
         per_region_norm=req.settings.per_region_norm,
         whole_material=req.whole.material,
+        with_steps=with_steps,
         shading=shading,
     )
+
+
+@app.post("/api/analyze")
+def analyze(req: AnalyzeRequest):
+    # Preview only — no step images built or cached (keeps peak memory low).
+    result = _build_result(req, with_steps=False)
     token = hashlib.sha256((req.photo_id + req.model_dump_json()).encode("utf-8")).hexdigest()[:16]
-    result_cache.set(token, result)
+    result_cache.set(token, req)  # cache the small request; steps rebuilt on demand
     return {"preview_png": png_data_uri(result.combined_rgb), "result_token": token}
 
 
 @app.get("/api/steps")
 def get_steps(token: str) -> StepsResponse:
-    result = result_cache.get(token)
-    if result is None:
+    req = result_cache.get(token)
+    if req is None:
         raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
+    if shading_cache.get(req.photo_id) is None:
+        # Photo evicted since analysis; the client re-analyzes on 409, re-priming it.
+        raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
+    # Heavy step images built here, on demand, and freed when the response is sent.
+    result = _build_result(req, with_steps=True)
     plans_out: list[RegionPlanDto] = []
     for plan in result.plans:
         steps_out: list[StepImageDto] = []

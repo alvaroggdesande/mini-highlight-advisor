@@ -190,7 +190,8 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                 material: str = "matte",
                 env: np.ndarray | None = None,
                 nmm_smooth: float = 0.0,
-                technique: str = "smooth") -> RegionPlan:
+                technique: str = "smooth",
+                with_steps: bool = True) -> RegionPlan:
     is_nmm = material == "nmm" and normals is not None and env is not None
     if is_nmm:
         # Metal is a mirror: re-band from the reflection environment, not the
@@ -232,12 +233,16 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
     else:
         bands = band_light(light, sub_mask, coverage)
     cov = coverage_pct(bands, sub_mask, len(palette))
-    steps = per_band_images(rgb, bands, sub_mask, colors)
+    # Step images are full-frame uint8 arrays (heavy). Skip them when only the
+    # combined preview is needed (paint_regions uses bands/colors/overlays, not
+    # steps); callers re-run with with_steps=True to build the paint-along guide.
+    steps = per_band_images(rgb, bands, sub_mask, colors) if with_steps else []
     overlays = None
     if edges:
-        steps = steps + edge_steps(rgb, light, sub_mask, colors,
-                                   sensitivity=edge_sensitivity,
-                                   extreme=extreme_edge, start_index=len(palette))
+        if with_steps:
+            steps = steps + edge_steps(rgb, light, sub_mask, colors,
+                                       sensitivity=edge_sensitivity,
+                                       extreme=extreme_edge, start_index=len(palette))
         two_tier = extreme_edge and len(colors) >= 5  # match edge_steps guard
         if normals is not None:
             main = geometric_edge_mask(normals, sub_mask, edge_sensitivity)
@@ -254,7 +259,8 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
         recess = cavity_mask(normals, sub_mask, edge_sensitivity)
         shade_rgb = (colors[0] * _SHADE_DARKEN).astype(np.float32)
         overlays = [(recess, shade_rgb)] + (overlays or [])   # shade under any edges
-        steps = steps + shade_steps(rgb, recess, shade_rgb, start_index=len(steps))
+        if with_steps:
+            steps = steps + shade_steps(rgb, recess, shade_rgb, start_index=len(steps))
     return RegionPlan(name, sub_mask, bands, colors, names, roles, cov, steps, overlays,
                       capped=capped, requested_bands=requested_bands,
                       flat_albedo=flat_albedo, technique=spec.name, palette=palette)
@@ -275,6 +281,7 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                     nmm_smooth: float = 2.0,
                     whole_material: str = "matte",
                     whole_blank: bool = False,
+                    with_steps: bool = True,
                     shading: "ShadingResult | None" = None) -> MultiRegionResult:
     # `shading` lets callers pass an already-computed mask+light so the (often
     # expensive, e.g. GrabCut) mask computation runs once per photo instead of on
@@ -305,7 +312,7 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
                                   bounce=nmm_bounce, hotspot=nmm_hotspot)
     ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
                relief_cap=relief_cap, normals=normal_field, shades=shades, env=env,
-               nmm_smooth=nmm_smooth)
+               nmm_smooth=nmm_smooth, with_steps=with_steps)
 
     gray = _clahe_gray(rgb) if per_region_norm else None
 
