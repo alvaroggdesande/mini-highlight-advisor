@@ -129,6 +129,14 @@ class StepsResponse(BaseModel):
     plans: list[RegionPlanDto]
 
 
+class PlanNameDto(BaseModel):
+    name: str
+
+
+class PlansManifestResponse(BaseModel):
+    plans: list[PlanNameDto]
+
+
 class SaveProjectRequest(BaseModel):
     name: str
     active_angle: int = 0

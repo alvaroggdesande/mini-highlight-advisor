@@ -77,6 +77,14 @@ export interface StepsResponse {
   plans: RegionPlanDto[];
 }
 
+export interface PlanName {
+  name: string;
+}
+
+export interface PlansManifest {
+  plans: PlanName[];
+}
+
 export interface ProjectMeta {
   slug: string;
   name: string;

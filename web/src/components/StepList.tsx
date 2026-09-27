@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Image, Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Image, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import type { RegionPlanDto, StepImageDto } from "../api/types";
 
 function StepCard({ step }: { step: StepImageDto }) {
@@ -27,18 +27,15 @@ function StepCard({ step }: { step: StepImageDto }) {
   );
 }
 
-export interface StepListProps { plans: RegionPlanDto[]; }
+export interface StepListProps { plan: RegionPlanDto; }
 
-export function StepList({ plans }: StepListProps) {
+/** Steps for a single region. The region name is shown by the selecting tab, so
+ *  it is not repeated here. */
+export function StepList({ plan }: StepListProps) {
   return (
-    <Stack gap="xl">
-      {plans.map((plan) => (
-        <div key={plan.name}>
-          <Title order={4} mb="sm">{plan.name}</Title>
-          {plan.steps.map((step) => (
-            <StepCard key={`${step.kind}-${step.index}`} step={step} />
-          ))}
-        </div>
+    <Stack gap="xs">
+      {plan.steps.map((step) => (
+        <StepCard key={`${step.kind}-${step.index}`} step={step} />
       ))}
     </Stack>
   );

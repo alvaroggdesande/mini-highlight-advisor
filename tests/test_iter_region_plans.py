@@ -3,7 +3,7 @@ import types
 import numpy as np
 
 from mini_highlight_advisor.pipeline import (
-    analyze_regions, iter_region_plans, WHOLE_MINI,
+    analyze_regions, iter_region_plans, region_plan_names, WHOLE_MINI,
 )
 from mini_highlight_advisor.palette import DEFAULT_PALETTE, default_coverage
 from mini_highlight_advisor.regions import Region
@@ -92,3 +92,61 @@ def test_iter_region_plans_matches_analyze_regions_plans():
                 assert s_got.exact_rgb is None
             else:
                 assert np.array_equal(s_got.exact_rgb, s_want.exact_rgb)
+
+
+def test_region_plan_names_matches_plan_order():
+    # The Paint-tab region selector needs the authoritative plan names + order
+    # WITHOUT paying to render any step images.
+    names = region_plan_names(**_kwargs())
+    eager = analyze_regions(**_kwargs()).plans
+    assert names == [p.name for p in eager]
+    assert names == [WHOLE_MINI, "B"]
+
+
+def test_region_plan_names_renders_no_steps(monkeypatch):
+    # It must resolve names from the specs only — never render a plan. This is
+    # what makes the selector manifest cheap enough to fetch eagerly.
+    import mini_highlight_advisor.pipeline as pl
+    calls = {"n": 0}
+    real = pl._render_spec
+
+    def spy(rgb, spec, ekw):
+        calls["n"] += 1
+        return real(rgb, spec, ekw)
+
+    monkeypatch.setattr(pl, "_render_spec", spy)
+    region_plan_names(**_kwargs())
+    assert calls["n"] == 0
+
+
+def test_iter_region_plans_only_yields_single_named_plan():
+    # On-demand fetch: the selector asks for exactly one region's steps, so
+    # `only` must render just that plan (not all-then-discard).
+    plans = list(iter_region_plans(only="B", **_kwargs()))
+    assert [p.name for p in plans] == ["B"]
+
+    eager_b = next(p for p in analyze_regions(**_kwargs()).plans if p.name == "B")
+    (got,) = plans
+    assert got.roles == eager_b.roles
+    assert len(got.steps) == len(eager_b.steps) > 0
+    for s_want, s_got in zip(eager_b.steps, got.steps):
+        assert np.array_equal(s_got.zone_rgb, s_want.zone_rgb)
+
+
+def test_iter_region_plans_only_renders_just_the_requested_plan(monkeypatch):
+    # Memory contract: requesting one region renders one plan, not every plan.
+    import mini_highlight_advisor.pipeline as pl
+    calls = {"n": 0}
+    real = pl._render_spec
+
+    def spy(rgb, spec, ekw):
+        calls["n"] += 1
+        return real(rgb, spec, ekw)
+
+    monkeypatch.setattr(pl, "_render_spec", spy)
+    list(pl.iter_region_plans(only="B", **_kwargs()))
+    assert calls["n"] == 1
+
+
+def test_iter_region_plans_only_unknown_name_yields_nothing():
+    assert list(iter_region_plans(only="does-not-exist", **_kwargs())) == []
