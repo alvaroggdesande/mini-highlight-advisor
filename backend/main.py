@@ -8,7 +8,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from mini_highlight_advisor.pipeline import analyze_regions, prepare_shading
+from mini_highlight_advisor.pipeline import analyze_regions, iter_region_plans, prepare_shading
 from mini_highlight_advisor.regions import Region, polygons_to_mask
 from mini_highlight_advisor.input_check import check_input
 from mini_highlight_advisor import samples
@@ -89,10 +89,11 @@ def _get_shading(photo_id: str):
     return entry
 
 
-def _build_result(req: AnalyzeRequest, *, with_steps: bool):
-    """Rebuild the analysis for a request. with_steps=False skips the heavy
-    per-band step images (used for the live preview); True renders them (used
-    only when the Paint tab requests the paint-along guide)."""
+def _analyze_kwargs(req: AnalyzeRequest) -> dict:
+    """Resolve a request into the kwargs shared by the eager (analyze_regions)
+    and streaming (iter_region_plans) paths, so the two can never drift. Rebuilds
+    shading from disk on a cache miss (worker restart) via _get_shading; raises
+    404 only if the photo is truly gone."""
     cached = _get_shading(req.photo_id)
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
@@ -114,16 +115,53 @@ def _build_result(req: AnalyzeRequest, *, with_steps: bool):
             coverage=list(rm.coverage), material=rm.material,
         ))
 
-    return analyze_regions(
-        rgb, alpha, palette, list(req.whole.coverage), regions,
+    return dict(
+        rgb=rgb, alpha=alpha, default_palette=palette,
+        coverage=list(req.whole.coverage), regions=regions,
         edges=req.settings.edge_hl,
         extreme_edge=req.settings.edge_extreme,
         edge_sensitivity=req.settings.edge_sens,
         relief_cap=req.settings.relief_cap,
         per_region_norm=req.settings.per_region_norm,
         whole_material=req.whole.material,
-        with_steps=with_steps,
         shading=shading,
+    )
+
+
+def _build_result(req: AnalyzeRequest, *, with_steps: bool):
+    """Rebuild the analysis for a request. with_steps=False skips the heavy
+    per-band step images (used for the live preview); True renders them (used
+    only when the Paint tab requests the paint-along guide)."""
+    return analyze_regions(with_steps=with_steps, **_analyze_kwargs(req))
+
+
+def _plan_to_dto(plan) -> RegionPlanDto:
+    """Encode one RegionPlan's step images to base64. Called per plan so the
+    plan's heavy full-frame arrays are freed before the next plan is built."""
+    steps_out: list[StepImageDto] = []
+    for step in plan.steps:
+        if step.kind == "osl":
+            continue  # OSL excluded from the web app
+        label = step.label
+        if label is None:
+            # Band steps don't set label; derive from the plan's role names
+            label = (plan.roles[step.index]
+                     if step.index < len(plan.roles)
+                     else f"Band {step.index + 1}")
+        steps_out.append(StepImageDto(
+            index=step.index,
+            label=label,
+            kind=step.kind,
+            zone_png=png_data_uri(step.zone_rgb),
+            cumulative_png=png_data_uri(step.cumulative_rgb),
+            exact_png=png_data_uri(step.exact_rgb) if step.exact_rgb is not None else None,
+            is_last=step.is_last,
+        ))
+    return RegionPlanDto(
+        name=plan.name,
+        roles=plan.roles,
+        coverage=plan.coverage,
+        steps=steps_out,
     )
 
 
@@ -141,36 +179,13 @@ def get_steps(token: str) -> StepsResponse:
     req = result_cache.get(token)
     if req is None:
         raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
-    # Heavy step images built here, on demand, and freed when the response is sent.
-    # _build_result rebuilds shading from disk on a cache miss (worker restart).
-    result = _build_result(req, with_steps=True)
-    plans_out: list[RegionPlanDto] = []
-    for plan in result.plans:
-        steps_out: list[StepImageDto] = []
-        for step in plan.steps:
-            if step.kind == "osl":
-                continue  # OSL excluded from the web app
-            label = step.label
-            if label is None:
-                # Band steps don't set label; derive from the plan's role names
-                label = (plan.roles[step.index]
-                         if step.index < len(plan.roles)
-                         else f"Band {step.index + 1}")
-            steps_out.append(StepImageDto(
-                index=step.index,
-                label=label,
-                kind=step.kind,
-                zone_png=png_data_uri(step.zone_rgb),
-                cumulative_png=png_data_uri(step.cumulative_rgb),
-                exact_png=png_data_uri(step.exact_rgb) if step.exact_rgb is not None else None,
-                is_last=step.is_last,
-            ))
-        plans_out.append(RegionPlanDto(
-            name=plan.name,
-            roles=plan.roles,
-            coverage=plan.coverage,
-            steps=steps_out,
-        ))
+    # Stream plans one at a time: each plan's heavy full-frame step arrays are
+    # encoded to base64 (a RegionPlanDto) and then freed before the next plan is
+    # built, so peak memory is ONE region's steps, not every region's at once.
+    # This is the free-tier (512 MB) OOM fix — peak no longer scales with the
+    # number of regions. _analyze_kwargs rebuilds shading from disk on a cache
+    # miss (worker restart), so no separate eviction check is needed.
+    plans_out = [_plan_to_dto(plan) for plan in iter_region_plans(**_analyze_kwargs(req))]
     return StepsResponse(plans=plans_out)
 
 

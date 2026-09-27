@@ -266,26 +266,28 @@ def plan_region(rgb, sub_mask, light, name, palette, coverage,
                       flat_albedo=flat_albedo, technique=spec.name, palette=palette)
 
 
-def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
-                    edges: bool = True, extreme_edge: bool = False,
-                    edge_sensitivity: float = 0.5,
-                    relief_cap: bool = False,
-                    per_region_norm: bool = False,
-                    light_field: np.ndarray | None = None,
-                    normal_field: np.ndarray | None = None,
-                    shades: bool = False,
-                    nmm_horizon: float = 0.5,
-                    nmm_light_dir: float = 135.0,
-                    nmm_bounce: float = 0.35,
-                    nmm_hotspot: float = 0.5,
-                    nmm_smooth: float = 2.0,
-                    whole_material: str = "matte",
-                    whole_blank: bool = False,
-                    with_steps: bool = True,
-                    shading: "ShadingResult | None" = None) -> MultiRegionResult:
-    # `shading` lets callers pass an already-computed mask+light so the (often
-    # expensive, e.g. GrabCut) mask computation runs once per photo instead of on
-    # every call. When None we compute it here as before.
+@dataclass
+class _PlanSpec:
+    """One region's resolved render inputs — the small, image-free description of
+    a plan (mask + light + palette), shared by the eager and streaming paths so
+    the plan ORDER and light-resolution logic live in exactly one place."""
+    name: str
+    sub_mask: np.ndarray
+    light: np.ndarray
+    palette: list
+    coverage: list
+    flat_albedo: bool
+    material: str
+
+
+def _plan_specs(rgb, alpha, default_palette, coverage, regions, per_region_norm,
+                light_field, normal_field, whole_blank, whole_material,
+                nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, shading):
+    """Resolve the shared mask/light/env and the ordered per-region specs.
+
+    `shading` lets callers pass an already-computed mask+light so the (often
+    expensive, e.g. GrabCut) mask computation runs once per photo instead of on
+    every call. When None we compute it here as before."""
     regions = regions or []
     if normal_field is not None:
         if (normal_field.ndim != 3 or normal_field.shape[2] != 3
@@ -306,14 +308,9 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
             shading = prepare_shading(rgb, alpha)
         mask, light = shading.mask, shading.light
     owner = assign_owners(mask, [r.mask for r in regions])
-    plans: list[RegionPlan] = []
     default_sub = owner == -1
     env = materials.build_nmm_env(horizon=nmm_horizon, light_dir=nmm_light_dir,
                                   bounce=nmm_bounce, hotspot=nmm_hotspot)
-    ekw = dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
-               relief_cap=relief_cap, normals=normal_field, shades=shades, env=env,
-               nmm_smooth=nmm_smooth, with_steps=with_steps)
-
     gray = _clahe_gray(rgb) if per_region_norm else None
 
     def _region_light(sub):
@@ -322,18 +319,90 @@ def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
             return ll.light, ll.flat
         return light, False
 
+    specs: list[_PlanSpec] = []
     if default_sub.any() and not whole_blank:
         lgt, flat = _region_light(default_sub)
-        plans.append(plan_region(rgb, default_sub, lgt, WHOLE_MINI, default_palette,
-                                 coverage, flat_albedo=flat,
-                                 material=whole_material, technique=whole_material, **ekw))
+        specs.append(_PlanSpec(WHOLE_MINI, default_sub, lgt, default_palette,
+                               coverage, flat, whole_material))
     for i, r in enumerate(regions):
         sub = owner == i
         if not sub.any():
             continue
         lgt, flat = _region_light(sub)
-        plans.append(plan_region(rgb, sub, lgt, r.name, r.palette, r.coverage,
-                                 flat_albedo=flat, material=r.material,
-                                 technique=r.material, **ekw))
+        specs.append(_PlanSpec(r.name, sub, lgt, r.palette, r.coverage, flat, r.material))
+    return mask, light, env, specs
+
+
+def _render_ekw(edges, extreme_edge, edge_sensitivity, relief_cap, normal_field,
+                shades, env, nmm_smooth, with_steps):
+    return dict(edges=edges, extreme_edge=extreme_edge, edge_sensitivity=edge_sensitivity,
+                relief_cap=relief_cap, normals=normal_field, shades=shades, env=env,
+                nmm_smooth=nmm_smooth, with_steps=with_steps)
+
+
+def _render_spec(rgb, spec: _PlanSpec, ekw) -> RegionPlan:
+    return plan_region(rgb, spec.sub_mask, spec.light, spec.name, spec.palette,
+                       spec.coverage, flat_albedo=spec.flat_albedo,
+                       material=spec.material, technique=spec.material, **ekw)
+
+
+def analyze_regions(rgb, alpha, default_palette, coverage=None, regions=None,
+                    edges: bool = True, extreme_edge: bool = False,
+                    edge_sensitivity: float = 0.5,
+                    relief_cap: bool = False,
+                    per_region_norm: bool = False,
+                    light_field: np.ndarray | None = None,
+                    normal_field: np.ndarray | None = None,
+                    shades: bool = False,
+                    nmm_horizon: float = 0.5,
+                    nmm_light_dir: float = 135.0,
+                    nmm_bounce: float = 0.35,
+                    nmm_hotspot: float = 0.5,
+                    nmm_smooth: float = 2.0,
+                    whole_material: str = "matte",
+                    whole_blank: bool = False,
+                    with_steps: bool = True,
+                    shading: "ShadingResult | None" = None) -> MultiRegionResult:
+    mask, light, env, specs = _plan_specs(
+        rgb, alpha, default_palette, coverage, regions, per_region_norm,
+        light_field, normal_field, whole_blank, whole_material,
+        nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, shading)
+    ekw = _render_ekw(edges, extreme_edge, edge_sensitivity, relief_cap,
+                      normal_field, shades, env, nmm_smooth, with_steps)
+    plans = [_render_spec(rgb, s, ekw) for s in specs]
     combined = paint_regions(rgb, plans)
     return MultiRegionResult(mask, light, plans, combined)
+
+
+def iter_region_plans(rgb, alpha, default_palette, coverage=None, regions=None,
+                      edges: bool = True, extreme_edge: bool = False,
+                      edge_sensitivity: float = 0.5,
+                      relief_cap: bool = False,
+                      per_region_norm: bool = False,
+                      light_field: np.ndarray | None = None,
+                      normal_field: np.ndarray | None = None,
+                      shades: bool = False,
+                      nmm_horizon: float = 0.5,
+                      nmm_light_dir: float = 135.0,
+                      nmm_bounce: float = 0.35,
+                      nmm_hotspot: float = 0.5,
+                      nmm_smooth: float = 2.0,
+                      whole_material: str = "matte",
+                      whole_blank: bool = False,
+                      shading: "ShadingResult | None" = None):
+    """Yield each RegionPlan (with step images) one plan at a time.
+
+    Same plans, order, and steps as ``analyze_regions(...).plans`` — but callers
+    can encode a plan's heavy full-frame step arrays and drop the plan before the
+    next is built, so peak memory is ONE region's steps instead of every region's
+    at once. This is the fix for the ``/api/steps`` free-tier OOM: peak no longer
+    grows with region count. Always renders steps; the combined preview stays on
+    ``analyze_regions`` (with_steps=False)."""
+    _mask, _light, env, specs = _plan_specs(
+        rgb, alpha, default_palette, coverage, regions, per_region_norm,
+        light_field, normal_field, whole_blank, whole_material,
+        nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, shading)
+    ekw = _render_ekw(edges, extreme_edge, edge_sensitivity, relief_cap,
+                      normal_field, shades, env, nmm_smooth, with_steps=True)
+    for s in specs:
+        yield _render_spec(rgb, s, ekw)
