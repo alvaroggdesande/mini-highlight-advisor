@@ -69,11 +69,32 @@ async def upload_photo(file: UploadFile = File(...)):
             "quality_checks": checks, "default_whole": default_whole()}
 
 
+def _get_shading(photo_id: str):
+    """Return (rgb, alpha, shading) for a photo, rebuilding it from the persisted
+    bytes on a cache miss. The in-memory cache is volatile — it is lost whenever
+    the worker restarts (free-tier OOM auto-restart, idle spin-down, redeploy) —
+    so falling back to disk keeps analysis working instead of 404-ing on an old
+    photo_id the client still holds. Returns None only if the photo is truly gone."""
+    cached = shading_cache.get(photo_id)
+    if cached is not None:
+        return cached
+    loaded = project_store.load_photo_bytes(photo_id)
+    if loaded is None:
+        return None
+    data, suffix = loaded
+    rgb, alpha = decode_image(data, f"{photo_id}{suffix}")
+    shading = prepare_shading(rgb, alpha)
+    entry = (rgb, alpha, shading)
+    shading_cache.set(photo_id, entry)
+    return entry
+
+
 def _analyze_kwargs(req: AnalyzeRequest) -> dict:
     """Resolve a request into the kwargs shared by the eager (analyze_regions)
-    and streaming (iter_region_plans) paths, so the two can never drift. Raises
-    404 if the photo is no longer in the cache."""
-    cached = shading_cache.get(req.photo_id)
+    and streaming (iter_region_plans) paths, so the two can never drift. Rebuilds
+    shading from disk on a cache miss (worker restart) via _get_shading; raises
+    404 only if the photo is truly gone."""
+    cached = _get_shading(req.photo_id)
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
     rgb, alpha, shading = cached
@@ -158,14 +179,12 @@ def get_steps(token: str) -> StepsResponse:
     req = result_cache.get(token)
     if req is None:
         raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
-    if shading_cache.get(req.photo_id) is None:
-        # Photo evicted since analysis; the client re-analyzes on 409, re-priming it.
-        raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
     # Stream plans one at a time: each plan's heavy full-frame step arrays are
     # encoded to base64 (a RegionPlanDto) and then freed before the next plan is
     # built, so peak memory is ONE region's steps, not every region's at once.
     # This is the free-tier (512 MB) OOM fix — peak no longer scales with the
-    # number of regions.
+    # number of regions. _analyze_kwargs rebuilds shading from disk on a cache
+    # miss (worker restart), so no separate eviction check is needed.
     plans_out = [_plan_to_dto(plan) for plan in iter_region_plans(**_analyze_kwargs(req))]
     return StepsResponse(plans=plans_out)
 
@@ -185,7 +204,7 @@ def sample_photo(sid: str):
 
 @app.get("/api/photo/{photo_id}/image")
 def photo_image(photo_id: str):
-    cached = shading_cache.get(photo_id)
+    cached = _get_shading(photo_id)
     if cached is None:
         raise HTTPException(status_code=404, detail="unknown photo_id; re-upload the photo")
     rgb, _alpha, _shading = cached
