@@ -95,6 +95,54 @@ def test_steps_band_step_label_matches_role():
         assert step["label"] == plan["roles"][step["index"]]
 
 
+def test_plans_manifest_unknown_token_returns_409():
+    r = client.get("/api/plans", params={"token": "deadbeef"})
+    assert r.status_code == 409
+
+
+def test_plans_manifest_lists_plan_names():
+    token = _upload_and_analyze(n_bands=2)
+    r = client.get("/api/plans", params={"token": token})
+    assert r.status_code == 200
+    body = r.json()
+    assert "plans" in body
+    names = [p["name"] for p in body["plans"]]
+    assert names == ["Whole mini"]  # single-region synthetic photo
+
+
+def test_plans_manifest_carries_no_step_images():
+    # The manifest must be cheap: names only, no rendered step payload.
+    token = _upload_and_analyze(n_bands=2)
+    body = client.get("/api/plans", params={"token": token}).json()
+    assert "steps" not in body["plans"][0]
+
+
+def test_steps_plan_filter_returns_only_that_plan():
+    token = _upload_and_analyze(n_bands=2)
+    r = client.get("/api/steps", params={"token": token, "plan": "Whole mini"})
+    assert r.status_code == 200
+    plans = r.json()["plans"]
+    assert [p["name"] for p in plans] == ["Whole mini"]
+    assert len(plans[0]["steps"]) >= 1
+
+
+def test_steps_plan_filter_matches_unfiltered_plan():
+    token = _upload_and_analyze(n_bands=2)
+    full = client.get("/api/steps", params={"token": token}).json()["plans"]
+    whole = next(p for p in full if p["name"] == "Whole mini")
+    filtered = client.get(
+        "/api/steps", params={"token": token, "plan": "Whole mini"}
+    ).json()["plans"][0]
+    assert filtered["roles"] == whole["roles"]
+    assert len(filtered["steps"]) == len(whole["steps"])
+
+
+def test_steps_plan_filter_unknown_name_returns_404():
+    token = _upload_and_analyze(n_bands=2)
+    r = client.get("/api/steps", params={"token": token, "plan": "nope"})
+    assert r.status_code == 404
+
+
 def test_steps_edge_hl_adds_edge_step():
     data = _png_bytes()
     r = client.post("/api/photo", files={"file": ("m.png", data, "image/png")})

@@ -1,4 +1,4 @@
-import type { AnalyzeRequest, AnalyzeResponse, PhotoResponse, SamplePhoto, StepsResponse } from "./types";
+import type { AnalyzeRequest, AnalyzeResponse, PhotoResponse, SamplePhoto, StepsResponse, PlansManifest } from "./types";
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -104,11 +104,20 @@ export async function importCollection(file: File): Promise<{ owned: string[] }>
   return json<{ owned: string[] }>(await fetch("/api/collection/import", { method: "POST", body: fd }));
 }
 
-export async function fetchSteps(token: string): Promise<StepsResponse> {
-  const res = await fetch(`/api/steps?token=${encodeURIComponent(token)}`);
+export async function fetchSteps(token: string, plan?: string): Promise<StepsResponse> {
+  let url = `/api/steps?token=${encodeURIComponent(token)}`;
+  if (plan !== undefined) url += `&plan=${encodeURIComponent(plan)}`;
+  const res = await fetch(url);
   if (res.status === 409) throw new TokenExpiredError();
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   return res.json() as Promise<StepsResponse>;
+}
+
+export async function fetchPlanNames(token: string): Promise<PlansManifest> {
+  const res = await fetch(`/api/plans?token=${encodeURIComponent(token)}`);
+  if (res.status === 409) throw new TokenExpiredError();
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json() as Promise<PlansManifest>;
 }
 
 import type { ProjectMeta, ProjectManifestDto } from "./types";

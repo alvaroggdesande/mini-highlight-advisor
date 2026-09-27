@@ -8,7 +8,9 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from mini_highlight_advisor.pipeline import analyze_regions, iter_region_plans, prepare_shading
+from mini_highlight_advisor.pipeline import (
+    analyze_regions, iter_region_plans, region_plan_names, prepare_shading,
+)
 from mini_highlight_advisor.regions import Region, polygons_to_mask
 from mini_highlight_advisor.input_check import check_input
 from mini_highlight_advisor import samples
@@ -18,6 +20,7 @@ from backend.schemas import (
     AnalyzeRequest, RegionColorSpec as RegionColorSpecModel,
     SchemeGenerateRequest, RampGenerateRequest, MatchRequest, RecipeModel,
     StepsResponse, RegionPlanDto, StepImageDto, SaveProjectRequest,
+    PlansManifestResponse, PlanNameDto,
 )
 from backend.serialize import png_data_uri, to_png_bytes
 from backend import project_store
@@ -174,8 +177,20 @@ def analyze(req: AnalyzeRequest):
     return {"preview_png": png_data_uri(result.combined_rgb), "result_token": token}
 
 
+@app.get("/api/plans")
+def get_plans(token: str) -> PlansManifestResponse:
+    """The region names + order for a result, without rendering any step images.
+    Backs the Paint-tab region selector so it can show tabs immediately and fetch
+    each region's steps on demand."""
+    req = result_cache.get(token)
+    if req is None:
+        raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
+    names = region_plan_names(**_analyze_kwargs(req))
+    return PlansManifestResponse(plans=[PlanNameDto(name=n) for n in names])
+
+
 @app.get("/api/steps")
-def get_steps(token: str) -> StepsResponse:
+def get_steps(token: str, plan: str | None = None) -> StepsResponse:
     req = result_cache.get(token)
     if req is None:
         raise HTTPException(status_code=409, detail="token expired; re-analyze to refresh")
@@ -185,7 +200,13 @@ def get_steps(token: str) -> StepsResponse:
     # This is the free-tier (512 MB) OOM fix — peak no longer scales with the
     # number of regions. _analyze_kwargs rebuilds shading from disk on a cache
     # miss (worker restart), so no separate eviction check is needed.
-    plans_out = [_plan_to_dto(plan) for plan in iter_region_plans(**_analyze_kwargs(req))]
+    #
+    # `plan` narrows to a single region (the Paint-tab selector's on-demand fetch),
+    # so the browser holds one region's step images at a time — the same peak-memory
+    # win, now on the client side too.
+    plans_out = [_plan_to_dto(p) for p in iter_region_plans(only=plan, **_analyze_kwargs(req))]
+    if plan is not None and not plans_out:
+        raise HTTPException(status_code=404, detail=f"unknown region plan: {plan}")
     return StepsResponse(plans=plans_out)
 
 

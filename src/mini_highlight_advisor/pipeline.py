@@ -389,6 +389,7 @@ def iter_region_plans(rgb, alpha, default_palette, coverage=None, regions=None,
                       nmm_smooth: float = 2.0,
                       whole_material: str = "matte",
                       whole_blank: bool = False,
+                      only: str | None = None,
                       shading: "ShadingResult | None" = None):
     """Yield each RegionPlan (with step images) one plan at a time.
 
@@ -397,12 +398,47 @@ def iter_region_plans(rgb, alpha, default_palette, coverage=None, regions=None,
     next is built, so peak memory is ONE region's steps instead of every region's
     at once. This is the fix for the ``/api/steps`` free-tier OOM: peak no longer
     grows with region count. Always renders steps; the combined preview stays on
-    ``analyze_regions`` (with_steps=False)."""
+    ``analyze_regions`` (with_steps=False).
+
+    ``only`` renders just the plan with that name (the Paint-tab region selector's
+    on-demand fetch); an unknown name yields nothing."""
     _mask, _light, env, specs = _plan_specs(
         rgb, alpha, default_palette, coverage, regions, per_region_norm,
         light_field, normal_field, whole_blank, whole_material,
         nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, shading)
+    if only is not None:
+        specs = [s for s in specs if s.name == only]
     ekw = _render_ekw(edges, extreme_edge, edge_sensitivity, relief_cap,
                       normal_field, shades, env, nmm_smooth, with_steps=True)
     for s in specs:
         yield _render_spec(rgb, s, ekw)
+
+
+def region_plan_names(rgb, alpha, default_palette, coverage=None, regions=None,
+                      edges: bool = True, extreme_edge: bool = False,
+                      edge_sensitivity: float = 0.5,
+                      relief_cap: bool = False,
+                      per_region_norm: bool = False,
+                      light_field: np.ndarray | None = None,
+                      normal_field: np.ndarray | None = None,
+                      shades: bool = False,
+                      nmm_horizon: float = 0.5,
+                      nmm_light_dir: float = 135.0,
+                      nmm_bounce: float = 0.35,
+                      nmm_hotspot: float = 0.5,
+                      nmm_smooth: float = 2.0,
+                      whole_material: str = "matte",
+                      whole_blank: bool = False,
+                      only: str | None = None,
+                      shading: "ShadingResult | None" = None) -> list[str]:
+    """The ordered plan names — same order as ``iter_region_plans`` / the eager
+    ``analyze_regions(...).plans`` — resolved from the specs alone, without
+    rendering any step images. Backs the Paint-tab region selector's manifest.
+
+    Accepts the same kwargs as ``iter_region_plans`` (render-only args are ignored)
+    so a single ``**analyze_kwargs`` call site can feed both."""
+    _mask, _light, _env, specs = _plan_specs(
+        rgb, alpha, default_palette, coverage, regions, per_region_norm,
+        light_field, normal_field, whole_blank, whole_material,
+        nmm_horizon, nmm_light_dir, nmm_bounce, nmm_hotspot, shading)
+    return [s.name for s in specs]

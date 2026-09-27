@@ -22,7 +22,7 @@ describe("api client", () => {
   });
 });
 
-import { fetchSteps, TokenExpiredError } from "./client";
+import { fetchSteps, fetchPlanNames, TokenExpiredError } from "./client";
 
 describe("fetchSteps", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -39,5 +39,45 @@ describe("fetchSteps", () => {
     }));
     const result = await fetchSteps("good-token");
     expect(result).toEqual(body);
+  });
+
+  it("adds the plan query param when a region is given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200, ok: true, json: () => Promise.resolve({ plans: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchSteps("good-token", "Whole mini");
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain("token=good-token");
+    expect(url).toContain("plan=Whole%20mini");
+  });
+
+  it("omits the plan query param when no region is given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200, ok: true, json: () => Promise.resolve({ plans: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchSteps("good-token");
+    expect(fetchMock.mock.calls[0][0] as string).not.toContain("plan=");
+  });
+});
+
+describe("fetchPlanNames", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("throws TokenExpiredError on 409", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 409, ok: false }));
+    await expect(fetchPlanNames("bad-token")).rejects.toBeInstanceOf(TokenExpiredError);
+  });
+
+  it("GETs /api/plans and returns the parsed manifest", async () => {
+    const body = { plans: [{ name: "Whole mini" }, { name: "Cloak" }] };
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200, ok: true, json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchPlanNames("good-token");
+    expect(result).toEqual(body);
+    expect(fetchMock.mock.calls[0][0] as string).toContain("/api/plans?token=good-token");
   });
 });
