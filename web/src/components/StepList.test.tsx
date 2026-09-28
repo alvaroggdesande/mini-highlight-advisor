@@ -26,8 +26,8 @@ const plan: RegionPlanDto = {
 describe("StepList", () => {
   it("renders the step label for each step", () => {
     render(<MantineProvider><StepList plan={plan} /></MantineProvider>);
-    expect(screen.getByText("Shadow")).toBeTruthy();
-    expect(screen.getByText("Highlight")).toBeTruthy();
+    expect(screen.getByText("roles.shadow")).toBeTruthy();
+    expect(screen.getByText("roles.highlight")).toBeTruthy();
   });
 
   it("non-last step renders zone, cumulative, and exact captions", () => {

@@ -4,9 +4,21 @@
     "colour": "Colour",
     "technique": "Technique",
     "studio": "Studio",
-    "paint": "Paint",
-    "paints": "Paints",
+    "paint": "Painting Steps",
+    "paints": "Paint Collection",
     "angles": "Angles"
+  },
+  "roles": {
+    "shadow": "Shadow",
+    "deep_base": "Deep Base",
+    "base": "Base",
+    "midtone": "Midtone",
+    "upper_midtone": "Upper Midtone",
+    "highlight": "Highlight",
+    "bright_highlight": "Bright Highlight",
+    "edge_highlight": "Edge Highlight",
+    "extreme_edge_highlight": "Extreme Edge Highlight",
+    "recess_shade": "Recess Shade"
   },
   "technique": {
     "material": "Material",

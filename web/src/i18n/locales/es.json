@@ -4,9 +4,21 @@
     "colour": "Color",
     "technique": "Técnica",
     "studio": "Estudio",
-    "paint": "Pintura",
-    "paints": "Pinturas",
+    "paint": "Pasos de pintura",
+    "paints": "Colección de pinturas",
     "angles": "Ángulos"
+  },
+  "roles": {
+    "shadow": "Sombra",
+    "deep_base": "Base profunda",
+    "base": "Base",
+    "midtone": "Tono medio",
+    "upper_midtone": "Tono medio superior",
+    "highlight": "Iluminado",
+    "bright_highlight": "Iluminado brillante",
+    "edge_highlight": "Resalte de borde",
+    "extreme_edge_highlight": "Resalte de borde extremo",
+    "recess_shade": "Sombreado de receso"
   },
   "technique": {
     "material": "Material",
