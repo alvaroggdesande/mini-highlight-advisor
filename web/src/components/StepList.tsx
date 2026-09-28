@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Image, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import type { RegionPlanDto, StepImageDto } from "../api/types";
+import { ROLE_KEY } from "../lib/roles";
 
 function StepCard({ step }: { step: StepImageDto }) {
   const { t } = useTranslation();
   return (
     <Paper p="sm" withBorder mb="sm">
-      <Text fw={600} mb="xs">{step.label}</Text>
+      <Text fw={600} mb="xs">{t(ROLE_KEY[step.label] ?? step.label)}</Text>
       <SimpleGrid cols={step.is_last ? 2 : 3} spacing="xs">
         <Stack gap={4}>
           <Image src={step.zone_png} alt={t("paint.step_zone")} />

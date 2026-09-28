@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, Text } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
-import { roleNames } from "../../lib/roles";
+import { roleNames, ROLE_KEY } from "../../lib/roles";
 import { BandCard } from "./BandCard";
 import { RecipeFooter } from "./RecipeFooter";
 
@@ -18,7 +18,7 @@ export function BandEditor() {
   if (!region) return null;
   const { palette, coverage, material } = region;
   const n = palette.length;
-  const roles = roleNames(n);
+  const roles = roleNames(n).map((r) => t(ROLE_KEY[r] ?? r));
 
   // Same math as the retired CoverageEditor.handleSlider: adjust band i, keep last band auto.
   const handleCoverage = (i: number, val: number) => {

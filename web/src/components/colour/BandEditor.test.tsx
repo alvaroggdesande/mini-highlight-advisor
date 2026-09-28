@@ -30,9 +30,9 @@ describe("BandEditor", () => {
 
   it("renders one BandCard per palette entry with role names", () => {
     render(<MantineProvider><BandEditor /></MantineProvider>);
-    expect(screen.getByText("card-Shadow")).toBeTruthy();
-    expect(screen.getByText("card-Base")).toBeTruthy();
-    expect(screen.getByText("card-Highlight")).toBeTruthy();
+    expect(screen.getByText("card-roles.shadow")).toBeTruthy();
+    expect(screen.getByText("card-roles.base")).toBeTruthy();
+    expect(screen.getByText("card-roles.highlight")).toBeTruthy();
   });
 
   it("renders the RecipeFooter", () => {
