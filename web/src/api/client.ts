@@ -9,6 +9,12 @@ export class TokenExpiredError extends Error {
   constructor() { super("token expired"); }
 }
 
+export class PhotoExpiredError extends Error {
+  constructor() {
+    super("The app restarted while you were working — re-upload your photo to continue.");
+  }
+}
+
 export async function uploadPhoto(file: Blob, name = "upload.png"): Promise<PhotoResponse> {
   const fd = new FormData();
   fd.append("file", file, name);
@@ -145,11 +151,13 @@ export async function saveProjectApi(
   activeAngle: number,
   angles: Angle[],
 ): Promise<{ slug: string; name: string; updated_at: string }> {
-  return json(await fetch("/api/projects", {
+  const res = await fetch("/api/projects", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, active_angle: activeAngle, angles: angles.map(toProjectAngleDto) }),
-  }));
+  });
+  if (res.status === 409) throw new PhotoExpiredError();
+  return json(res);
 }
 
 export async function loadProjectApi(slug: string): Promise<ProjectManifestDto> {
