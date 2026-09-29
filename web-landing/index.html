@@ -34,12 +34,24 @@
   .sub { margin-top:12px; color:var(--muted); font-size:14px; }
   .warm { margin-top:6px; font-size:12px; color:var(--muted); opacity:0; transition:opacity .3s; }
   .warm.show { opacity:1; }
+
+  /* language toggle */
+  .lang-toggle { position:fixed; top:16px; right:16px; display:flex; border-radius:999px;
+                 background:var(--panel); border:1px solid rgba(255,255,255,.1); overflow:hidden; }
+  .lang-btn { padding:5px 12px; font-size:12px; font-weight:600; border:none; background:none;
+              color:var(--muted); cursor:pointer; transition:background .15s, color .15s; }
+  .lang-btn.active { background:var(--accent); color:#fff; }
 </style>
 </head>
 <body>
+  <div class="lang-toggle">
+    <button class="lang-btn" id="btnEn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btnEs" onclick="setLang('es')">ES</button>
+  </div>
+
   <main class="wrap">
-    <h1>See where to highlight — on <em>your</em> mini</h1>
-    <p class="tag">Upload a photo of a primed miniature and get a <b>paint-by-layer highlight plan</b>
+    <h1 id="h1">See where to highlight — on <em>your</em> mini</h1>
+    <p class="tag" id="tag">Upload a photo of a primed miniature and get a <b>paint-by-layer highlight plan</b>
        drawn directly on your own photo. Not a text guide. Not a fake AI render. Your actual mini.</p>
 
     <div class="ba" id="ba">
@@ -52,33 +64,76 @@
     </div>
 
     <a class="cta" id="cta" href="#">Try it free →</a>
-    <p class="sub">Free · no signup · works best on primed (black/grey) minis</p>
+    <p class="sub" id="sub">Free · no signup · works best on primed (black/grey) minis</p>
     <p class="warm" id="warm">Waking up the app…</p>
   </main>
 
 <script>
-  // 1. Set this to your Render app URL.
   const APP_URL = "https://mini-highlight-advisor.onrender.com";
 
+  const T = {
+    en: {
+      lang:  "en",
+      title: "Mini Highlight Advisor — see where to highlight, on your own mini",
+      desc:  "Upload a photo of a primed miniature and get a paint-by-layer highlight plan drawn on your own photo.",
+      h1:    "See where to highlight — on <em>your</em> mini",
+      tag:   "Upload a photo of a primed miniature and get a <b>paint-by-layer highlight plan</b> drawn directly on your own photo. Not a text guide. Not a fake AI render. Your actual mini.",
+      cta:   "Try it free →",
+      sub:   "Free · no signup · works best on primed (black/grey) minis",
+      warm:  "Waking up the app…",
+    },
+    es: {
+      lang:  "es",
+      title: "Mini Highlight Advisor — descubre dónde iluminar tu mini",
+      desc:  "Sube una foto de tu mini imprimada y obtén un plan de iluminación por capas dibujado directamente sobre tu propia foto.",
+      h1:    "Descubre dónde iluminar — en <em>tu</em> mini",
+      tag:   "Sube una foto de tu mini imprimada y obtén un <b>plan de iluminación por capas</b> dibujado directamente sobre tu propia foto. No es una guía de texto. No es un render generado por IA. Es tu mini real.",
+      cta:   "Pruébalo gratis →",
+      sub:   "Gratis · sin registro · funciona mejor con minis imprimadas (negro/gris)",
+      warm:  "Iniciando la app…",
+    },
+  };
+
+  function setLang(lang) {
+    const t = T[lang] || T.en;
+    document.documentElement.lang = t.lang;
+    document.title = t.title;
+    document.querySelector('meta[name="description"]').content = t.desc;
+    document.getElementById("h1").innerHTML   = t.h1;
+    document.getElementById("tag").innerHTML  = t.tag;
+    document.getElementById("cta").innerHTML  = t.cta;
+    document.getElementById("sub").textContent = t.sub;
+    document.getElementById("warm").textContent = t.warm;
+    document.getElementById("btnEn").classList.toggle("active", lang === "en");
+    document.getElementById("btnEs").classList.toggle("active", lang === "es");
+    localStorage.setItem("mha-lang", lang);
+  }
+
+  // Auto-detect: stored preference → browser language → default EN
+  const stored = localStorage.getItem("mha-lang");
+  const browserLang = navigator.language.startsWith("es") ? "es" : "en";
+  setLang(stored || browserLang);
+
+  // Wire CTA href (innerHTML swap above keeps the href attribute intact,
+  // but set it here after setLang so it's always correct).
   document.getElementById("cta").href = APP_URL;
 
-  // 2. Before/after slider (mouse + touch).
+  // Before/after slider (mouse + touch).
   const ba = document.getElementById("ba");
-  const set = (clientX) => {
+  const setPos = (clientX) => {
     const r = ba.getBoundingClientRect();
     const pct = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
     ba.style.setProperty("--pos", pct + "%");
   };
   let drag = false;
-  const down = () => drag = true, up = () => drag = false;
-  ba.addEventListener("mousedown", e => { drag = true; set(e.clientX); });
-  window.addEventListener("mousemove", e => drag && set(e.clientX));
-  window.addEventListener("mouseup", up);
-  ba.addEventListener("touchstart", e => { drag = true; set(e.touches[0].clientX); }, {passive:true});
-  window.addEventListener("touchmove", e => drag && set(e.touches[0].clientX), {passive:true});
-  window.addEventListener("touchend", up);
+  ba.addEventListener("mousedown", e => { drag = true; setPos(e.clientX); });
+  window.addEventListener("mousemove", e => drag && setPos(e.clientX));
+  window.addEventListener("mouseup", () => drag = false);
+  ba.addEventListener("touchstart", e => { drag = true; setPos(e.touches[0].clientX); }, {passive:true});
+  window.addEventListener("touchmove", e => drag && setPos(e.touches[0].clientX), {passive:true});
+  window.addEventListener("touchend", () => drag = false);
 
-  // 3. Pre-warm Render in the background so cold-start finishes before they click.
+  // Pre-warm Render in the background so cold-start finishes before they click.
   const warm = document.getElementById("warm");
   warm.classList.add("show");
   fetch(APP_URL, { mode: "no-cors" })
