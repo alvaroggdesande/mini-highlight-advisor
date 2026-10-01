@@ -75,7 +75,8 @@
     "export": "Exportar recetas",
     "import": "Importar recetas",
     "collection_export": "Exportar colección",
-    "collection_import": "Importar colección"
+    "collection_import": "Importar colección",
+    "import_success": "Recetas importadas"
   },
   "surfaces": {
     "skin": "Piel",
@@ -163,5 +164,11 @@
     "project_delete": "Error al eliminar.",
     "project_download": "Error al descargar.",
     "project_upload": "Error al importar."
+  },
+  "angles": {
+    "add": "+ Añadir ángulo",
+    "default_label": "Ángulo {{n}}",
+    "rename": "Renombrar ángulo",
+    "remove": "Eliminar ángulo"
   }
 }

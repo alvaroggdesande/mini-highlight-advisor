@@ -75,7 +75,8 @@
     "export": "Export recipes",
     "import": "Import recipes",
     "collection_export": "Export collection",
-    "collection_import": "Import collection"
+    "collection_import": "Import collection",
+    "import_success": "Recipes imported"
   },
   "surfaces": {
     "skin": "Skin",
@@ -163,5 +164,11 @@
     "project_delete": "Delete failed.",
     "project_download": "Download failed.",
     "project_upload": "Import failed."
+  },
+  "angles": {
+    "add": "+ Add angle",
+    "default_label": "Angle {{n}}",
+    "rename": "Rename angle",
+    "remove": "Remove angle"
   }
 }

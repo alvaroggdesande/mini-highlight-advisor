@@ -1,9 +1,12 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Group, Stack } from "@mantine/core";
 import { useProjectStore } from "../store/projectStore";
 import { uploadPhoto } from "../api/client";
+import { downscaleImage } from "../lib/downscale";
 
 export function AngleBar() {
+  const { t } = useTranslation();
   const angles = useProjectStore((s) => s.angles);
   const active = useProjectStore((s) => s.activeAngle);
   const addAngle = useProjectStore((s) => s.addAngle);
@@ -14,7 +17,7 @@ export function AngleBar() {
   if (angles.length === 0) return null;
 
   async function onAdd(file: File) {
-    try { addAngle(await uploadPhoto(file, file.name)); }
+    try { addAngle(await uploadPhoto(await downscaleImage(file), file.name)); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   }
 
@@ -28,7 +31,7 @@ export function AngleBar() {
             {a.label}
           </Button>
         ))}
-        <Button size="xs" variant="subtle" onClick={() => fileRef.current?.click()}>+ angle</Button>
+        <Button size="xs" variant="subtle" onClick={() => fileRef.current?.click()}>{t("angles.add")}</Button>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onAdd(f); }} />
       </Group>
