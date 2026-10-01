@@ -7,6 +7,8 @@ import { StepList } from "./StepList";
 import { ErrorNotice } from "./ErrorNotice";
 import type { RegionPlanDto, RegionPayload, PlansManifest, StepsResponse } from "../api/types";
 
+const WHOLE_MINI_PLAN = "Whole mini";   // backend plan name (pipeline.WHOLE_MINI) — display translated
+
 /** Re-run analyze for the active angle to mint a fresh result token (used when a
  *  cached token has expired after a worker restart). Returns the new token. */
 async function reanalyze(
@@ -63,7 +65,8 @@ export function PaintTab() {
         setActive(ns[0] ?? null);
         setCache({});
       } catch (e) {
-        if (!cancelled) setError(String(e));
+        // Drop the previous token's steps so they are never shown under a failed reload.
+        if (!cancelled) { setNames(null); setActive(null); setCache({}); setError(String(e)); }
       } finally {
         if (!cancelled) setNamesLoading(false);
       }
@@ -120,7 +123,7 @@ export function PaintTab() {
   return (
     <Tabs value={active} onChange={setActive} keepMounted={false}>
       <Tabs.List mb="md">
-        {names.map((n) => <Tabs.Tab key={n} value={n}>{n}</Tabs.Tab>)}
+        {names.map((n) => <Tabs.Tab key={n} value={n}>{n === WHOLE_MINI_PLAN ? t("region.whole_mini") : n}</Tabs.Tab>)}
       </Tabs.List>
       {names.map((n) => (
         <Tabs.Panel key={n} value={n}>
