@@ -12,6 +12,7 @@ import { useProjectStore, activeAngleOf } from "./store/projectStore";
 import { useCatalogStore } from "./store/catalogStore";
 import { ProjectLibrary } from "./components/ProjectLibrary";
 import { LanguageSelector } from "./components/LanguageSelector";
+import { PaintTabTrigger } from "./components/PaintTabTrigger";
 
 type MainTab = "studio" | "paint" | "paints" | "angles";
 
@@ -45,13 +46,13 @@ export default function App() {
           <AngleBar />
           <Tabs.List mb="md">
             <Tabs.Tab value="studio">{t("tabs.studio")}</Tabs.Tab>
-            <Tabs.Tab value="paint" disabled={!resultToken}>{t("tabs.paint")}</Tabs.Tab>
+            <PaintTabTrigger disabled={!resultToken} />
             <Tabs.Tab value="paints">{t("tabs.paints")}</Tabs.Tab>
             <Tabs.Tab value="angles">{t("tabs.angles")}</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="studio">
-            <StudioPanel />
+            <StudioPanel onGoToPaint={() => setTab("paint")} />
           </Tabs.Panel>
           <Tabs.Panel value="paint"><PaintTab /></Tabs.Panel>
           <Tabs.Panel value="paints"><PaintsTab /></Tabs.Panel>

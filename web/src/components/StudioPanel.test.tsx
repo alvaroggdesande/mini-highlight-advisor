@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { StudioPanel } from "./StudioPanel";
 import { useProjectStore } from "../store/projectStore";
@@ -21,10 +21,29 @@ describe("StudioPanel", () => {
   beforeEach(() => { reset(); useProjectStore.getState().initFromPhoto(photo()); });
 
   it("renders a sticky preview column and an editor column", () => {
-    render(<MantineProvider><StudioPanel /></MantineProvider>);
+    render(<MantineProvider><StudioPanel onGoToPaint={() => {}} /></MantineProvider>);
     const preview = screen.getByTestId("studio-preview");
     expect(preview).toBeTruthy();
     expect(preview.style.position).toBe("sticky");
     expect(screen.getByTestId("studio-editor")).toBeTruthy();
+  });
+
+  it("'see painting steps' is disabled until the first result, then calls onGoToPaint", () => {
+    const go = vi.fn();
+    const { rerender } = render(<MantineProvider><StudioPanel onGoToPaint={go} /></MantineProvider>);
+    const btn = () => screen.getByRole("button", { name: "studio.go_to_paint" });
+    expect(btn()).toBeDisabled();
+    const s = useProjectStore.getState();
+    useProjectStore.setState({ angles: s.angles.map((a, i) => i === 0 ? { ...a, resultToken: "tok" } : a) });
+    rerender(<MantineProvider><StudioPanel onGoToPaint={go} /></MantineProvider>);
+    fireEvent.click(btn());
+    expect(go).toHaveBeenCalledOnce();
+  });
+
+  it("shows the photo-quality alert when a check fails", () => {
+    reset();
+    useProjectStore.getState().initFromPhoto({ ...photo(), quality_checks: [{ id: "focus", label: "Focus", ok: false, detail: "x" }] });
+    render(<MantineProvider><StudioPanel onGoToPaint={() => {}} /></MantineProvider>);
+    expect(screen.getByText("quality.title")).toBeTruthy();
   });
 });
