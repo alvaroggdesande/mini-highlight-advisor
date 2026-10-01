@@ -25,7 +25,7 @@ describe("RegionHeader", () => {
 
   it("switching the region select calls setSelected", () => {
     render(<MantineProvider><RegionHeader /></MantineProvider>);
-    const sel = screen.getByLabelText("region") as HTMLSelectElement;
+    const sel = screen.getByLabelText("region.select") as HTMLSelectElement;
     fireEvent.change(sel, { target: { value: "1" } });
     expect(useProjectStore.getState().angles[0].book.selected).toBe(1);
   });

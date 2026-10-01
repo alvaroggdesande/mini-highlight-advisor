@@ -74,10 +74,10 @@ export function AngleGallery() {
                 <Image src={preview} alt={angle.label} w="100%" style={{ display: "block", objectFit: "contain" }} />
               )}
               <Group gap="xs" mt="xs" onClick={(e) => e.stopPropagation()}>
-                <TextInput size="xs" aria-label="Rename angle" value={angle.label}
+                <TextInput size="xs" aria-label={t("angles.rename")} value={angle.label}
                   onChange={(e) => renameAngle(idx, e.target.value)} style={{ flex: 1 }} />
                 {isActive && <Badge size="xs" variant="light">{t("gallery.active_badge")}</Badge>}
-                <ActionIcon size="sm" variant="subtle" color="red" aria-label="Remove angle"
+                <ActionIcon size="sm" variant="subtle" color="red" aria-label={t("angles.remove")}
                   disabled={angles.length === 1} onClick={() => removeAngle(idx)}>✕</ActionIcon>
               </Group>
             </Card>

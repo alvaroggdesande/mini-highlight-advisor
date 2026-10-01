@@ -60,7 +60,10 @@
     "delete_band": "Delete band",
     "auto": "auto",
     "coverage": "Coverage",
-    "undo": "Undo"
+    "undo": "Undo",
+    "owned_only_none": "You haven't marked any paints as owned yet, so the full catalogue will be used — tick your paints in the Paint Collection tab.",
+    "toggle_generate": "Show or hide the scheme generator",
+    "buy": "Buy: {{name}}"
   },
   "schemes": {
     "title": "Colour Schemes",
@@ -73,7 +76,8 @@
     "export": "Export recipes",
     "import": "Import recipes",
     "collection_export": "Export collection",
-    "collection_import": "Import collection"
+    "collection_import": "Import collection",
+    "import_success": "Recipes imported"
   },
   "surfaces": {
     "skin": "Skin",
@@ -102,14 +106,15 @@
     "split-complementary": "Split-Complementary"
   },
   "paint": {
-    "loading": "Loading steps…",
+    "loading": "Loading steps… the first time can take up to a minute.",
     "no_preview": "Analyze the photo first to see painting steps.",
     "step_zone": "Where to paint",
-    "step_cumulative": "Result so far",
-    "step_exact": "This layer"
+    "step_cumulative": "After this layer",
+    "step_exact": "What stays visible at the end",
+    "steps_hint": "Paint each layer over the pink area. Later, lighter layers go on top, so only part of each layer stays visible at the end."
   },
   "paints": {
-    "heading": "## 🎨 Paints",
+    "heading": "Paints",
     "search_placeholder": "Search by name, code or range…",
     "owned_count": "{{owned}} / {{total}} owned",
     "filtered_suffix": "shown",
@@ -136,7 +141,16 @@
   "region": {
     "editing": "Editing:",
     "whole_mini": "Whole mini",
-    "manage": "Manage regions"
+    "manage": "Manage regions",
+    "draw": "Draw region",
+    "add": "Add region",
+    "cancel": "Cancel",
+    "strokes_one": "{{count}} stroke",
+    "strokes_other": "{{count}} strokes",
+    "visible": "Visible",
+    "delete": "Delete region",
+    "select": "Region",
+    "default_name": "region {{n}}"
   },
   "gallery": {
     "heading": "All Angles",
@@ -146,5 +160,35 @@
     "loading": "Rendering…",
     "preview_error": "Preview failed",
     "no_photo": "No photo"
+  },
+  "errors": {
+    "retry": "Try again",
+    "steps": "Couldn't load the painting steps.",
+    "analyze": "Couldn't update the preview.",
+    "upload": "Couldn't upload that photo. Try a PNG or JPEG.",
+    "generate": "Couldn't generate a colour scheme.",
+    "catalog": "Couldn't load the paint catalogue.",
+    "import": "Import failed.",
+    "project_save": "Save failed.",
+    "project_load": "Load failed.",
+    "project_delete": "Delete failed.",
+    "project_download": "Download failed.",
+    "project_upload": "Import failed."
+  },
+  "angles": {
+    "add": "+ Add angle",
+    "default_label": "Angle {{n}}",
+    "rename": "Rename angle",
+    "remove": "Remove angle"
+  },
+  "preview": {
+    "placeholder": "Upload a photo or pick a sample to see the preview.",
+    "rendering": "Rendering the preview…",
+    "updating": "Updating preview…",
+    "alt": "Painted preview"
+  },
+  "upload": {
+    "button": "Upload photo",
+    "or_sample": "Or start from a sample:"
   }
 }

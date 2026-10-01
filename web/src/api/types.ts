@@ -64,6 +64,9 @@ export interface StepImageDto {
   cumulative_png: string;
   exact_png: string | null;
   is_last: boolean;
+  paint_name?: string | null;
+  paint_hex?: string | null;
+  paint_code?: string | null;
 }
 
 export interface RegionPlanDto {

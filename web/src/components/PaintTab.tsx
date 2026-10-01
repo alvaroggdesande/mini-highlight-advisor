@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Center, Loader, Tabs, Text } from "@mantine/core";
+import { Center, Group, Loader, Tabs, Text } from "@mantine/core";
 import { fetchSteps, fetchPlanNames, analyze, TokenExpiredError } from "../api/client";
 import { useProjectStore, activeAngleOf } from "../store/projectStore";
 import { StepList } from "./StepList";
+import { ErrorNotice } from "./ErrorNotice";
 import type { RegionPlanDto, RegionPayload, PlansManifest, StepsResponse } from "../api/types";
+
+const WHOLE_MINI_PLAN = "Whole mini";   // backend plan name (pipeline.WHOLE_MINI) — display translated
 
 /** Re-run analyze for the active angle to mint a fresh result token (used when a
  *  cached token has expired after a worker restart). Returns the new token. */
@@ -33,6 +36,7 @@ export function PaintTab() {
   const [namesLoading, setNamesLoading] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const loadedNamesToken = useRef<string | undefined>(undefined);
 
   // Load the region manifest (names only) whenever the result token changes.
@@ -61,14 +65,15 @@ export function PaintTab() {
         setActive(ns[0] ?? null);
         setCache({});
       } catch (e) {
-        if (!cancelled) setError(String(e));
+        // Drop the previous token's steps so they are never shown under a failed reload.
+        if (!cancelled) { setNames(null); setActive(null); setCache({}); setError(String(e)); }
       } finally {
         if (!cancelled) setNamesLoading(false);
       }
     }
     load();
     return () => { cancelled = true; };
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, retryNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch the active region's step images on demand; cache so re-selecting is instant.
   useEffect(() => {
@@ -99,25 +104,36 @@ export function PaintTab() {
     }
     load();
     return () => { cancelled = true; };
-  }, [token, active, cache, setPreview]);
+  }, [token, active, cache, setPreview, retryNonce]);
+
+  function retry() {
+    setError(null);
+    if (!names) loadedNamesToken.current = undefined;   // manifest failed → refetch it
+    setRetryNonce((n) => n + 1);                          // step failed → effect re-runs for `active`
+  }
+  const loading = (
+    <Center mt="xl"><Group gap="xs"><Loader size="sm" /><Text size="sm" c="dimmed">{t("paint.loading")}</Text></Group></Center>
+  );
 
   if (!token) return <Text c="dimmed">{t("paint.no_preview")}</Text>;
-  if (namesLoading) return <Center mt="xl"><Loader size="sm" /></Center>;
-  if (error) return <Text c="red">{error}</Text>;
+  if (namesLoading) return loading;
+  if (error && !names) return <ErrorNotice message={t("errors.steps")} detail={error} onRetry={retry} />;
   if (!names || names.length === 0) return null;
 
   return (
     <Tabs value={active} onChange={setActive} keepMounted={false}>
       <Tabs.List mb="md">
-        {names.map((n) => <Tabs.Tab key={n} value={n}>{n}</Tabs.Tab>)}
+        {names.map((n) => <Tabs.Tab key={n} value={n}>{n === WHOLE_MINI_PLAN ? t("region.whole_mini") : n}</Tabs.Tab>)}
       </Tabs.List>
       {names.map((n) => (
         <Tabs.Panel key={n} value={n}>
           {cache[n]
             ? <StepList plan={cache[n]} />
-            : stepLoading
-              ? <Center mt="xl"><Loader size="sm" /></Center>
-              : null}
+            : error && n === active
+              ? <ErrorNotice message={t("errors.steps")} detail={error} onRetry={retry} />
+              : stepLoading
+                ? loading
+                : null}
         </Tabs.Panel>
       ))}
     </Tabs>

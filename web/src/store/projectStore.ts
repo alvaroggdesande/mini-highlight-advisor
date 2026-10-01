@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import type { PhotoResponse, Settings, Whole, PaintColor, QualityCheck, ProjectManifestDto } from "../api/types";
 import { newId } from "../lib/id";
+import i18next from "i18next";
+
+/** Default label for the n-th angle, translated once i18n is initialised (main.tsx). */
+const angleLabel = (n: number) =>
+  i18next.isInitialized ? i18next.t("angles.default_label", { n }) : `Angle ${n}`;
 
 export const DEFAULT_SETTINGS: Settings = {
   edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false,
@@ -43,6 +48,7 @@ export interface Angle {
   photoId?: string; width?: number; height?: number; qualityChecks: QualityCheck[];
   book: Book; settings: Settings;
   preview?: string; resultToken?: string; error?: string;
+  analyzing?: boolean; analyzeNonce?: number;   // runtime-only, never persisted
 }
 
 interface State {
@@ -63,8 +69,11 @@ interface State {
   toggleBlank(g: number): void;
   setCoverage(cov: number[]): void;
   setBandCount(n: number): void;
+  removeBand(i: number): void;
   setPreview(png: string, token: string): void;
   setError(msg?: string): void;
+  setAnalyzing(on: boolean, angleId?: string): void;   // default: the active angle
+  retryAnalyze(): void;
   setSurface(g: number, surface: string): void;
   setTone(g: number, tone: string): void;
   setMaterial(g: number, material: string): void;
@@ -137,7 +146,7 @@ export const useProjectStore = create<State>((set) => ({
 
   initFromPhoto: (res) => set({
     activeAngle: 0,
-    angles: [makeAngle(res, "angle 1", DEFAULT_SETTINGS)],
+    angles: [makeAngle(res, angleLabel(1), DEFAULT_SETTINGS)],
     projectName: null,
     slug: null,
     undoSnapshot: null,
@@ -145,7 +154,7 @@ export const useProjectStore = create<State>((set) => ({
 
   addAngle: (res) => set((s) => {
     const settings = s.angles[s.activeAngle]?.settings ?? DEFAULT_SETTINGS;
-    const angles = s.angles.concat(makeAngle(res, `angle ${s.angles.length + 1}`, settings));
+    const angles = s.angles.concat(makeAngle(res, angleLabel(s.angles.length + 1), settings));
     return { angles, activeAngle: angles.length - 1 };
   }),
 
@@ -216,10 +225,32 @@ export const useProjectStore = create<State>((set) => ({
     return { ...b, drawn };
   })),
 
+  removeBand: (i) => set((s) => patchBook(s, (b) => {
+    const cur = b.selected === 0 ? b.whole : b.drawn[b.selected - 1];
+    const n = cur.palette.length;
+    if (n <= 3 || i < 0 || i >= n) return b;
+    const palette = cur.palette.filter((_, k) => k !== i);
+    const raw = cur.coverage.filter((_, k) => k !== i);
+    const sum = raw.reduce((a, c) => a + c, 0);
+    const coverage = sum > 0 ? raw.map((v) => v / sum) : raw.map(() => 1 / raw.length);
+    if (b.selected === 0) return { ...b, whole: { ...b.whole, palette, coverage } };
+    const drawn = b.drawn.slice();
+    drawn[b.selected - 1] = { ...drawn[b.selected - 1], palette, coverage };
+    return { ...b, drawn };
+  })),
+
   setPreview: (png, token) => set((s) =>
     patchAngle(s, s.activeAngle, (a) => ({ ...a, preview: png, resultToken: token, error: undefined }))),
 
   setError: (msg) => set((s) => patchAngle(s, s.activeAngle, (a) => ({ ...a, error: msg }))),
+
+  setAnalyzing: (on, angleId) => set((s) => {
+    const i = angleId === undefined ? s.activeAngle : s.angles.findIndex((a) => a.id === angleId);
+    return i < 0 ? {} : patchAngle(s, i, (a) => ({ ...a, analyzing: on }));
+  }),
+
+  retryAnalyze: () => set((s) => patchAngle(s, s.activeAngle,
+    (a) => ({ ...a, error: undefined, analyzeNonce: (a.analyzeNonce ?? 0) + 1 }))),
 
   setSurface: (g, surface) => set((s) => patchBook(s, (b) => {
     if (g === 0) return { ...b, whole: { ...b.whole, surface } };

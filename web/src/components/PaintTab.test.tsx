@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { PaintTab } from "./PaintTab";
 import { useProjectStore } from "../store/projectStore";
@@ -63,7 +63,7 @@ describe("PaintTab", () => {
 
     await waitFor(() => expect(screen.getByTestId("step-list")).toBeTruthy());
     // One tab per region name
-    expect(screen.getByRole("tab", { name: "Whole mini" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "region.whole_mini" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Cloak" })).toBeTruthy();
     // Only the first region's steps were fetched, and they are shown
     expect(fetchSteps).toHaveBeenCalledWith("tok123", "Whole mini");
@@ -92,7 +92,7 @@ describe("PaintTab", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Cloak" }));
     await waitFor(() => expect(screen.getByTestId("step-list").textContent).toBe("Cloak"));
-    fireEvent.click(screen.getByRole("tab", { name: "Whole mini" }));
+    fireEvent.click(screen.getByRole("tab", { name: "region.whole_mini" }));
     await waitFor(() => expect(screen.getByTestId("step-list").textContent).toBe("Whole mini"));
 
     // Whole mini + Cloak, each fetched exactly once — no refetch on return
@@ -114,5 +114,57 @@ describe("PaintTab", () => {
     expect(client.analyze).toHaveBeenCalledOnce();
     expect(client.fetchPlanNames).toHaveBeenCalledTimes(2);
     expect(client.fetchPlanNames).toHaveBeenLastCalledWith("newTok");
+  });
+
+  it("shows loading text while the manifest loads", async () => {
+    vi.spyOn(client, "fetchPlanNames").mockReturnValue(new Promise(() => {}));
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    expect(await screen.findByText("paint.loading")).toBeTruthy();
+  });
+
+  it("manifest error shows a friendly notice and Retry refetches", async () => {
+    const names = vi.spyOn(client, "fetchPlanNames")
+      .mockRejectedValueOnce(new Error("500 boom"))
+      .mockResolvedValue(MANIFEST);
+    vi.spyOn(client, "fetchSteps").mockImplementation(async (_t, n) => planOf(n as string));
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    expect(await screen.findByText("errors.steps")).toBeTruthy();
+    fireEvent.click(screen.getByText("errors.retry"));
+    await waitFor(() => expect(names).toHaveBeenCalledTimes(2));
+    expect(await screen.findByTestId("step-list")).toBeTruthy();
+  });
+
+  it("retry after a step error keeps the selected region", async () => {
+    vi.spyOn(client, "fetchPlanNames").mockResolvedValue(MANIFEST);
+    const steps = vi.spyOn(client, "fetchSteps").mockImplementation(async (_t, n) => {
+      if (n === "Cloak" && steps.mock.calls.filter((c) => c[1] === "Cloak").length === 1) throw new Error("500 x");
+      return planOf(n as string);
+    });
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    fireEvent.click(await screen.findByRole("tab", { name: "Cloak" }));
+    expect(await screen.findByText("errors.steps")).toBeTruthy();
+    fireEvent.click(screen.getByText("errors.retry"));
+    expect(await screen.findByText("Cloak", { selector: "[data-testid=step-list]" })).toBeTruthy();
+  });
+
+  it("a manifest error after a token change does not keep showing the old steps", async () => {
+    vi.spyOn(client, "fetchPlanNames")
+      .mockResolvedValueOnce(MANIFEST)
+      .mockRejectedValueOnce(new Error("500 boom"));
+    vi.spyOn(client, "fetchSteps").mockImplementation(async (_t, n) => planOf(n as string));
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    expect(await screen.findByTestId("step-list")).toBeTruthy();
+    act(() => useProjectStore.setState((s) => ({
+      ...s, angles: [{ ...s.angles[0], resultToken: "tok456" }],
+    })));
+    expect(await screen.findByText("errors.steps")).toBeTruthy();
+    expect(screen.queryByTestId("step-list")).toBeNull();
+  });
+
+  it("the whole-mini tab label is translated", async () => {
+    vi.spyOn(client, "fetchPlanNames").mockResolvedValue(MANIFEST);
+    vi.spyOn(client, "fetchSteps").mockImplementation(async (_t, n) => planOf(n as string));
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    expect(await screen.findByRole("tab", { name: "region.whole_mini" })).toBeTruthy();
   });
 });

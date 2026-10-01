@@ -60,7 +60,10 @@
     "delete_band": "Eliminar banda",
     "auto": "auto",
     "coverage": "Cobertura",
-    "undo": "Deshacer"
+    "undo": "Deshacer",
+    "owned_only_none": "Aún no has marcado pinturas como tuyas, así que se usará el catálogo completo — márcalas en la pestaña Colección de pinturas.",
+    "toggle_generate": "Mostrar u ocultar el generador de esquemas",
+    "buy": "Comprar: {{name}}"
   },
   "schemes": {
     "title": "Esquemas de color",
@@ -73,7 +76,8 @@
     "export": "Exportar recetas",
     "import": "Importar recetas",
     "collection_export": "Exportar colección",
-    "collection_import": "Importar colección"
+    "collection_import": "Importar colección",
+    "import_success": "Recetas importadas"
   },
   "surfaces": {
     "skin": "Piel",
@@ -102,14 +106,15 @@
     "split-complementary": "Complementaria dividida"
   },
   "paint": {
-    "loading": "Cargando pasos…",
+    "loading": "Cargando pasos… la primera vez puede tardar hasta un minuto.",
     "no_preview": "Analiza la foto primero para ver los pasos de pintura.",
     "step_zone": "Dónde pintar",
-    "step_cumulative": "Resultado hasta aquí",
-    "step_exact": "Esta capa"
+    "step_cumulative": "Tras esta capa",
+    "step_exact": "Lo que queda visible al final",
+    "steps_hint": "Pinta cada capa sobre la zona rosa. Las capas siguientes, más claras, van encima, así que al final solo queda visible una parte de cada capa."
   },
   "paints": {
-    "heading": "## 🎨 Pinturas",
+    "heading": "Pinturas",
     "search_placeholder": "Buscar por nombre, código o gama…",
     "owned_count": "{{owned}} / {{total}} propias",
     "filtered_suffix": "mostradas",
@@ -136,7 +141,16 @@
   "region": {
     "editing": "Editando:",
     "whole_mini": "Mini completa",
-    "manage": "Gestionar regiones"
+    "manage": "Gestionar regiones",
+    "draw": "Dibujar región",
+    "add": "Añadir región",
+    "cancel": "Cancelar",
+    "strokes_one": "{{count}} trazo",
+    "strokes_other": "{{count}} trazos",
+    "visible": "Visible",
+    "delete": "Eliminar región",
+    "select": "Región",
+    "default_name": "región {{n}}"
   },
   "gallery": {
     "heading": "Todos los ángulos",
@@ -146,5 +160,35 @@
     "loading": "Renderizando…",
     "preview_error": "Error en la vista previa",
     "no_photo": "Sin foto"
+  },
+  "errors": {
+    "retry": "Reintentar",
+    "steps": "No se pudieron cargar los pasos de pintura.",
+    "analyze": "No se pudo actualizar la vista previa.",
+    "upload": "No se pudo subir esa foto. Prueba con PNG o JPEG.",
+    "generate": "No se pudo generar un esquema de color.",
+    "catalog": "No se pudo cargar el catálogo de pinturas.",
+    "import": "Error al importar.",
+    "project_save": "Error al guardar.",
+    "project_load": "Error al cargar.",
+    "project_delete": "Error al eliminar.",
+    "project_download": "Error al descargar.",
+    "project_upload": "Error al importar."
+  },
+  "angles": {
+    "add": "+ Añadir ángulo",
+    "default_label": "Ángulo {{n}}",
+    "rename": "Renombrar ángulo",
+    "remove": "Eliminar ángulo"
+  },
+  "preview": {
+    "placeholder": "Sube una foto o elige un ejemplo para ver la vista previa.",
+    "rendering": "Generando la vista previa…",
+    "updating": "Actualizando vista previa…",
+    "alt": "Vista previa pintada"
+  },
+  "upload": {
+    "button": "Subir foto",
+    "or_sample": "O empieza con un ejemplo:"
   }
 }

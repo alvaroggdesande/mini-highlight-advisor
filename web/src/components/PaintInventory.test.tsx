@@ -116,3 +116,12 @@ it("shows empty catalog message when no paints loaded", () => {
   render(<MantineProvider><PaintInventory /></MantineProvider>);
   expect(screen.getByText(/paints\.loading/i)).toBeInTheDocument();
 });
+
+it("catalogue error shows a notice with retry instead of spinning", () => {
+  const fetch = vi.fn();
+  useCatalogStore.setState({ paints: [], status: "error", error: "500 x", fetch } as any);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
+  expect(screen.getByText("errors.catalog")).toBeTruthy();
+  fireEvent.click(screen.getByText("errors.retry"));
+  expect(fetch).toHaveBeenCalled();
+});

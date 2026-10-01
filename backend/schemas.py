@@ -116,6 +116,9 @@ class StepImageDto(BaseModel):
     cumulative_png: str
     exact_png: str | None
     is_last: bool
+    paint_name: str | None = None
+    paint_hex: str | None = None
+    paint_code: str | None = None
 
 
 class RegionPlanDto(BaseModel):

@@ -130,6 +130,6 @@ it("clicking a gallery card selects that angle", () => {
 it("gallery exposes rename and delete", () => {
   seedAngles(2);
   render(<MantineProvider><AngleGallery /></MantineProvider>);
-  expect(screen.getAllByLabelText("Rename angle").length).toBeGreaterThan(0);
-  expect(screen.getAllByLabelText("Remove angle").length).toBeGreaterThan(0);
+  expect(screen.getAllByLabelText("angles.rename").length).toBeGreaterThan(0);
+  expect(screen.getAllByLabelText("angles.remove").length).toBeGreaterThan(0);
 });

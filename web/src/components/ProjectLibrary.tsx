@@ -36,14 +36,14 @@ export function ProjectLibrary() {
       const res = await saveProjectApi(name, activeAngle, angles);
       setProjectMeta(res.name, res.slug);
       setProjects(await listProjects());
-    } catch (e) { setError(e instanceof Error ? e.message : "save failed"); }
+    } catch (e) { setError(e instanceof Error ? e.message : t("errors.project_save")); }
     finally { setBusy(null); }
   }
 
   async function handleLoad(projectSlug: string) {
     setBusy(`load:${projectSlug}`); setError(null);
     try { initFromProject(await loadProjectApi(projectSlug)); }
-    catch (e) { setError(e instanceof Error ? e.message : "load failed"); }
+    catch (e) { setError(e instanceof Error ? e.message : t("errors.project_load")); }
     finally { setBusy(null); }
   }
 
@@ -51,14 +51,14 @@ export function ProjectLibrary() {
     if (!window.confirm(t("projects.react_confirm_delete", { name }))) return;
     setBusy(`delete:${projectSlug}`); setError(null);
     try { await deleteProjectApi(projectSlug); setProjects((prev) => prev.filter((p) => p.slug !== projectSlug)); }
-    catch (e) { setError(e instanceof Error ? e.message : "delete failed"); }
+    catch (e) { setError(e instanceof Error ? e.message : t("errors.project_delete")); }
     finally { setBusy(null); }
   }
 
   async function handleDownload(projectSlug: string) {
     setBusy(`download:${projectSlug}`); setError(null);
     try { await downloadProjectBlob(projectSlug); }
-    catch (e) { setError(e instanceof Error ? e.message : "download failed"); }
+    catch (e) { setError(e instanceof Error ? e.message : t("errors.project_download")); }
     finally { setBusy(null); }
   }
 
@@ -66,7 +66,7 @@ export function ProjectLibrary() {
     const file = e.target.files?.[0]; if (!file) return;
     setBusy("upload"); setError(null);
     try { initFromProject(await uploadProjectBlob(file)); setProjects(await listProjects()); }
-    catch (e) { setError(e instanceof Error ? e.message : "upload failed"); }
+    catch (e) { setError(e instanceof Error ? e.message : t("errors.project_upload")); }
     finally { setBusy(null); if (fileRef.current) fileRef.current.value = ""; }
   }
 

@@ -6,11 +6,14 @@ import { useCatalogStore } from "../../store/catalogStore";
 import { generateScheme } from "../../api/client";
 import { MOODS, VARIANTS } from "../../api/types";
 import type { RegionColorSpec } from "../../api/types";
+import { ErrorNotice } from "../ErrorNotice";
+
+const WHOLE_MINI_ID = "Whole Mini";   // API identifier — never translate
 
 export function GeneratePanel() {
   const { t } = useTranslation();
   const book = useProjectStore((s) => activeBookOf(s));
-  const catalogPaints = useCatalogStore((s) => s.paints);
+  const owned = useCatalogStore((s) => s.ownedCodes);
   const setPaletteAt = useProjectStore((s) => s.setPaletteAt);
   const setHeroHex = useProjectStore((s) => s.setHeroHex);
   const setMood = useProjectStore((s) => s.setMood);
@@ -23,21 +26,23 @@ export function GeneratePanel() {
   const [variant, setVariantLocal] = useState(() => book?.variant ?? "complementary");
   const [ownedOnly, setOwnedOnly] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   // Collapsed once a scheme exists (hero_hex set); user can override with toggle.
   const [open, setOpen] = useState<boolean | null>(null);
 
   if (!book) return null;
   const expanded = open ?? !book.hero_hex;
-  const regionNames = ["Whole Mini", ...book.drawn.map((r) => r.name)];
-  const ownedCodes = ownedOnly ? catalogPaints.map((p) => p.code ?? "").filter(Boolean) : [];
+  const regionNames = [WHOLE_MINI_ID, ...book.drawn.map((r) => r.name)];
+  const regionLabels = [t("region.whole_mini"), ...book.drawn.map((r) => r.name)];
+  const ownedCodes = ownedOnly ? Array.from(owned) : [];
   const surfaceOf = (i: number) => (i === 0 ? book.whole.surface : book.drawn[i - 1]?.surface) ?? "skin";
   const toneOf = (i: number) => (i === 0 ? book.whole.tone : book.drawn[i - 1]?.tone) || undefined;
 
   const handleGenerate = async () => {
-    setLoading(true);
+    setLoading(true); setError(null);
     try {
       snapshotUndo();
-      const anchorName = regionNames[anchorIndex] ?? "Whole Mini";
+      const anchorName = regionNames[anchorIndex] ?? WHOLE_MINI_ID;
       const specs: RegionColorSpec[] = regionNames.map((name, i) => ({
         region_name: name, surface: surfaceOf(i), tone: toneOf(i),
         n_bands: i === 0 ? book.whole.palette.length : book.drawn[i - 1].palette.length,
@@ -46,6 +51,8 @@ export function GeneratePanel() {
       const res = await generateScheme({ specs, anchor_name: anchorName, anchor_hex: heroHex, mood, variant, owned_codes: ownedCodes });
       regionNames.forEach((name, i) => { const pal = res.palettes[name]; if (pal) setPaletteAt(i, pal); });
       setHeroHex(heroHex); setMood(mood); setVariant(variant);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally { setLoading(false); }
   };
 
@@ -54,7 +61,7 @@ export function GeneratePanel() {
       <Group justify="space-between">
         <Text size="sm" fw={500}>{t("colour.generate_whole_mini")}</Text>
         <ActionIcon size="sm" variant="subtle" data-testid="generate-toggle"
-          onClick={() => setOpen(!expanded)} aria-label="toggle generate">
+          onClick={() => setOpen(!expanded)} aria-label={t("colour.toggle_generate")}>
           {expanded ? "▾" : "▸"}
         </ActionIcon>
       </Group>
@@ -63,7 +70,7 @@ export function GeneratePanel() {
           <Group gap="xs" align="flex-end" wrap="wrap">
             <NativeSelect label={t("colour.anchor_region")} size="xs"
               value={anchorIndex} onChange={(e) => setAnchorIndex(Number(e.target.value))}>
-              {regionNames.map((name, i) => <option key={i} value={i}>{name}</option>)}
+              {regionLabels.map((label, i) => <option key={i} value={i}>{label}</option>)}
             </NativeSelect>
             <ColorInput label={t("colour.hero_colour")} value={heroHex} onChange={setHeroHexLocal}
               format="hex" size="xs" withEyeDropper={false} />
@@ -79,6 +86,10 @@ export function GeneratePanel() {
               onChange={(e) => setOwnedOnly(e.currentTarget.checked)} />
             <Button size="xs" onClick={handleGenerate} loading={loading}>{t("colour.generate")}</Button>
           </Group>
+          {ownedOnly && owned.size === 0 && (
+            <Text size="xs" c="dimmed">{t("colour.owned_only_none")}</Text>
+          )}
+          {error && <ErrorNotice message={t("errors.generate")} detail={error} />}
         </>
       )}
     </Stack>
