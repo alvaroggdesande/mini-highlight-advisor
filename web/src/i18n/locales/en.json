@@ -135,7 +135,6 @@
   },
   "region": {
     "whole_mini": "Whole mini",
-    "draw": "Draw region",
     "add": "Add region",
     "cancel": "Cancel",
     "strokes_one": "{{count}} stroke",
@@ -144,6 +143,7 @@
     "delete": "Delete region",
     "select": "Region",
     "default_name": "region {{n}}",
+    "name_aria": "Rename {{name}}",
     "intro": "Regions let you give part of the mini (cloak, armour, skin) its own colours.",
     "draw_hint": "Drag around a part of the mini. You can draw several outlines — they join into one region. Click “Add region” when done."
   },
@@ -217,6 +217,7 @@
     "go_to_paint": "See painting steps →",
     "step_regions": "Regions",
     "draw_region": "+ Draw a region",
+    "hide_drawing": "Hide drawing",
     "anchor_aria": "Main colour goes on {{name}}",
     "step_scheme": "Colour scheme",
     "scheme_caption": "all regions · optional",

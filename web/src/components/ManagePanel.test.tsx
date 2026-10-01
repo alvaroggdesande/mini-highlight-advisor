@@ -15,65 +15,44 @@ import { ManagePanel } from "./ManagePanel";
 const photo = (): PhotoResponse => ({ photo_id: "p", width: 10, height: 10, quality_checks: [],
   default_whole: { palette: [{ name: "a", hex: "#000" }], coverage: [1], material: "matte" } });
 
-const photo3 = (): PhotoResponse => ({
-  photo_id: "p1", width: 10, height: 10, quality_checks: [],
-  default_whole: { palette: [{ name: "a", hex: "#111" }, { name: "b", hex: "#aaa" }, { name: "c", hex: "#eee" }],
-                   coverage: [0.5, 0.3, 0.2], material: "matte" },
-});
-
-const reset = () => useProjectStore.setState(useProjectStore.getInitialState(), true);
+const ui = (onClose = vi.fn()) => {
+  render(<MantineProvider><ManagePanel onClose={onClose} /></MantineProvider>);
+  return onClose;
+};
 
 describe("ManagePanel", () => {
-  beforeEach(() => useProjectStore.setState(useProjectStore.getInitialState(), true));
-
-  it("explains regions before drawing and how to lasso while drawing", () => {
-    useProjectStore.getState().initFromPhoto(photo());
-    render(<MantineProvider><ManagePanel /></MantineProvider>);
-    expect(screen.getByText("region.intro")).toBeTruthy();
-    expect(screen.queryByText("region.draw_hint")).toBeNull();
-    fireEvent.click(screen.getByText("region.draw"));
-    expect(screen.getByText("region.draw_hint")).toBeTruthy();
-    expect(screen.queryByText("region.intro")).toBeNull();
-  });
-
-  it("draw -> capture stroke -> Add commits a region", () => {
-    useProjectStore.getState().initFromPhoto(photo());
-    render(<MantineProvider><ManagePanel /></MantineProvider>);
-    fireEvent.click(screen.getByText("region.draw"));
-    fireEvent.click(screen.getByText("mock-draw"));   // draft gets one ring
-    fireEvent.click(screen.getByText("region.add"));
-    expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(1);
-  });
-
-  it("delete removes the selected drawn region", () => {
-    const st = useProjectStore.getState();
-    st.initFromPhoto(photo());
-    st.addRegion([[[0, 0], [1, 0], [1, 1]]], "helmet");  // selected = 1
-    render(<MantineProvider><ManagePanel /></MantineProvider>);
-    fireEvent.click(screen.getByRole("button", { name: "region.delete" }));
-    expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(0);
-  });
-});
-
-describe("ManagePanel visible toggle", () => {
   beforeEach(() => {
-    reset();
-    useProjectStore.getState().initFromPhoto(photo3());
-    useProjectStore.getState().addRegion([[[1, 1], [2, 2], [3, 1]]], "Cloak"); // selects region 1
-  });
-
-  it("toggles blank on the selected drawn region", () => {
-    render(<MantineProvider><ManagePanel /></MantineProvider>);
-    const before = useProjectStore.getState().angles[0].book.drawn[0].blank;
-    fireEvent.click(screen.getByLabelText("region.visible"));
-    expect(useProjectStore.getState().angles[0].book.drawn[0].blank).toBe(!before);
-  });
-
-  it("draw controls use translation keys", () => {
+    useProjectStore.setState(useProjectStore.getInitialState(), true);
     useProjectStore.getState().initFromPhoto(photo());
-    render(<MantineProvider><ManagePanel /></MantineProvider>);
-    fireEvent.click(screen.getByText("region.draw"));
+  });
+
+  it("opens straight into drawing with the lasso hint", () => {
+    ui();
+    expect(screen.getByText("region.draw_hint")).toBeTruthy();
     expect(screen.getByText("region.add")).toBeTruthy();
     expect(screen.getByText("region.cancel")).toBeTruthy();
+  });
+
+  it("Add is disabled until a stroke is drawn", () => {
+    ui();
+    expect(screen.getByRole("button", { name: "region.add" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByText("mock-draw"));
+    expect(screen.getByRole("button", { name: "region.add" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("capture stroke -> Add commits a region and closes", () => {
+    const onClose = ui();
+    fireEvent.click(screen.getByText("mock-draw"));
+    fireEvent.click(screen.getByText("region.add"));
+    expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(1);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("Cancel closes without adding a region", () => {
+    const onClose = ui();
+    fireEvent.click(screen.getByText("mock-draw"));
+    fireEvent.click(screen.getByText("region.cancel"));
+    expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(0);
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

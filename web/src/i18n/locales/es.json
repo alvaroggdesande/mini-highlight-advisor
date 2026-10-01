@@ -135,7 +135,6 @@
   },
   "region": {
     "whole_mini": "Mini completa",
-    "draw": "Dibujar región",
     "add": "Añadir región",
     "cancel": "Cancelar",
     "strokes_one": "{{count}} trazo",
@@ -144,6 +143,7 @@
     "delete": "Eliminar región",
     "select": "Región",
     "default_name": "región {{n}}",
+    "name_aria": "Renombrar {{name}}",
     "intro": "Las regiones permiten dar a una parte de la mini (manto, armadura, piel) sus propios colores.",
     "draw_hint": "Arrastra alrededor de una parte de la mini. Puedes dibujar varios contornos: se unen en una sola región. Pulsa «Añadir región» al terminar."
   },
@@ -217,6 +217,7 @@
     "go_to_paint": "Ver pasos de pintura →",
     "step_regions": "Regiones",
     "draw_region": "+ Dibujar una región",
+    "hide_drawing": "Ocultar dibujo",
     "anchor_aria": "El color principal va en {{name}}",
     "step_scheme": "Esquema de color",
     "scheme_caption": "todas las regiones · opcional",
