@@ -138,10 +138,29 @@ def _build_result(req: AnalyzeRequest, *, with_steps: bool):
     return analyze_regions(with_steps=with_steps, **_analyze_kwargs(req))
 
 
+def _step_paint(plan, step, edge_pos: int | None, n_edges: int):
+    """The PaintColor a step is painted with, from the plan's FINAL palette
+    (after relief capping), or None. Mirrors plan_region/edge_steps: bands use
+    palette[k]; a two-tier edge pair uses palette[-2] then palette[-1]; a single
+    edge step uses palette[-1]. Shade/other kinds have no catalogue paint."""
+    pal = getattr(plan, "palette", None) or []
+    if not pal:
+        return None
+    if step.kind == "band":
+        return pal[step.index] if 0 <= step.index < len(pal) else None
+    if step.kind == "edge" and edge_pos is not None:
+        if n_edges == 2 and len(pal) >= 2:
+            return pal[-2] if edge_pos == 0 else pal[-1]
+        return pal[-1]
+    return None
+
+
 def _plan_to_dto(plan) -> RegionPlanDto:
     """Encode one RegionPlan's step images to base64. Called per plan so the
     plan's heavy full-frame arrays are freed before the next plan is built."""
     steps_out: list[StepImageDto] = []
+    edge_steps = [s for s in plan.steps if s.kind == "edge"]
+    n_edges = len(edge_steps)
     for step in plan.steps:
         if step.kind == "osl":
             continue  # OSL excluded from the web app
@@ -151,6 +170,8 @@ def _plan_to_dto(plan) -> RegionPlanDto:
             label = (plan.roles[step.index]
                      if step.index < len(plan.roles)
                      else f"Band {step.index + 1}")
+        edge_pos = next((i for i, s in enumerate(edge_steps) if s is step), None)
+        paint = _step_paint(plan, step, edge_pos, n_edges)
         steps_out.append(StepImageDto(
             index=step.index,
             label=label,
@@ -159,6 +180,9 @@ def _plan_to_dto(plan) -> RegionPlanDto:
             cumulative_png=png_data_uri(step.cumulative_rgb),
             exact_png=png_data_uri(step.exact_rgb) if step.exact_rgb is not None else None,
             is_last=step.is_last,
+            paint_name=paint.name if paint else None,
+            paint_hex=paint.hex if paint else None,
+            paint_code=(paint.code or None) if paint else None,
         ))
     return RegionPlanDto(
         name=plan.name,

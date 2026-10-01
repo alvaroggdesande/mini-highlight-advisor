@@ -157,3 +157,53 @@ def test_steps_edge_hl_adds_edge_step():
     body = client.get("/api/steps", params={"token": token}).json()
     kinds = [s["kind"] for s in body["plans"][0]["steps"]]
     assert "edge" in kinds
+
+
+def _analyze_with(n_bands: int, settings: dict) -> str:
+    r = client.post("/api/photo", files={"file": ("m.png", _png_bytes(), "image/png")})
+    photo_id = r.json()["photo_id"]
+    palette = [{"name": f"p{i}", "hex": f"#{20 + 40 * i:02x}{20 + 40 * i:02x}{20 + 40 * i:02x}",
+                "code": f"C{i}"} for i in range(n_bands)]
+    req = {"photo_id": photo_id,
+           "whole": {"palette": palette, "coverage": [1.0 / n_bands] * n_bands, "material": "matte"},
+           "settings": settings}
+    r = client.post("/api/analyze", json=req)
+    assert r.status_code == 200
+    return r.json()["result_token"]
+
+
+def test_band_steps_carry_their_paint():
+    token = _analyze_with(3, {"edge_hl": False, "relief_cap": False})
+    steps = client.get("/api/steps", params={"token": token}).json()["plans"][0]["steps"]
+    bands = [s for s in steps if s["kind"] == "band"]
+    assert [s["paint_name"] for s in bands] == ["p0", "p1", "p2"]
+    assert [s["paint_code"] for s in bands] == ["C0", "C1", "C2"]
+    assert all(s["paint_hex"].startswith("#") for s in bands)
+
+
+def test_single_edge_step_uses_lightest_paint():
+    token = _analyze_with(3, {"edge_hl": True, "edge_extreme": False, "relief_cap": False})
+    steps = client.get("/api/steps", params={"token": token}).json()["plans"][0]["steps"]
+    edges = [s for s in steps if s["kind"] == "edge"]
+    assert len(edges) == 1
+    assert edges[0]["paint_name"] == "p2"
+
+
+def test_two_tier_edge_steps_use_top_two_paints():
+    token = _analyze_with(5, {"edge_hl": True, "edge_extreme": True, "relief_cap": False})
+    steps = client.get("/api/steps", params={"token": token}).json()["plans"][0]["steps"]
+    edges = [s for s in steps if s["kind"] == "edge"]
+    assert [s["paint_name"] for s in edges] == ["p3", "p4"]
+
+
+def test_step_paint_out_of_range_and_missing_palette_is_none():
+    from types import SimpleNamespace
+    from backend.main import _step_paint
+    from mini_highlight_advisor.palette import PaintColor
+
+    plan = SimpleNamespace(palette=[PaintColor("only", "#101010")])
+    band5 = SimpleNamespace(kind="band", index=5, label=None)
+    assert _step_paint(plan, band5, edge_pos=None, n_edges=0) is None
+    assert _step_paint(SimpleNamespace(palette=None), band5, None, 0) is None
+    shade = SimpleNamespace(kind="shade", index=1, label="Recess Shade")
+    assert _step_paint(plan, shade, None, 0) is None
