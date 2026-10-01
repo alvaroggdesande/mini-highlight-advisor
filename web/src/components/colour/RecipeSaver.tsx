@@ -4,9 +4,7 @@ import { Button, Group, Text, TextInput } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { saveRecipe } from "../../api/client";
 
-interface Props { onSaved(): void; }
-
-export function RecipeSaver({ onSaved }: Props) {
+export function RecipeSaver() {
   const { t } = useTranslation();
   const book = useProjectStore((s) => activeBookOf(s));
   const [name, setName] = useState("");
@@ -20,7 +18,7 @@ export function RecipeSaver({ onSaved }: Props) {
     if (!name.trim()) return;
     const steps = palette.map((p, i) => ({ label: `step ${i + 1}`, hex: p.hex, paint_ref: p.name !== "custom" ? p.name : null }));
     await saveRecipe({ name: name.trim(), steps });
-    setToast(true); setName(""); onSaved();
+    setToast(true); setName("");
     setTimeout(() => setToast(false), 2000);
   };
 
