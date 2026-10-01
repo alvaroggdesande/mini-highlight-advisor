@@ -31,6 +31,16 @@ def test_upload_returns_id_dims_and_defaults():
     assert body["default_whole"]["material"] == "matte"
 
 
+def test_quality_checks_carry_stable_id_for_translation():
+    body = _client.post("/api/photo", files={"file": ("m.png", _png_bytes(), "image/png")}).json()
+    checks = body["quality_checks"]
+    assert checks, "expected at least one quality check"
+    known = {"lighting", "exposure", "focus", "resolution", "input"}
+    for c in checks:
+        assert c["id"] in known
+        assert {"label", "ok", "detail"} <= c.keys()
+
+
 def test_same_bytes_same_id():
     data = _png_bytes()
     a = _client.post("/api/photo", files={"file": ("m.png", data, "image/png")}).json()

@@ -14,7 +14,7 @@ export interface RegionPayload {
 export interface AnalyzeRequest {
   photo_id: string; whole: Whole; regions: RegionPayload[]; settings?: Partial<Settings>;
 }
-export interface QualityCheck { label: string; ok: boolean; detail: string; }
+export interface QualityCheck { id?: string; label: string; ok: boolean; detail: string; }
 export interface PhotoResponse {
   photo_id: string; width: number; height: number;
   quality_checks: QualityCheck[]; default_whole: Whole;
