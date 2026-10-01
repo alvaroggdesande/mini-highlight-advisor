@@ -29,9 +29,9 @@ describe("ManagePanel", () => {
   it("draw -> capture stroke -> Add commits a region", () => {
     useProjectStore.getState().initFromPhoto(photo());
     render(<MantineProvider><ManagePanel /></MantineProvider>);
-    fireEvent.click(screen.getByText(/Draw region/));
+    fireEvent.click(screen.getByText("region.draw"));
     fireEvent.click(screen.getByText("mock-draw"));   // draft gets one ring
-    fireEvent.click(screen.getByText(/^Add/));
+    fireEvent.click(screen.getByText("region.add"));
     expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(1);
   });
 
@@ -40,7 +40,7 @@ describe("ManagePanel", () => {
     st.initFromPhoto(photo());
     st.addRegion([[[0, 0], [1, 0], [1, 1]]], "helmet");  // selected = 1
     render(<MantineProvider><ManagePanel /></MantineProvider>);
-    fireEvent.click(screen.getByRole("button", { name: "Delete region" }));
+    fireEvent.click(screen.getByRole("button", { name: "region.delete" }));
     expect(useProjectStore.getState().angles[0].book.drawn).toHaveLength(0);
   });
 });
@@ -55,7 +55,15 @@ describe("ManagePanel visible toggle", () => {
   it("toggles blank on the selected drawn region", () => {
     render(<MantineProvider><ManagePanel /></MantineProvider>);
     const before = useProjectStore.getState().angles[0].book.drawn[0].blank;
-    fireEvent.click(screen.getByLabelText("visible"));
+    fireEvent.click(screen.getByLabelText("region.visible"));
     expect(useProjectStore.getState().angles[0].book.drawn[0].blank).toBe(!before);
+  });
+
+  it("draw controls use translation keys", () => {
+    useProjectStore.getState().initFromPhoto(photo());
+    render(<MantineProvider><ManagePanel /></MantineProvider>);
+    fireEvent.click(screen.getByText("region.draw"));
+    expect(screen.getByText("region.add")).toBeTruthy();
+    expect(screen.getByText("region.cancel")).toBeTruthy();
   });
 });

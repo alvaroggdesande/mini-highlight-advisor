@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import type { PhotoResponse, Settings, Whole, PaintColor, QualityCheck, ProjectManifestDto } from "../api/types";
 import { newId } from "../lib/id";
+import i18next from "i18next";
+
+/** Default label for the n-th angle, translated once i18n is initialised (main.tsx). */
+const angleLabel = (n: number) =>
+  i18next.isInitialized ? i18next.t("angles.default_label", { n }) : `Angle ${n}`;
 
 export const DEFAULT_SETTINGS: Settings = {
   edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false,
@@ -141,7 +146,7 @@ export const useProjectStore = create<State>((set) => ({
 
   initFromPhoto: (res) => set({
     activeAngle: 0,
-    angles: [makeAngle(res, "angle 1", DEFAULT_SETTINGS)],
+    angles: [makeAngle(res, angleLabel(1), DEFAULT_SETTINGS)],
     projectName: null,
     slug: null,
     undoSnapshot: null,
@@ -149,7 +154,7 @@ export const useProjectStore = create<State>((set) => ({
 
   addAngle: (res) => set((s) => {
     const settings = s.angles[s.activeAngle]?.settings ?? DEFAULT_SETTINGS;
-    const angles = s.angles.concat(makeAngle(res, `angle ${s.angles.length + 1}`, settings));
+    const angles = s.angles.concat(makeAngle(res, angleLabel(s.angles.length + 1), settings));
     return { angles, activeAngle: angles.length - 1 };
   }),
 

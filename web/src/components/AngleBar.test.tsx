@@ -19,7 +19,7 @@ describe("AngleBar", () => {
     st.initFromPhoto(photo("p0"));
     st.addAngle(photo("p1"));      // active -> 1
     render(<MantineProvider><AngleBar /></MantineProvider>);
-    fireEvent.click(screen.getByText("angle 1"));
+    fireEvent.click(screen.getByText("Angle 1"));
     expect(useProjectStore.getState().activeAngle).toBe(0);
   });
 

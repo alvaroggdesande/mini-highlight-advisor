@@ -81,6 +81,13 @@ describe("projectStore regions + angles", () => {
     expect(s.angles[1].preview).toBe("data:img");
     expect(s.angles[0].preview).toBeUndefined();
   });
+
+  it("new angles get a translated, capitalised default label", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addAngle(photo("p2"));
+    expect(useProjectStore.getState().angles.map((a) => a.label)).toEqual(["Angle 1", "Angle 2"]);
+  });
 });
 
 describe("projectStore colour extensions", () => {

@@ -62,7 +62,8 @@
     "coverage": "Cobertura",
     "undo": "Deshacer",
     "owned_only_none": "Aún no has marcado pinturas como tuyas — márcalas en la pestaña Colección de pinturas.",
-    "toggle_generate": "Mostrar u ocultar el generador de esquemas"
+    "toggle_generate": "Mostrar u ocultar el generador de esquemas",
+    "buy": "Comprar: {{name}}"
   },
   "schemes": {
     "title": "Esquemas de color",
@@ -113,7 +114,7 @@
     "steps_hint": "Pinta cada capa sobre la zona rosa. Las capas siguientes, más claras, van encima, así que al final solo queda visible una parte de cada capa."
   },
   "paints": {
-    "heading": "## 🎨 Pinturas",
+    "heading": "Pinturas",
     "search_placeholder": "Buscar por nombre, código o gama…",
     "owned_count": "{{owned}} / {{total}} propias",
     "filtered_suffix": "mostradas",
@@ -140,7 +141,16 @@
   "region": {
     "editing": "Editando:",
     "whole_mini": "Mini completa",
-    "manage": "Gestionar regiones"
+    "manage": "Gestionar regiones",
+    "draw": "Dibujar región",
+    "add": "Añadir región",
+    "cancel": "Cancelar",
+    "strokes_one": "{{count}} trazo",
+    "strokes_other": "{{count}} trazos",
+    "visible": "Visible",
+    "delete": "Eliminar región",
+    "select": "Región",
+    "default_name": "región {{n}}"
   },
   "gallery": {
     "heading": "Todos los ángulos",

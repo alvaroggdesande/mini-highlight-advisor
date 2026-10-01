@@ -62,7 +62,8 @@
     "coverage": "Coverage",
     "undo": "Undo",
     "owned_only_none": "You haven't marked any paints as owned yet — tick them in the Paint Collection tab.",
-    "toggle_generate": "Show or hide the scheme generator"
+    "toggle_generate": "Show or hide the scheme generator",
+    "buy": "Buy: {{name}}"
   },
   "schemes": {
     "title": "Colour Schemes",
@@ -113,7 +114,7 @@
     "steps_hint": "Paint each layer over the pink area. Later, lighter layers go on top, so only part of each layer stays visible at the end."
   },
   "paints": {
-    "heading": "## 🎨 Paints",
+    "heading": "Paints",
     "search_placeholder": "Search by name, code or range…",
     "owned_count": "{{owned}} / {{total}} owned",
     "filtered_suffix": "shown",
@@ -140,7 +141,16 @@
   "region": {
     "editing": "Editing:",
     "whole_mini": "Whole mini",
-    "manage": "Manage regions"
+    "manage": "Manage regions",
+    "draw": "Draw region",
+    "add": "Add region",
+    "cancel": "Cancel",
+    "strokes_one": "{{count}} stroke",
+    "strokes_other": "{{count}} strokes",
+    "visible": "Visible",
+    "delete": "Delete region",
+    "select": "Region",
+    "default_name": "region {{n}}"
   },
   "gallery": {
     "heading": "All Angles",

@@ -4,6 +4,7 @@ import { ActionIcon, Box, ColorInput, ColorSwatch, Group, NativeSelect, Slider, 
 import { useProjectStore } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import { matchPaint, generateRamp } from "../../api/client";
+import type { TFunction } from "i18next";
 import type { PaintColor, MatchResult } from "../../api/types";
 import { validHex } from "../../lib/color";
 
@@ -13,11 +14,11 @@ interface Props {
   onCoverage: (i: number, val: number) => void;
 }
 
-function matchPhrase(r: MatchResult): string {
+function matchPhrase(r: MatchResult, t: TFunction): string {
   if (r.tier === "exact") return `✓ ${r.name ?? ""}`;
   if (r.tier === "close") return `≈ ${r.name ?? ""}`;
   if (r.tier === "mix") return r.phrase;
-  return `Buy: ${r.name ?? ""}`;
+  return t("colour.buy", { name: r.name ?? "" });
 }
 
 export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue, isAuto, onCoverage }: Props) {
@@ -82,7 +83,7 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
           <ActionIcon size="sm" variant="subtle" onClick={handleBlend} title={t("colour.blend")}>↕</ActionIcon>
         )}
       </Group>
-      {isCustom && matchResult && <Text size="xs" c="dimmed" ml={28}>{matchPhrase(matchResult)}</Text>}
+      {isCustom && matchResult && <Text size="xs" c="dimmed" ml={28}>{matchPhrase(matchResult, t)}</Text>}
       {!isAuto && (
         <Group gap="xs" align="center" wrap="nowrap" mt={6}>
           <Text size="xs" miw={70}>{t("colour.coverage")}</Text>

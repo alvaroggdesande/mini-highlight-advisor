@@ -24,7 +24,7 @@ export function RegionHeader() {
       <Stack gap="xs">
         <Group gap="xs" align="flex-end">
           <Text size="sm" fw={600}>{t("region.editing")}</Text>
-          <NativeSelect aria-label="region" size="xs" value={g}
+          <NativeSelect aria-label={t("region.select")} size="xs" value={g}
             onChange={(e) => setSelected(Number(e.target.value))}>
             {names.map((name, i) => <option key={i} value={i}>{name}</option>)}
           </NativeSelect>
