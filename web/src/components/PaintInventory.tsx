@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Checkbox, ColorSwatch, Group, Loader, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
 import { useCatalogStore } from "../store/catalogStore";
+import { ErrorNotice } from "./ErrorNotice";
 
 export function PaintInventory() {
   const { t } = useTranslation();
@@ -9,8 +10,13 @@ export function PaintInventory() {
   const ownedCodes = useCatalogStore((s) => s.ownedCodes);
   const status = useCatalogStore((s) => s.status);
   const toggleOwned = useCatalogStore((s) => s.toggleOwned);
+  const fetchCatalog = useCatalogStore((s) => s.fetch);
+  const catalogError = useCatalogStore((s) => s.error);
   const [search, setSearch] = useState("");
 
+  if (status === "error") {
+    return <ErrorNotice message={t("errors.catalog")} detail={catalogError ?? undefined} onRetry={fetchCatalog} />;
+  }
   if (status !== "ready") {
     return (
       <Group gap="sm">

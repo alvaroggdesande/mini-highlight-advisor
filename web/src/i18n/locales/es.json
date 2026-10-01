@@ -176,5 +176,9 @@
     "rendering": "Generando la vista previa…",
     "updating": "Actualizando vista previa…",
     "alt": "Vista previa pintada"
+  },
+  "upload": {
+    "button": "Subir foto",
+    "or_sample": "O empieza con un ejemplo:"
   }
 }

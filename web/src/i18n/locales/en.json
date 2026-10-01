@@ -176,5 +176,9 @@
     "rendering": "Rendering the preview…",
     "updating": "Updating preview…",
     "alt": "Painted preview"
+  },
+  "upload": {
+    "button": "Upload photo",
+    "or_sample": "Or start from a sample:"
   }
 }

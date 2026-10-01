@@ -24,3 +24,13 @@ it("lists sample photos and seeds the store when one is picked", async () => {
   btn.click();
   await waitFor(() => expect(useProjectStore.getState().angles).toHaveLength(1));
 });
+
+it("shows a friendly error when the upload fails before any angle exists", async () => {
+  vi.spyOn(client, "listSamplePhotos").mockResolvedValue([{ id: "necron", name: "Necron" }]);
+  vi.spyOn(client, "samplePhotoBlob").mockResolvedValue(new Blob(["x"]));
+  vi.spyOn(client, "uploadPhoto").mockRejectedValue(new Error("413 too big"));
+  render(<MantineProvider><PhotoUploader /></MantineProvider>);
+  (await screen.findByRole("button", { name: /Necron/ })).click();
+  expect(await screen.findByText(/413 too big/)).toBeTruthy();
+  expect(useProjectStore.getState().angles).toHaveLength(0);
+});
