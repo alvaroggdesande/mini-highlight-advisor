@@ -25,6 +25,7 @@ export function PaintInventory() {
     ? paints.filter((p) =>
         p.name.toLowerCase().includes(q) ||
         (p.code ?? "").toLowerCase().includes(q) ||
+        (p.brand ?? "").toLowerCase().includes(q) ||
         (p.paint_range ?? "").toLowerCase().includes(q))
     : paints;
 
@@ -58,6 +59,7 @@ export function PaintInventory() {
                   style={{ flexShrink: 0 }} />
                 <ColorSwatch color={p.hex} size={14} style={{ flexShrink: 0 }} />
                 <Text size="xs" c={owned ? undefined : "dimmed"} style={{ flex: 1 }}>{p.name}</Text>
+                {p.brand && <Text size="xs" c="dimmed">{p.brand}</Text>}
                 {p.paint_range && <Text size="xs" c="dimmed">{p.paint_range}</Text>}
                 <Text size="xs" c="dimmed" ff="monospace">{code}</Text>
               </Group>
