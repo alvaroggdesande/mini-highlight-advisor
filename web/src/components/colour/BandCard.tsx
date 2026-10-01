@@ -25,7 +25,8 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
   const catalogPaints = useCatalogStore((s) => s.paints);
   const setPaletteSlot = useProjectStore((s) => s.setPaletteSlot);
   const setHexSlot = useProjectStore((s) => s.setHexSlot);
-  const setBandCount = useProjectStore((s) => s.setBandCount);
+  const removeBand = useProjectStore((s) => s.removeBand);
+  const snapshotUndo = useProjectStore((s) => s.snapshotUndo);
   const isCustom = !paint.code;
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,7 +64,7 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
         {isAuto
           ? <Text size="xs" c="dimmed">{pct}% ({t("colour.auto")})</Text>
           : <ActionIcon size="sm" variant="subtle" color="red" disabled={n <= 3}
-              onClick={() => { if (n > 3) setBandCount(n - 1); }} aria-label={t("colour.delete_band")}>✕</ActionIcon>}
+              onClick={() => { if (n > 3) { snapshotUndo(); removeBand(i); } }} aria-label={t("colour.delete_band")}>✕</ActionIcon>}
       </Group>
       <Group gap={4} align="center" wrap="nowrap">
         <ColorSwatch color={validHex(paint.hex) ?? "#808080"} size={22} style={{ flexShrink: 0 }} />

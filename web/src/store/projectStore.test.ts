@@ -211,6 +211,39 @@ describe("projectStore colour extensions", () => {
     expect(activeBookOf(useProjectStore.getState())!.schemes).toHaveLength(1);
     expect(activeBookOf(useProjectStore.getState())!.schemes[0].name).toBe("B");
   });
+
+  it("removeBand drops the chosen slot of the selected region and renormalises", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.setPaletteAt(0, ["a", "b", "c", "d"].map((n) => ({ name: n, hex: "#101010" })));
+    st.setCoverage([0.4, 0.3, 0.2, 0.1]);
+    useProjectStore.getState().removeBand(1);
+    const w = activeBookOf(useProjectStore.getState())!.whole;
+    expect(w.palette.map((p) => p.name)).toEqual(["a", "c", "d"]);
+    expect(w.coverage.reduce((x, y) => x + y, 0)).toBeCloseTo(1);
+    expect(w.coverage[0]).toBeCloseTo(0.4 / 0.7);
+  });
+
+  it("removeBand targets a drawn region when it is selected", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addRegion([[[0, 0], [1, 0], [1, 1]]], "cloak");          // selected = 1
+    st.setPaletteAt(1, ["w", "x", "y", "z"].map((n) => ({ name: n, hex: "#202020" })));
+    st.setCoverage([0.25, 0.25, 0.25, 0.25]);
+    useProjectStore.getState().removeBand(2);
+    const b = activeBookOf(useProjectStore.getState())!;
+    expect(b.drawn[0].palette.map((p) => p.name)).toEqual(["w", "x", "z"]);
+    expect(b.whole.palette).toHaveLength(2);                      // whole untouched
+  });
+
+  it("removeBand is a no-op at the 3-band floor", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.setPaletteAt(0, ["a", "b", "c"].map((n) => ({ name: n, hex: "#101010" })));
+    st.setCoverage([0.5, 0.3, 0.2]);
+    useProjectStore.getState().removeBand(0);
+    expect(activeBookOf(useProjectStore.getState())!.whole.palette).toHaveLength(3);
+  });
 });
 
 describe("projectStore project persistence", () => {

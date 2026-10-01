@@ -1,14 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { BandCard } from "./BandCard";
 import type { PaintColor } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock("../../store/catalogStore", () => ({ useCatalogStore: (sel: any) => sel({ paints: [] }) }));
+const { removeBand, snapshotUndo } = vi.hoisted(() => ({ removeBand: vi.fn(), snapshotUndo: vi.fn() }));
 vi.mock("../../store/projectStore", () => ({
   useProjectStore: (sel: any) => sel({
     setPaletteSlot: () => {}, setHexSlot: () => {}, setBandCount: () => {},
+    removeBand, snapshotUndo,
   }),
 }));
 
@@ -44,5 +46,12 @@ describe("BandCard", () => {
   it("remove is disabled at the 3-band floor", () => {
     renderCard({ n: 3 });
     expect((screen.getByLabelText("colour.delete_band") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("✕ removes its own band index (with an undo snapshot)", () => {
+    renderCard({ i: 1, n: 4 });
+    fireEvent.click(screen.getByLabelText("colour.delete_band"));
+    expect(snapshotUndo).toHaveBeenCalled();
+    expect(removeBand).toHaveBeenCalledWith(1);
   });
 });

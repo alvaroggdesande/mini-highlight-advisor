@@ -63,6 +63,7 @@ interface State {
   toggleBlank(g: number): void;
   setCoverage(cov: number[]): void;
   setBandCount(n: number): void;
+  removeBand(i: number): void;
   setPreview(png: string, token: string): void;
   setError(msg?: string): void;
   setSurface(g: number, surface: string): void;
@@ -210,6 +211,20 @@ export const useProjectStore = create<State>((set) => ({
     const raw = resize(cur.coverage, n, () => 1 / n);
     const sum = raw.reduce((a, c) => a + c, 0);
     const coverage = sum > 0 ? raw.map((v) => v / sum) : raw.map(() => 1 / n);
+    if (b.selected === 0) return { ...b, whole: { ...b.whole, palette, coverage } };
+    const drawn = b.drawn.slice();
+    drawn[b.selected - 1] = { ...drawn[b.selected - 1], palette, coverage };
+    return { ...b, drawn };
+  })),
+
+  removeBand: (i) => set((s) => patchBook(s, (b) => {
+    const cur = b.selected === 0 ? b.whole : b.drawn[b.selected - 1];
+    const n = cur.palette.length;
+    if (n <= 3 || i < 0 || i >= n) return b;
+    const palette = cur.palette.filter((_, k) => k !== i);
+    const raw = cur.coverage.filter((_, k) => k !== i);
+    const sum = raw.reduce((a, c) => a + c, 0);
+    const coverage = sum > 0 ? raw.map((v) => v / sum) : raw.map(() => 1 / raw.length);
     if (b.selected === 0) return { ...b, whole: { ...b.whole, palette, coverage } };
     const drawn = b.drawn.slice();
     drawn[b.selected - 1] = { ...drawn[b.selected - 1], palette, coverage };
