@@ -54,9 +54,10 @@ export default function App() {
           <Tabs.Panel value="studio">
             <StudioPanel onGoToPaint={() => setTab("paint")} />
           </Tabs.Panel>
-          <Tabs.Panel value="paint"><PaintTab /></Tabs.Panel>
+          <Tabs.Panel value="paint"><PaintTab active={tab === "paint"} /></Tabs.Panel>
           <Tabs.Panel value="paints"><PaintsTab /></Tabs.Panel>
-          <Tabs.Panel value="angles"><AnglesTab /></Tabs.Panel>
+          {/* Unmounted while hidden so the gallery only renders previews when viewed. */}
+          <Tabs.Panel value="angles" keepMounted={false}><AnglesTab /></Tabs.Panel>
         </Tabs>
       )}
     </Container>

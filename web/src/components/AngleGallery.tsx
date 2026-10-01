@@ -40,12 +40,20 @@ export function AngleGallery() {
       for (const a of angles) { next[a.id] = a.preview ?? prev[a.id] ?? null; }
       return next;
     });
-    for (const angle of angles) {
-      if (angle.preview || !angle.photoId) continue;
-      analyze(buildRequest(angle))
-        .then((res) => { if (!cancelled) setPreviews((prev) => { const e = prev[angle.id]; if (e && e !== "error") return prev; return { ...prev, [angle.id]: res.preview_png }; }); })
-        .catch(() => { if (!cancelled) setPreviews((p) => ({ ...p, [angle.id]: "error" })); });
-    }
+    // One angle at a time: firing every preview at once is a request burst the
+    // free host's edge rate-limits (429), and the server renders them serially anyway.
+    (async () => {
+      for (const angle of angles) {
+        if (cancelled) return;
+        if (angle.preview || !angle.photoId) continue;
+        try {
+          const res = await analyze(buildRequest(angle));
+          if (!cancelled) setPreviews((prev) => { const e = prev[angle.id]; if (e && e !== "error") return prev; return { ...prev, [angle.id]: res.preview_png }; });
+        } catch {
+          if (!cancelled) setPreviews((p) => ({ ...p, [angle.id]: "error" }));
+        }
+      }
+    })();
     return () => { cancelled = true; };
   }, [angles]);
 
