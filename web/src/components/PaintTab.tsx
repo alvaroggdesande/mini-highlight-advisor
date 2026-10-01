@@ -25,7 +25,10 @@ async function reanalyze(
   return res.result_token;
 }
 
-export function PaintTab() {
+/** `active` = the Paint tab is showing. Tabs stay mounted, so while hidden the
+ *  tab must not fetch: on project import that added a heavy steps render to the
+ *  request burst. Effects resume (and use the cache) once it is shown. */
+export function PaintTab({ active: visible = true }: { active?: boolean } = {}) {
   const { t } = useTranslation();
   const token = useProjectStore((s) => activeAngleOf(s)?.resultToken);
   const setPreview = useProjectStore((s) => s.setPreview);
@@ -41,7 +44,7 @@ export function PaintTab() {
 
   // Load the region manifest (names only) whenever the result token changes.
   useEffect(() => {
-    if (!token) return;
+    if (!visible || !token) return;
     if (loadedNamesToken.current === token) return;
     let cancelled = false;
 
@@ -73,11 +76,11 @@ export function PaintTab() {
     }
     load();
     return () => { cancelled = true; };
-  }, [token, retryNonce]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, retryNonce, visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch the active region's step images on demand; cache so re-selecting is instant.
   useEffect(() => {
-    if (!token || !active) return;
+    if (!visible || !token || !active) return;
     if (cache[active]) return;
     let cancelled = false;
 
@@ -104,7 +107,7 @@ export function PaintTab() {
     }
     load();
     return () => { cancelled = true; };
-  }, [token, active, cache, setPreview, retryNonce]);
+  }, [token, active, cache, setPreview, retryNonce, visible]);
 
   function retry() {
     setError(null);

@@ -100,3 +100,41 @@ describe("saveProjectApi", () => {
     expect(sent.angles[0].book.selected).toBe(0);
   });
 });
+
+describe("rate-limit retry", () => {
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+  const busy = (status: number) => ({
+    ok: false, status, headers: new Headers(), text: async () => "<!DOCTYPE html><html>Just a moment...</html>",
+  });
+
+  it("retries a 429 and returns the later success", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(busy(429))
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [] });
+    vi.stubGlobal("fetch", fetchMock);
+    const p = listSamplePhotos();
+    await vi.runAllTimersAsync();
+    await expect(p).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after the retries with a short message instead of the HTML page", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(busy(429));
+    vi.stubGlobal("fetch", fetchMock);
+    const p = listSamplePhotos();
+    const assertion = expect(p).rejects.toThrow(/^429 The server is busy/);
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not retry other errors", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => "boom" });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(listSamplePhotos()).rejects.toThrow("500 boom");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
