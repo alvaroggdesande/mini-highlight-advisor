@@ -87,10 +87,30 @@ Findings:
    needs its own fix.
 4. Painted-fixture numbers (Necron) and primed numbers (rat-ogre) agree in direction.
 
-Not yet measured: agreement with a painter. Next metric is a **painter's answer key**:
-hand-drawn Highlight / Bright Highlight masks on 2–3 angles (e.g.
-`fixtures/rat-ogre/angle_03_highlight.png`, `angle_03_bright.png`), then score each
-variant by precision and recall against them.
+Caveat: this probe banded the **whole mini as one region**. In the app, banding runs
+independently inside each lasso region (skin, armour, weapon, base). A base drawn as its
+own region can't take the skin's highlight budget, so holder/base exclusion may come
+largely through the region model. Spread must be judged **per region**.
+
+## Next evaluation: per-region blind review (not an answer key)
+
+Rejected: having the user lasso "highlight"/"bright" answer-key regions. That misuses
+regions (they are parts, each with its own shadow → highlight layers) and choosing
+layers is the app's job, not the user's.
+
+Instead:
+
+1. The user saves 1–2 projects with normal part regions (e.g. `angle_03`, `angle_10`:
+   skin / armour / weapon, base as its own region).
+2. The probe reads each project's regions (`rings` + width/height in the manifest,
+   rasterised via `polygon_to_mask`) and bands each region under each variant
+   (current, bilateral ×3, no-CLAHE, …).
+3. It renders blind sheets: per region, the variants side by side, labels hidden, order
+   shuffled. The user picks the one closest to how they'd paint it.
+4. Per-region metrics (blobs, nest, rim, IoU) support the picks; they don't replace them.
+
+Probe script: `spikes/layer_spread_probe.py` (whole-mini version; needs the per-region
+extension above).
 
 ## Plan (one change at a time, measured before/after) — reordered 2026-10-01
 
@@ -114,5 +134,5 @@ The Necron fixtures are **painted** (albedo confounds luminance). Validate on
 - `src/mini_highlight_advisor/data/samples/projects/rat-ogre_project.json`
 - `user_data/projects/rat-ogre1`, `user_data/projects/rat-ogres-4`
 
-Metrics: as defined in the validation run above, plus side-by-side visual review and
-(once drawn) answer-key precision/recall.
+Metrics: as defined in the validation run above, computed per region, plus the
+blind per-region review.
