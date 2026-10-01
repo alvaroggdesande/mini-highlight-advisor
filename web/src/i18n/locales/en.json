@@ -105,7 +105,7 @@
     "split-complementary": "Split-Complementary"
   },
   "paint": {
-    "loading": "Loading steps…",
+    "loading": "Loading steps… the first time can take up to a minute.",
     "no_preview": "Analyze the photo first to see painting steps.",
     "step_zone": "Where to paint",
     "step_cumulative": "After this layer",

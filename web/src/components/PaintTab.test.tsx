@@ -115,4 +115,35 @@ describe("PaintTab", () => {
     expect(client.fetchPlanNames).toHaveBeenCalledTimes(2);
     expect(client.fetchPlanNames).toHaveBeenLastCalledWith("newTok");
   });
+
+  it("shows loading text while the manifest loads", async () => {
+    vi.spyOn(client, "fetchPlanNames").mockReturnValue(new Promise(() => {}));
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    expect(await screen.findByText("paint.loading")).toBeTruthy();
+  });
+
+  it("manifest error shows a friendly notice and Retry refetches", async () => {
+    const names = vi.spyOn(client, "fetchPlanNames")
+      .mockRejectedValueOnce(new Error("500 boom"))
+      .mockResolvedValue(MANIFEST);
+    vi.spyOn(client, "fetchSteps").mockImplementation(async (_t, n) => planOf(n as string));
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    expect(await screen.findByText("errors.steps")).toBeTruthy();
+    fireEvent.click(screen.getByText("errors.retry"));
+    await waitFor(() => expect(names).toHaveBeenCalledTimes(2));
+    expect(await screen.findByTestId("step-list")).toBeTruthy();
+  });
+
+  it("retry after a step error keeps the selected region", async () => {
+    vi.spyOn(client, "fetchPlanNames").mockResolvedValue(MANIFEST);
+    const steps = vi.spyOn(client, "fetchSteps").mockImplementation(async (_t, n) => {
+      if (n === "Cloak" && steps.mock.calls.filter((c) => c[1] === "Cloak").length === 1) throw new Error("500 x");
+      return planOf(n as string);
+    });
+    render(<MantineProvider><PaintTab /></MantineProvider>);
+    fireEvent.click(await screen.findByRole("tab", { name: "Cloak" }));
+    expect(await screen.findByText("errors.steps")).toBeTruthy();
+    fireEvent.click(screen.getByText("errors.retry"));
+    expect(await screen.findByText("Cloak", { selector: "[data-testid=step-list]" })).toBeTruthy();
+  });
 });

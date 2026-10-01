@@ -105,7 +105,7 @@
     "split-complementary": "Complementaria dividida"
   },
   "paint": {
-    "loading": "Cargando pasos…",
+    "loading": "Cargando pasos… la primera vez puede tardar hasta un minuto.",
     "no_preview": "Analiza la foto primero para ver los pasos de pintura.",
     "step_zone": "Dónde pintar",
     "step_cumulative": "Tras esta capa",
