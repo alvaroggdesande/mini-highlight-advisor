@@ -4,6 +4,7 @@ import { NativeSelect, Stack } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { roleNames, ROLE_KEY } from "../../lib/roles";
 import { StepSection } from "../StepSection";
+import { EdgeSettings } from "../EdgeSettings";
 import { BandCard } from "./BandCard";
 import { LayerTools } from "./LayerTools";
 
@@ -51,6 +52,7 @@ export function BandEditor() {
         ))}
         <LayerTools g={g} n={n} onRecipeChanged={() => setRecipeKey((k) => k + 1)} />
       </Stack>
+      <EdgeSettings />
     </StepSection>
   );
 }

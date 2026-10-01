@@ -10,6 +10,7 @@ import type { PhotoResponse } from "../../api/types";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock("./BandCard", () => ({ BandCard: ({ role }: { role: string }) => <div>card-{role}</div> }));
 vi.mock("./LayerTools", () => ({ LayerTools: () => <div>layer-tools</div> }));
+vi.mock("../EdgeSettings", () => ({ EdgeSettings: () => <div>edge-settings</div> }));
 
 const photo = (): PhotoResponse => ({
   photo_id: "p1", width: 10, height: 10, quality_checks: [],
