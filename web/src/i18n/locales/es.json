@@ -60,7 +60,9 @@
     "delete_band": "Eliminar banda",
     "auto": "auto",
     "coverage": "Cobertura",
-    "undo": "Deshacer"
+    "undo": "Deshacer",
+    "owned_only_none": "Aún no has marcado pinturas como tuyas — márcalas en la pestaña Colección de pinturas.",
+    "toggle_generate": "Mostrar u ocultar el generador de esquemas"
   },
   "schemes": {
     "title": "Esquemas de color",

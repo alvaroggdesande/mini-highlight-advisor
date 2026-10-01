@@ -60,7 +60,9 @@
     "delete_band": "Delete band",
     "auto": "auto",
     "coverage": "Coverage",
-    "undo": "Undo"
+    "undo": "Undo",
+    "owned_only_none": "You haven't marked any paints as owned yet — tick them in the Paint Collection tab.",
+    "toggle_generate": "Show or hide the scheme generator"
   },
   "schemes": {
     "title": "Colour Schemes",

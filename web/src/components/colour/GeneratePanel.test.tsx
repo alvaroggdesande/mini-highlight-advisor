@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import * as client from "../../api/client";
 import { MantineProvider } from "@mantine/core";
 import { GeneratePanel } from "./GeneratePanel";
 import { useProjectStore } from "../../store/projectStore";
 import type { PhotoResponse } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
-vi.mock("../../store/catalogStore", () => ({ useCatalogStore: (sel: any) => sel({ paints: [] }) }));
+const cat = vi.hoisted(() => ({ paints: [] as any[], ownedCodes: new Set<string>() }));
+vi.mock("../../store/catalogStore", () => ({ useCatalogStore: (sel: any) => sel(cat) }));
 
 const photo = (): PhotoResponse => ({
   photo_id: "p1", width: 10, height: 10, quality_checks: [],
@@ -16,7 +18,11 @@ const photo = (): PhotoResponse => ({
 const reset = () => useProjectStore.setState(useProjectStore.getInitialState(), true);
 
 describe("GeneratePanel", () => {
-  beforeEach(() => { reset(); useProjectStore.getState().initFromPhoto(photo()); });
+  beforeEach(() => {
+    reset(); useProjectStore.getState().initFromPhoto(photo());
+    cat.paints = [{ code: "V1" }, { code: "V2" }] as any; cat.ownedCodes = new Set(["V1"]);
+    vi.restoreAllMocks();
+  });
 
   it("is expanded (Generate button visible) when no scheme has been generated", () => {
     render(<MantineProvider><GeneratePanel /></MantineProvider>);
@@ -33,5 +39,39 @@ describe("GeneratePanel", () => {
   it("does not render a per-region surface/tone table", () => {
     render(<MantineProvider><GeneratePanel /></MantineProvider>);
     expect(screen.queryByText("colour.tone")).toBeNull();
+  });
+
+  it("owned-only sends owned codes, not the whole catalogue", async () => {
+    const spy = vi.spyOn(client, "generateScheme").mockResolvedValue({ palettes: {} } as any);
+    render(<MantineProvider><GeneratePanel /></MantineProvider>);
+    fireEvent.click(screen.getByLabelText("colour.owned_only"));
+    fireEvent.click(screen.getByText("colour.generate"));
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    expect(spy.mock.calls[0][0].owned_codes).toEqual(["V1"]);
+    expect(spy.mock.calls[0][0].anchor_name).toBe("Whole Mini");
+  });
+
+  it("owned-only with nothing owned sends [] and shows a hint", async () => {
+    cat.ownedCodes = new Set();
+    const spy = vi.spyOn(client, "generateScheme").mockResolvedValue({ palettes: {} } as any);
+    render(<MantineProvider><GeneratePanel /></MantineProvider>);
+    fireEvent.click(screen.getByLabelText("colour.owned_only"));
+    expect(screen.getByText("colour.owned_only_none")).toBeTruthy();
+    fireEvent.click(screen.getByText("colour.generate"));
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    expect(spy.mock.calls[0][0].owned_codes).toEqual([]);
+  });
+
+  it("shows an error notice when generation fails", async () => {
+    vi.spyOn(client, "generateScheme").mockRejectedValue(new Error("500 boom"));
+    render(<MantineProvider><GeneratePanel /></MantineProvider>);
+    fireEvent.click(screen.getByText("colour.generate"));
+    expect(await screen.findByText("errors.generate")).toBeTruthy();
+    expect(screen.getByText("500 boom")).toBeTruthy();
+  });
+
+  it("displays the translated whole-mini label in the anchor select", () => {
+    render(<MantineProvider><GeneratePanel /></MantineProvider>);
+    expect(screen.getByRole("option", { name: "region.whole_mini" })).toBeTruthy();
   });
 });
