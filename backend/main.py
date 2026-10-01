@@ -65,7 +65,7 @@ async def upload_photo(file: UploadFile = File(...)):
         rgb, alpha, shading = cached
     suffix = Path(file.filename or "upload.png").suffix or ".png"
     project_store.save_photo(photo_id, suffix, data)
-    checks = [{"label": c.label, "ok": c.ok, "detail": c.detail}
+    checks = [{"id": c.id, "label": c.label, "ok": c.ok, "detail": c.detail}
               for c in check_input(rgb, shading.mask)]
     h, w = rgb.shape[:2]
     return {"photo_id": photo_id, "width": w, "height": h,

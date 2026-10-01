@@ -45,3 +45,13 @@ it("clears the file input after picking, so the same file can be re-picked after
   fireEvent.change(input, { target: { files: [new File(["x"], "a.png")] } });
   expect(setValue).toHaveBeenCalledWith("");
 });
+
+it("introduces the tool with three steps and collapsible photo tips", async () => {
+  vi.spyOn(client, "listSamplePhotos").mockResolvedValue([]);
+  render(<MantineProvider><PhotoUploader /></MantineProvider>);
+  expect(screen.getByText("intro.headline")).toBeTruthy();
+  for (const k of ["intro.step1", "intro.step2", "intro.step3"]) expect(screen.getByText(k)).toBeTruthy();
+  expect(screen.queryByText("tips.raking")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /tips.title/ }));
+  expect(screen.getByText("tips.raking")).toBeTruthy();
+});

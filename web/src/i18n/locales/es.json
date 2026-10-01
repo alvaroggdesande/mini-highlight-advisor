@@ -6,7 +6,8 @@
     "studio": "Estudio",
     "paint": "Pasos de pintura",
     "paints": "Colección de pinturas",
-    "angles": "Ángulos"
+    "angles": "Ángulos",
+    "paint_disabled": "Disponible cuando termine de generarse la vista previa"
   },
   "roles": {
     "shadow": "Sombra",
@@ -150,7 +151,9 @@
     "visible": "Visible",
     "delete": "Eliminar región",
     "select": "Región",
-    "default_name": "región {{n}}"
+    "default_name": "región {{n}}",
+    "intro": "Las regiones permiten dar a una parte de la mini (capa, armadura, piel) sus propios colores.",
+    "draw_hint": "Arrastra alrededor de una parte de la mini. Puedes dibujar varios contornos: se unen en una sola región. Pulsa «Añadir región» al terminar."
   },
   "gallery": {
     "heading": "Todos los ángulos",
@@ -190,5 +193,35 @@
   "upload": {
     "button": "Subir foto",
     "or_sample": "O empieza con un ejemplo:"
+  },
+  "intro": {
+    "headline": "Descubre dónde iluminar — en tu mini",
+    "sub": "Funciona mejor con minis imprimadas (negro/gris).",
+    "step1": "Sube una foto",
+    "step2": "Elige tus colores",
+    "step3": "Sigue los pasos de pintura"
+  },
+  "tips": {
+    "title": "Cómo fotografiar tu mini",
+    "raking": "Lo más importante es la luz lateral rasante: ilumina la mini desde un lado a unos 45° para que la escultura proyecte sombras suaves. Ese sombreado es lo que lee la herramienta.",
+    "no_flash": "Sin flash frontal. Un flash apuntando de frente rellena los huecos y aplana la forma: es la causa nº 1 de un resultado plano.",
+    "fill": "Llena el encuadre: acércate (o recorta) para que la mini ocupe casi toda la foto.",
+    "background": "Usa un fondo liso y neutro para que la mini se separe fácilmente.",
+    "focus": "Que salga nítida: enfoca la mini y usa un temporizador o apoya las manos.",
+    "primed": "Funciona mejor con imprimación negra o gris: la herramienta lee la iluminación, así que la luz lateral rasante importa más que el color de la imprimación.",
+    "painted": "En una mini ya pintada la comprobación automática no distingue el flash de una buena iluminación, así que la luz lateral rasante importa aún más."
+  },
+  "quality": {
+    "title": "Esta foto puede dar peores resultados",
+    "tips": "Consejos de foto",
+    "dismiss": "Descartar",
+    "lighting": "La iluminación se ve plana: usa una sola luz lateral rasante (~45°) y apaga el flash.",
+    "exposure": "Parte de la mini está empastada en negro o quemada: ajusta la exposición o difumina la luz.",
+    "focus": "La foto se ve desenfocada: vuelve a enfocar la mini y mantenla firme (usa un temporizador).",
+    "resolution": "La mini sale pequeña en el encuadre: acércate o recorta para que ocupe casi toda la foto.",
+    "input": "No se detecta ninguna mini: prueba con un fondo más liso u otra foto."
+  },
+  "studio": {
+    "go_to_paint": "Ver pasos de pintura →"
   }
 }
