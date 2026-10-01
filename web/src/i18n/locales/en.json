@@ -27,8 +27,6 @@
     "metallic": "Metallic"
   },
   "colour": {
-    "generate_whole_mini": "Colour scheme",
-    "anchor_region": "Anchor region",
     "hero_colour": "Main colour",
     "mood": "Mood",
     "harmony": "Colour harmony",
@@ -37,20 +35,16 @@
     "owned_only": "Owned paints only",
     "generate": "Suggest colours",
     "generating": "Suggesting…",
-    "ramp_editor": "Quick ramp from one colour",
     "midtone": "Middle colour",
     "use_scheme_colour": "Use scheme colour",
     "ramp": "Ramp",
     "complementary": "Complementary",
     "warm": "Warm",
     "cool": "Cool",
-    "band_editor": "Layers",
-    "band_count": "Bands",
     "reset_coverage": "Reset areas",
     "recipe_name": "Recipe name",
     "save_recipe": "Save as recipe",
     "recipe_saved": "Recipe saved",
-    "load_recipe": "Load",
     "preview_recipe": "Preview",
     "apply_recipe": "Apply",
     "cancel": "Cancel",
@@ -78,8 +72,6 @@
   "recipes": {
     "export": "Export recipes",
     "import": "Import recipes",
-    "collection_export": "Export collection",
-    "collection_import": "Import collection",
     "import_success": "Recipes imported"
   },
   "surfaces": {
@@ -142,9 +134,7 @@
     "react_confirm_delete": "Delete project \"{{name}}\"?"
   },
   "region": {
-    "editing": "Editing:",
     "whole_mini": "Whole mini",
-    "manage": "Manage regions",
     "draw": "Draw region",
     "add": "Add region",
     "cancel": "Cancel",

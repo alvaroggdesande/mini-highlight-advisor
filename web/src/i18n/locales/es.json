@@ -27,8 +27,6 @@
     "metallic": "Metálico"
   },
   "colour": {
-    "generate_whole_mini": "Esquema de color",
-    "anchor_region": "Región principal",
     "hero_colour": "Color principal",
     "mood": "Estado de ánimo",
     "harmony": "Armonía de color",
@@ -37,20 +35,16 @@
     "owned_only": "Solo pinturas propias",
     "generate": "Sugerir colores",
     "generating": "Sugiriendo…",
-    "ramp_editor": "Rampa rápida desde un color",
     "midtone": "Color medio",
     "use_scheme_colour": "Usar color del esquema",
     "ramp": "Rampa",
     "complementary": "Complementario",
     "warm": "Cálido",
     "cool": "Frío",
-    "band_editor": "Capas",
-    "band_count": "Bandas",
     "reset_coverage": "Restablecer áreas",
     "recipe_name": "Nombre de la receta",
     "save_recipe": "Guardar como receta",
     "recipe_saved": "Receta guardada",
-    "load_recipe": "Cargar",
     "preview_recipe": "Vista previa",
     "apply_recipe": "Aplicar",
     "cancel": "Cancelar",
@@ -78,8 +72,6 @@
   "recipes": {
     "export": "Exportar recetas",
     "import": "Importar recetas",
-    "collection_export": "Exportar colección",
-    "collection_import": "Importar colección",
     "import_success": "Recetas importadas"
   },
   "surfaces": {
@@ -142,9 +134,7 @@
     "react_confirm_delete": "¿Eliminar el proyecto \"{{name}}\"?"
   },
   "region": {
-    "editing": "Editando:",
     "whole_mini": "Mini completa",
-    "manage": "Gestionar regiones",
     "draw": "Dibujar región",
     "add": "Añadir región",
     "cancel": "Cancelar",
