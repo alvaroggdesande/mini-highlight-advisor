@@ -22,33 +22,33 @@
     "recess_shade": "Sombreado de receso"
   },
   "technique": {
-    "material": "Material",
+    "material": "Acabado",
     "matte": "Mate",
     "metallic": "Metálico"
   },
   "colour": {
-    "generate_whole_mini": "Generate palette (whole mini)",
+    "generate_whole_mini": "Esquema de color",
     "anchor_region": "Región principal",
     "hero_colour": "Color principal",
     "mood": "Estado de ánimo",
-    "harmony": "Variante de armonía",
+    "harmony": "Armonía de color",
     "surface": "Superficie",
     "tone": "Tono",
     "owned_only": "Solo pinturas propias",
-    "generate": "Generar",
-    "generating": "Generando…",
-    "ramp_editor": "Generador de rampas (N2)",
-    "midtone": "Tono medio",
+    "generate": "Sugerir colores",
+    "generating": "Sugiriendo…",
+    "ramp_editor": "Rampa rápida desde un color",
+    "midtone": "Color medio",
     "use_scheme_colour": "Usar color del esquema",
     "ramp": "Rampa",
     "complementary": "Complementario",
     "warm": "Cálido",
     "cool": "Frío",
-    "band_editor": "Editor de bandas (N3)",
+    "band_editor": "Capas",
     "band_count": "Bandas",
-    "reset_coverage": "Restablecer cobertura",
+    "reset_coverage": "Restablecer áreas",
     "recipe_name": "Nombre de la receta",
-    "save_recipe": "Guardar receta",
+    "save_recipe": "Guardar como receta",
     "recipe_saved": "Receta guardada",
     "load_recipe": "Cargar",
     "preview_recipe": "Vista previa",
@@ -57,19 +57,21 @@
     "select_recipe": "Seleccionar receta…",
     "custom": "(personalizado)",
     "blend": "Mezclar",
-    "add_band": "Añadir banda",
-    "delete_band": "Eliminar banda",
-    "auto": "auto",
-    "coverage": "Cobertura",
+    "add_band": "+ Añadir capa",
+    "delete_band": "Eliminar capa",
+    "auto": "rellena el resto",
+    "coverage": "Área",
     "undo": "Deshacer",
     "owned_only_none": "Aún no has marcado pinturas como tuyas, así que se usará el catálogo completo — márcalas en la pestaña Colección de pinturas.",
-    "toggle_generate": "Mostrar u ocultar el generador de esquemas",
-    "buy": "Comprar: {{name}}"
+    "toggle_generate": "Mostrar u ocultar el esquema de color",
+    "buy": "Comprar: {{name}}",
+    "coverage_hint": "Cuánto de la región cubre esta capa",
+    "tone_placeholder": "claro, oscuro…"
   },
   "schemes": {
-    "title": "Esquemas de color",
+    "title": "Esquemas guardados",
     "name_placeholder": "Nombre del esquema",
-    "save": "Guardar instantánea",
+    "save": "Guardar colores actuales",
     "apply": "Aplicar",
     "delete": "Eliminar"
   },
@@ -152,7 +154,7 @@
     "delete": "Eliminar región",
     "select": "Región",
     "default_name": "región {{n}}",
-    "intro": "Las regiones permiten dar a una parte de la mini (capa, armadura, piel) sus propios colores.",
+    "intro": "Las regiones permiten dar a una parte de la mini (manto, armadura, piel) sus propios colores.",
     "draw_hint": "Arrastra alrededor de una parte de la mini. Puedes dibujar varios contornos: se unen en una sola región. Pulsa «Añadir región» al terminar."
   },
   "gallery": {
@@ -222,6 +224,25 @@
     "input": "No se detecta ninguna mini: prueba con un fondo más liso u otra foto."
   },
   "studio": {
-    "go_to_paint": "Ver pasos de pintura →"
+    "go_to_paint": "Ver pasos de pintura →",
+    "step_regions": "Regiones",
+    "draw_region": "+ Dibujar una región",
+    "anchor_aria": "El color principal va en {{name}}",
+    "step_scheme": "Esquema de color",
+    "scheme_caption": "todas las regiones · opcional",
+    "anchor_caption": "★ marca la región que lleva el color principal",
+    "step_layers": "Capas de",
+    "fill_from": "Rellenar capas desde:",
+    "fill_one_colour": "un color",
+    "fill_recipe": "una receta guardada",
+    "save_share": "Guardar y compartir"
+  },
+  "edges": {
+    "title": "Luces de borde · toda la mini",
+    "enabled": "Luces de borde",
+    "extreme": "Luz de borde extra nítida",
+    "sens": "Cuántos bordes",
+    "fewer": "menos, más nítidos",
+    "more": "más"
   }
 }
