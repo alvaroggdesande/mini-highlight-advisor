@@ -88,6 +88,24 @@ it("search filters by code", () => {
   expect(screen.getByText("Paint B")).toBeInTheDocument();
 });
 
+it("shows the brand on each row", () => {
+  seedCatalog(["C1"], []);
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
+  expect(screen.getByText("Citadel")).toBeInTheDocument();
+});
+
+it("search filters by brand", () => {
+  seedCatalog([], []);
+  useCatalogStore.setState({
+    paints: [fakePaint("C1", "Paint A"), { ...fakePaint("V1", "Paint B"), brand: "Vallejo" }],
+    status: "ready",
+  });
+  render(<MantineProvider><PaintInventory /></MantineProvider>);
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "vallejo" } });
+  expect(screen.queryByText("Paint A")).not.toBeInTheDocument();
+  expect(screen.getByText("Paint B")).toBeInTheDocument();
+});
+
 it("shows owned and total count", () => {
   seedCatalog(["C1", "C2", "C3"], ["C1", "C2"]);
   render(<MantineProvider><PaintInventory /></MantineProvider>);
