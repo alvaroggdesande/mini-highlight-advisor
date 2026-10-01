@@ -170,5 +170,11 @@
     "default_label": "Ángulo {{n}}",
     "rename": "Renombrar ángulo",
     "remove": "Eliminar ángulo"
+  },
+  "preview": {
+    "placeholder": "Sube una foto o elige un ejemplo para ver la vista previa.",
+    "rendering": "Generando la vista previa…",
+    "updating": "Actualizando vista previa…",
+    "alt": "Vista previa pintada"
   }
 }

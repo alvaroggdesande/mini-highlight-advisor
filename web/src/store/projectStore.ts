@@ -43,6 +43,7 @@ export interface Angle {
   photoId?: string; width?: number; height?: number; qualityChecks: QualityCheck[];
   book: Book; settings: Settings;
   preview?: string; resultToken?: string; error?: string;
+  analyzing?: boolean; analyzeNonce?: number;   // runtime-only, never persisted
 }
 
 interface State {
@@ -66,6 +67,8 @@ interface State {
   removeBand(i: number): void;
   setPreview(png: string, token: string): void;
   setError(msg?: string): void;
+  setAnalyzing(on: boolean): void;
+  retryAnalyze(): void;
   setSurface(g: number, surface: string): void;
   setTone(g: number, tone: string): void;
   setMaterial(g: number, material: string): void;
@@ -235,6 +238,11 @@ export const useProjectStore = create<State>((set) => ({
     patchAngle(s, s.activeAngle, (a) => ({ ...a, preview: png, resultToken: token, error: undefined }))),
 
   setError: (msg) => set((s) => patchAngle(s, s.activeAngle, (a) => ({ ...a, error: msg }))),
+
+  setAnalyzing: (on) => set((s) => patchAngle(s, s.activeAngle, (a) => ({ ...a, analyzing: on }))),
+
+  retryAnalyze: () => set((s) => patchAngle(s, s.activeAngle,
+    (a) => ({ ...a, error: undefined, analyzeNonce: (a.analyzeNonce ?? 0) + 1 }))),
 
   setSurface: (g, surface) => set((s) => patchBook(s, (b) => {
     if (g === 0) return { ...b, whole: { ...b.whole, surface } };

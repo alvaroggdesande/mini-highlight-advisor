@@ -244,6 +244,18 @@ describe("projectStore colour extensions", () => {
     useProjectStore.getState().removeBand(0);
     expect(activeBookOf(useProjectStore.getState())!.whole.palette).toHaveLength(3);
   });
+
+  it("retryAnalyze clears the error and bumps the nonce; setAnalyzing toggles", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.setError("500 boom");
+    st.setAnalyzing(true);
+    useProjectStore.getState().retryAnalyze();
+    const a = useProjectStore.getState().angles[0];
+    expect(a.error).toBeUndefined();
+    expect(a.analyzeNonce).toBe(1);
+    expect(a.analyzing).toBe(true);
+  });
 });
 
 describe("projectStore project persistence", () => {

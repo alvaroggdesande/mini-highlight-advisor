@@ -170,5 +170,11 @@
     "default_label": "Angle {{n}}",
     "rename": "Rename angle",
     "remove": "Remove angle"
+  },
+  "preview": {
+    "placeholder": "Upload a photo or pick a sample to see the preview.",
+    "rendering": "Rendering the preview…",
+    "updating": "Updating preview…",
+    "alt": "Painted preview"
   }
 }

@@ -8,11 +8,13 @@ export function useAnalyze(delay = 150) {
   const angle = useProjectStore(activeAngleOf);
   const setPreview = useProjectStore((s) => s.setPreview);
   const setError = useProjectStore((s) => s.setError);
+  const setAnalyzing = useProjectStore((s) => s.setAnalyzing);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const photoId = angle?.photoId;
   const book = angle?.book;
   const settings = angle?.settings;
+  const nonce = angle?.analyzeNonce ?? 0;
 
   useEffect(() => {
     if (!photoId || !book || !settings) return;
@@ -27,12 +29,15 @@ export function useAnalyze(delay = 150) {
             || regions.some((r) => !paletteHasValidHexes(r.palette))) {
           return;
         }
-        const res = await analyze({ photo_id: photoId, whole: book.whole, regions, settings });
-        setPreview(res.preview_png, res.result_token);
+        setAnalyzing(true);
+        try {
+          const res = await analyze({ photo_id: photoId, whole: book.whole, regions, settings });
+          setPreview(res.preview_png, res.result_token);
+        } finally { setAnalyzing(false); }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       }
     }, delay);
     return () => clearTimeout(timer.current);
-  }, [photoId, book, settings, delay, setPreview, setError]);
+  }, [photoId, book, settings, nonce, delay, setPreview, setError, setAnalyzing]);
 }
