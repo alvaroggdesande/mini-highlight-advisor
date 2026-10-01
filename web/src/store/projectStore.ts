@@ -72,7 +72,7 @@ interface State {
   removeBand(i: number): void;
   setPreview(png: string, token: string): void;
   setError(msg?: string): void;
-  setAnalyzing(on: boolean): void;
+  setAnalyzing(on: boolean, angleId?: string): void;   // default: the active angle
   retryAnalyze(): void;
   setSurface(g: number, surface: string): void;
   setTone(g: number, tone: string): void;
@@ -244,7 +244,10 @@ export const useProjectStore = create<State>((set) => ({
 
   setError: (msg) => set((s) => patchAngle(s, s.activeAngle, (a) => ({ ...a, error: msg }))),
 
-  setAnalyzing: (on) => set((s) => patchAngle(s, s.activeAngle, (a) => ({ ...a, analyzing: on }))),
+  setAnalyzing: (on, angleId) => set((s) => {
+    const i = angleId === undefined ? s.activeAngle : s.angles.findIndex((a) => a.id === angleId);
+    return i < 0 ? {} : patchAngle(s, i, (a) => ({ ...a, analyzing: on }));
+  }),
 
   retryAnalyze: () => set((s) => patchAngle(s, s.activeAngle,
     (a) => ({ ...a, error: undefined, analyzeNonce: (a.analyzeNonce ?? 0) + 1 }))),
