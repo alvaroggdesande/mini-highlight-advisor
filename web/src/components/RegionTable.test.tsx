@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { RegionTable } from "./RegionTable";
 import { useProjectStore, activeBookOf } from "../store/projectStore";
 import type { PhotoResponse } from "../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
-vi.mock("./ManagePanel", () => ({ ManagePanel: () => <div>manage-panel</div> }));
+vi.mock("./ManagePanel", () => ({
+  ManagePanel: ({ onClose }: any) => <button onClick={onClose}>manage-panel</button>,
+}));
 
 const photo = (): PhotoResponse => ({
   photo_id: "p1", width: 10, height: 10, quality_checks: [],
@@ -28,12 +30,12 @@ describe("RegionTable", () => {
   it("renders one row per region, whole mini first", () => {
     ui();
     expect(screen.getByTestId("region-row-0").textContent).toContain("region.whole_mini");
-    expect(screen.getByTestId("region-row-1").textContent).toContain("Cloak");
+    expect(screen.getByLabelText("region.name_aria")).toHaveProperty("value", "Cloak");
   });
 
   it("clicking a row selects it and marks it aria-selected", () => {
     const { rerender } = ui();
-    fireEvent.click(screen.getByText("Cloak"));
+    fireEvent.click(screen.getByTestId("region-row-1"));
     expect(book().selected).toBe(1);
     rerender(<MantineProvider><RegionTable /></MantineProvider>);
     expect(screen.getByTestId("region-row-1").getAttribute("aria-selected")).toBe("true");
@@ -69,12 +71,54 @@ describe("RegionTable", () => {
     expect(screen.getAllByLabelText("studio.anchor_aria")[0].textContent).toBe("★");
   });
 
-  it("'Draw a region' toggles the region manager", () => {
+  it("'Draw a region' opens the drawing panel and relabels itself to hide it", () => {
     ui();
-    const btn = screen.getByRole("button", { name: "studio.draw_region" });
+    const btn = screen.getByRole("button", { name: /studio.draw_region/ });
     expect(btn.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("manage-panel")).toBeNull();
     fireEvent.click(btn);
     expect(btn.getAttribute("aria-expanded")).toBe("true");
+    expect(btn.textContent).toContain("studio.hide_drawing");
     expect(screen.getByText("manage-panel")).toBeTruthy();
+    fireEvent.click(btn);
+    expect(screen.queryByText("manage-panel")).toBeNull();
+  });
+
+  it("drawing panel closes itself when it finishes (Add/Cancel)", () => {
+    ui();
+    fireEvent.click(screen.getByRole("button", { name: /studio.draw_region/ }));
+    fireEvent.click(screen.getByText("manage-panel"));   // mock calls onClose
+    expect(screen.queryByText("manage-panel")).toBeNull();
+    expect(screen.getByRole("button", { name: /studio.draw_region/ }).getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("renaming a drawn region in its row", () => {
+    ui();
+    fireEvent.change(screen.getByLabelText("region.name_aria"), { target: { value: "Cape" } });
+    expect(book().drawn[0].name).toBe("Cape");
+  });
+
+  it("visible checkbox in the row toggles blank without selecting", () => {
+    ui();
+    const before = book().drawn[0].blank;
+    fireEvent.click(screen.getByLabelText("region.visible Cloak"));
+    expect(book().drawn[0].blank).toBe(!before);
+    expect(book().selected).toBe(0);
+  });
+
+  it("✕ in the row deletes that region; whole mini has no ✕", () => {
+    ui();
+    expect(screen.getAllByRole("button", { name: /region.delete/ })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "region.delete Cloak" }));
+    expect(book().drawn).toHaveLength(0);
+  });
+
+  it("shows the regions intro only while there are no drawn regions", () => {
+    useProjectStore.getState().removeRegion(1);
+    const { rerender } = ui();
+    expect(screen.getByText("region.intro")).toBeTruthy();
+    act(() => useProjectStore.getState().addRegion([[[1, 1], [2, 2], [3, 1]]], "Cloak"));
+    rerender(<MantineProvider><RegionTable /></MantineProvider>);
+    expect(screen.queryByText("region.intro")).toBeNull();
   });
 });

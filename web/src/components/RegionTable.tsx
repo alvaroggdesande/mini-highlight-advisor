@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Button, Collapse, NativeSelect, Table, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Checkbox, NativeSelect, Table, Text, TextInput } from "@mantine/core";
 import { useProjectStore, activeBookOf, anchorIndexOf } from "../store/projectStore";
 import { SURFACES } from "../api/types";
 import { ManagePanel } from "./ManagePanel";
@@ -18,6 +18,9 @@ export function RegionTable() {
   const setTone = useProjectStore((s) => s.setTone);
   const setMaterial = useProjectStore((s) => s.setMaterial);
   const setAnchor = useProjectStore((s) => s.setAnchor);
+  const renameRegion = useProjectStore((s) => s.renameRegion);
+  const toggleBlank = useProjectStore((s) => s.toggleBlank);
+  const removeRegion = useProjectStore((s) => s.removeRegion);
   const [drawOpen, setDrawOpen] = useState(false);
 
   if (!book) return null;
@@ -37,6 +40,8 @@ export function RegionTable() {
             <Table.Th>{t("colour.surface")}</Table.Th>
             <Table.Th>{t("colour.tone")}</Table.Th>
             <Table.Th>{t("technique.material")}</Table.Th>
+            <Table.Th>{t("region.visible")}</Table.Th>
+            <Table.Th />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -52,7 +57,12 @@ export function RegionTable() {
                     {g === anchor ? "★" : "☆"}
                   </ActionIcon>
                 </Table.Td>
-                <Table.Td>{name}</Table.Td>
+                <Table.Td>
+                  {g === 0 ? name : (
+                    <TextInput size="xs" aria-label={t("region.name_aria", { name })} value={name}
+                      onChange={(e) => renameRegion(g, e.target.value)} />
+                  )}
+                </Table.Td>
                 <Table.Td onClick={stop}>
                   <NativeSelect size="xs" aria-label={`${t("colour.surface")} ${name}`}
                     value={r.surface ?? "skin"} onChange={(e) => setSurface(g, e.target.value)}
@@ -69,16 +79,32 @@ export function RegionTable() {
                     data={[{ value: "matte", label: t("technique.matte") },
                            { value: "metallic", label: t("technique.metallic") }]} />
                 </Table.Td>
+                <Table.Td onClick={stop}>
+                  {g > 0 && (
+                    <Checkbox size="xs" aria-label={`${t("region.visible")} ${name}`}
+                      checked={!book.drawn[g - 1].blank} onChange={() => toggleBlank(g)} />
+                  )}
+                </Table.Td>
+                <Table.Td onClick={stop}>
+                  {g > 0 && (
+                    <ActionIcon size="sm" variant="subtle" color="red"
+                      aria-label={`${t("region.delete")} ${name}`} onClick={() => removeRegion(g)}>✕</ActionIcon>
+                  )}
+                </Table.Td>
               </Table.Tr>
             );
           })}
         </Table.Tbody>
       </Table>
+      {book.drawn.length === 0 && !drawOpen && (
+        <Text size="xs" c="dimmed">{t("region.intro")}</Text>
+      )}
       <Button size="xs" variant="subtle" style={{ alignSelf: "flex-start" }}
-        aria-expanded={drawOpen} onClick={() => setDrawOpen((o) => !o)}>
-        {t("studio.draw_region")}
+        aria-expanded={drawOpen} onClick={() => setDrawOpen((o) => !o)}
+        rightSection={drawOpen ? "▴" : "▾"}>
+        {t(drawOpen ? "studio.hide_drawing" : "studio.draw_region")}
       </Button>
-      <Collapse in={drawOpen}><ManagePanel /></Collapse>
+      {drawOpen && <ManagePanel onClose={() => setDrawOpen(false)} />}
     </StepSection>
   );
 }
