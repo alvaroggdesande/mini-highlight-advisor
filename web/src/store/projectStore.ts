@@ -41,6 +41,7 @@ export interface Book {
   hero_hex?: string;
   mood?: string;
   variant?: string;
+  anchor_id?: string;   // runtime-only ★ "main colour goes here" region id; undefined = whole mini
   schemes: Scheme[];
 }
 export interface Angle {
@@ -80,6 +81,8 @@ interface State {
   setHeroHex(hex: string): void;
   setMood(mood: string): void;
   setVariant(variant: string): void;
+  setAnchor(id: string | undefined): void;
+  setSettings(patch: Partial<Settings>): void;
   setRampState(g: number, midtone: string, variant: string): void;
   setPaletteAt(g: number, palette: PaintColor[]): void;
   setPaletteSlot(g: number, i: number, paint: PaintColor): void;
@@ -97,6 +100,10 @@ export const activeAngleOf = (s: { angles: Angle[]; activeAngle: number }): Angl
   s.angles[s.activeAngle];
 export const activeBookOf = (s: { angles: Angle[]; activeAngle: number }): Book | undefined =>
   activeAngleOf(s)?.book;
+
+/** Index (0 = whole mini, g = drawn[g-1]) of the ★ main-colour region; unknown id → 0. */
+export const anchorIndexOf = (book: Book): number =>
+  book.drawn.findIndex((r) => r.id === book.anchor_id) + 1;
 
 function makeAngle(res: PhotoResponse, label: string, settings: Settings): Angle {
   return {
@@ -185,10 +192,12 @@ export const useProjectStore = create<State>((set) => ({
 
   removeRegion: (g) => set((s) => patchBook(s, (b) => {
     if (g < 1 || g > b.drawn.length) return b;
+    const removedId = b.drawn[g - 1].id;
     const drawn = b.drawn.slice();
     drawn.splice(g - 1, 1);
     const selected = b.selected === g ? g - 1 : b.selected > g ? b.selected - 1 : b.selected;
-    return { ...b, drawn, selected };
+    const anchor_id = b.anchor_id === removedId ? undefined : b.anchor_id;
+    return { ...b, drawn, selected, anchor_id };
   })),
 
   renameRegion: (g, name) => set((s) => patchBook(s, (b) => {
@@ -278,6 +287,11 @@ export const useProjectStore = create<State>((set) => ({
   setMood: (mood) => set((s) => patchBook(s, (b) => ({ ...b, mood }))),
 
   setVariant: (variant) => set((s) => patchBook(s, (b) => ({ ...b, variant }))),
+
+  setAnchor: (id) => set((s) => patchBook(s, (b) => ({ ...b, anchor_id: id }))),
+
+  setSettings: (patch) => set((s) => patchAngle(s, s.activeAngle,
+    (a) => ({ ...a, settings: { ...a.settings, ...patch } }))),
 
   setRampState: (g, midtone, variant) => set((s) => patchBook(s, (b) => {
     if (g === 0) return { ...b, whole: { ...b.whole, ramp_midtone: midtone, ramp_variant: variant } };
