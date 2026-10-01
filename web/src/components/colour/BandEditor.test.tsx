@@ -9,7 +9,11 @@ import type { PhotoResponse } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock("./BandCard", () => ({ BandCard: ({ role }: { role: string }) => <div>card-{role}</div> }));
-vi.mock("./LayerTools", () => ({ LayerTools: () => <div>layer-tools</div> }));
+// Stateful stand-in: shows the g it was first mounted with, so a missing remount on region change is visible.
+vi.mock("./LayerTools", async () => {
+  const { useState } = await import("react");
+  return { LayerTools: ({ g }: { g: number }) => { const [g0] = useState(g); return <div>layer-tools-{g0}</div>; } };
+});
 vi.mock("../EdgeSettings", () => ({ EdgeSettings: () => <div>edge-settings</div> }));
 
 const photo = (): PhotoResponse => ({
@@ -38,7 +42,7 @@ describe("BandEditor", () => {
 
   it("renders the layer tools", () => {
     render(<MantineProvider><BandEditor /></MantineProvider>);
-    expect(screen.getByText("layer-tools")).toBeTruthy();
+    expect(screen.getByText("layer-tools-0")).toBeTruthy();
   });
 
   it("the 'Layers for' picker reflects and changes the selected region", () => {
@@ -48,5 +52,15 @@ describe("BandEditor", () => {
     expect(sel.value).toBe("1");
     fireEvent.change(sel, { target: { value: "0" } });
     expect(activeBookOf(useProjectStore.getState())!.selected).toBe(0);
+  });
+
+  it("switching region remounts the layer tools so an open fill panel can't target the new region", () => {
+    useProjectStore.getState().addRegion([[[1, 1], [2, 2], [3, 1]]], "Cloak");   // selects 1
+    useProjectStore.getState().setSelected(0);
+    const { rerender } = render(<MantineProvider><BandEditor /></MantineProvider>);
+    expect(screen.getByText("layer-tools-0")).toBeTruthy();
+    useProjectStore.getState().setSelected(1);
+    rerender(<MantineProvider><BandEditor /></MantineProvider>);
+    expect(screen.getByText("layer-tools-1")).toBeTruthy();
   });
 });

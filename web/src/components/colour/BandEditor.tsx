@@ -50,7 +50,8 @@ export function BandEditor() {
           <BandCard key={i} g={g} i={i} paint={paint} finish={material} n={n} palette={palette}
             role={roles[i]} coverageValue={coverage[i] ?? 0} isAuto={i === n - 1} onCoverage={handleCoverage} />
         ))}
-        <LayerTools g={g} n={n} onRecipeChanged={() => setRecipeKey((k) => k + 1)} />
+        {/* Keyed by region: an open fill panel (seeded from the old region) must not carry over. */}
+        <LayerTools key={g} g={g} n={n} onRecipeChanged={() => setRecipeKey((k) => k + 1)} />
       </Stack>
       <EdgeSettings />
     </StepSection>

@@ -367,6 +367,7 @@ export const useProjectStore = create<State>((set) => ({
       book: {
         ...a.book,
         drawn: a.book.drawn.map((d) => ({ ...d, blank: d.blank ?? false })),
+        anchor_id: undefined,   // runtime-only: never restored from a manifest
       },
       settings: a.settings,
     })),

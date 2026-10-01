@@ -343,6 +343,25 @@ describe("projectStore project persistence", () => {
     const drawn = useProjectStore.getState().angles[0].book.drawn;
     expect(drawn[0].blank).toBe(false);
   });
+
+  it("initFromProject resets the ★ to whole mini even if a manifest carries anchor_id", () => {
+    const manifest = {
+      name: "Test", slug: "test", active_angle: 0, updated_at: "",
+      angles: [{
+        id: "a1", label: "angle 1", photo_id: "ph1",
+        book: {
+          whole: { palette: [], coverage: [], material: "matte" },
+          drawn: [{ id: "r1", name: "helm", rings: [], palette: [], coverage: [], material: "matte" }],
+          selected: 0, schemes: [], anchor_id: "r1",
+        },
+        settings: { edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false },
+      }],
+    } as unknown as import("../api/types").ProjectManifestDto;   // carries a field the DTO no longer allows
+    useProjectStore.getState().initFromProject(manifest);
+    const b = useProjectStore.getState().angles[0].book;
+    expect(b.anchor_id).toBeUndefined();
+    expect(anchorIndexOf(b)).toBe(0);
+  });
 });
 
 describe("projectStore settings + anchor", () => {
