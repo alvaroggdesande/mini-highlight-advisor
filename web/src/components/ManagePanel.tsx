@@ -28,6 +28,7 @@ export function ManagePanel() {
 
   return (
     <Stack gap="xs">
+      <Text size="xs" c="dimmed">{t(drawing ? "region.draw_hint" : "region.intro")}</Text>
       <RegionCanvas drawing={drawing} draftRings={draftRings} onDraftChange={setDraftRings} />
       {!drawing ? (
         <Button size="xs" variant="default" onClick={() => setDrawing(true)}>{t("region.draw")}</Button>

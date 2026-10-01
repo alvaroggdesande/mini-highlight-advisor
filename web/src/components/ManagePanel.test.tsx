@@ -26,6 +26,16 @@ const reset = () => useProjectStore.setState(useProjectStore.getInitialState(), 
 describe("ManagePanel", () => {
   beforeEach(() => useProjectStore.setState(useProjectStore.getInitialState(), true));
 
+  it("explains regions before drawing and how to lasso while drawing", () => {
+    useProjectStore.getState().initFromPhoto(photo());
+    render(<MantineProvider><ManagePanel /></MantineProvider>);
+    expect(screen.getByText("region.intro")).toBeTruthy();
+    expect(screen.queryByText("region.draw_hint")).toBeNull();
+    fireEvent.click(screen.getByText("region.draw"));
+    expect(screen.getByText("region.draw_hint")).toBeTruthy();
+    expect(screen.queryByText("region.intro")).toBeNull();
+  });
+
   it("draw -> capture stroke -> Add commits a region", () => {
     useProjectStore.getState().initFromPhoto(photo());
     render(<MantineProvider><ManagePanel /></MantineProvider>);
