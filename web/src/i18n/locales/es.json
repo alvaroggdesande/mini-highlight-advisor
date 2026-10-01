@@ -105,8 +105,9 @@
     "loading": "Cargando pasos…",
     "no_preview": "Analiza la foto primero para ver los pasos de pintura.",
     "step_zone": "Dónde pintar",
-    "step_cumulative": "Resultado hasta aquí",
-    "step_exact": "Esta capa"
+    "step_cumulative": "Tras esta capa",
+    "step_exact": "Lo que queda visible al final",
+    "steps_hint": "Pinta cada capa sobre la zona rosa. Las capas siguientes, más claras, van encima, así que al final solo queda visible una parte de cada capa."
   },
   "paints": {
     "heading": "## 🎨 Pinturas",

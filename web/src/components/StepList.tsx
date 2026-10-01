@@ -1,13 +1,28 @@
 import { useTranslation } from "react-i18next";
-import { Image, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
+import { ColorSwatch, Group, Image, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import type { RegionPlanDto, StepImageDto } from "../api/types";
 import { ROLE_KEY } from "../lib/roles";
+
+function StepHeader({ step }: { step: StepImageDto }) {
+  const { t } = useTranslation();
+  const role = t(ROLE_KEY[step.label] ?? step.label);
+  if (!step.paint_name) return <Text fw={600} mb="xs">{role}</Text>;
+  return (
+    <Group gap="xs" mb="xs" wrap="nowrap">
+      {step.paint_hex && <ColorSwatch data-testid="step-swatch" color={step.paint_hex} size={20} />}
+      <Text fw={600}>
+        {role} — {step.paint_name}
+        {step.paint_code && <Text span c="dimmed" fw={400}> · {step.paint_code}</Text>}
+      </Text>
+    </Group>
+  );
+}
 
 function StepCard({ step }: { step: StepImageDto }) {
   const { t } = useTranslation();
   return (
     <Paper p="sm" withBorder mb="sm">
-      <Text fw={600} mb="xs">{t(ROLE_KEY[step.label] ?? step.label)}</Text>
+      <StepHeader step={step} />
       <SimpleGrid cols={step.is_last ? 2 : 3} spacing="xs">
         <Stack gap={4}>
           <Image src={step.zone_png} alt={t("paint.step_zone")} />
@@ -33,8 +48,10 @@ export interface StepListProps { plan: RegionPlanDto; }
 /** Steps for a single region. The region name is shown by the selecting tab, so
  *  it is not repeated here. */
 export function StepList({ plan }: StepListProps) {
+  const { t } = useTranslation();
   return (
     <Stack gap="xs">
+      <Text size="sm" c="dimmed">{t("paint.steps_hint")}</Text>
       {plan.steps.map((step) => (
         <StepCard key={`${step.kind}-${step.index}`} step={step} />
       ))}

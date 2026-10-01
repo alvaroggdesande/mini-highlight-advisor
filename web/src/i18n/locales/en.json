@@ -105,8 +105,9 @@
     "loading": "Loading steps…",
     "no_preview": "Analyze the photo first to see painting steps.",
     "step_zone": "Where to paint",
-    "step_cumulative": "Result so far",
-    "step_exact": "This layer"
+    "step_cumulative": "After this layer",
+    "step_exact": "What stays visible at the end",
+    "steps_hint": "Paint each layer over the pink area. Later, lighter layers go on top, so only part of each layer stays visible at the end."
   },
   "paints": {
     "heading": "## 🎨 Paints",

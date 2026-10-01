@@ -43,4 +43,24 @@ describe("StepList", () => {
     render(<MantineProvider><StepList plan={lastOnlyPlan} /></MantineProvider>);
     expect(screen.queryByText("paint.step_exact")).toBeNull();
   });
+
+  it("shows the paint name, code and swatch when the step carries a paint", () => {
+    const withPaint: RegionPlanDto = { ...plan, steps: [
+      { ...makeStep(0, true), paint_name: "Ivory", paint_hex: "#f0e8d0", paint_code: "70.918" },
+    ] };
+    render(<MantineProvider><StepList plan={withPaint} /></MantineProvider>);
+    expect(screen.getByText(/Ivory/)).toBeTruthy();
+    expect(screen.getByText(/70\.918/)).toBeTruthy();
+    expect(screen.getByTestId("step-swatch")).toBeTruthy();
+  });
+
+  it("keeps the plain header when no paint is present", () => {
+    render(<MantineProvider><StepList plan={plan} /></MantineProvider>);
+    expect(screen.queryByTestId("step-swatch")).toBeNull();
+  });
+
+  it("renders the steps hint once", () => {
+    render(<MantineProvider><StepList plan={plan} /></MantineProvider>);
+    expect(screen.getAllByText("paint.steps_hint")).toHaveLength(1);
+  });
 });
