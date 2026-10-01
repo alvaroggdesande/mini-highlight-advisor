@@ -54,4 +54,9 @@ describe("BandCard", () => {
     expect(snapshotUndo).toHaveBeenCalled();
     expect(removeBand).toHaveBeenCalledWith(1);
   });
+
+  it("the last layer shows its share as '· fills the rest'", () => {
+    renderCard({ isAuto: true, role: "Highlight", coverageValue: 0.13 });
+    expect(screen.getByText("13% · colour.auto")).toBeTruthy();
+  });
 });

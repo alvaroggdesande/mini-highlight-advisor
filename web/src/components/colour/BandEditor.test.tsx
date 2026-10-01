@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { BandEditor } from "./BandEditor";
-import { useProjectStore } from "../../store/projectStore";
+import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import * as client from "../../api/client";
 import type { PhotoResponse } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock("./BandCard", () => ({ BandCard: ({ role }: { role: string }) => <div>card-{role}</div> }));
-vi.mock("./RecipeFooter", () => ({ RecipeFooter: () => <div>footer</div> }));
+vi.mock("./LayerTools", () => ({ LayerTools: () => <div>layer-tools</div> }));
 
 const photo = (): PhotoResponse => ({
   photo_id: "p1", width: 10, height: 10, quality_checks: [],
@@ -35,8 +35,17 @@ describe("BandEditor", () => {
     expect(screen.getByText("card-roles.highlight")).toBeTruthy();
   });
 
-  it("renders the RecipeFooter", () => {
+  it("renders the layer tools", () => {
     render(<MantineProvider><BandEditor /></MantineProvider>);
-    expect(screen.getByText("footer")).toBeTruthy();
+    expect(screen.getByText("layer-tools")).toBeTruthy();
+  });
+
+  it("the 'Layers for' picker reflects and changes the selected region", () => {
+    useProjectStore.getState().addRegion([[[1, 1], [2, 2], [3, 1]]], "Cloak");   // selects 1
+    render(<MantineProvider><BandEditor /></MantineProvider>);
+    const sel = screen.getByLabelText("region.select") as HTMLSelectElement;
+    expect(sel.value).toBe("1");
+    fireEvent.change(sel, { target: { value: "0" } });
+    expect(activeBookOf(useProjectStore.getState())!.selected).toBe(0);
   });
 });

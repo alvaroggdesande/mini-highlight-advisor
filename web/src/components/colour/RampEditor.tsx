@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, ColorInput, Group, Stack, Text } from "@mantine/core";
+import { Button, ColorInput, Group, Stack } from "@mantine/core";
 import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { generateRamp } from "../../api/client";
 import { RAMP_VARIANTS } from "../../api/types";
@@ -41,7 +41,6 @@ export function RampEditor() {
 
   return (
     <Stack gap="xs">
-      <Text size="sm" fw={500}>{t("colour.ramp_editor")}</Text>
       <Group gap="xs" align="flex-end">
         <ColorInput label={t("colour.midtone")} value={midtoneHex} onChange={setMidtoneHex}
           format="hex" size="xs" withEyeDropper={false} style={{ flex: 1 }} />
