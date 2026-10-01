@@ -6,7 +6,8 @@
     "studio": "Studio",
     "paint": "Painting Steps",
     "paints": "Paint Collection",
-    "angles": "Angles"
+    "angles": "Angles",
+    "paint_disabled": "Available once the preview has finished rendering"
   },
   "roles": {
     "shadow": "Shadow",
@@ -150,7 +151,9 @@
     "visible": "Visible",
     "delete": "Delete region",
     "select": "Region",
-    "default_name": "region {{n}}"
+    "default_name": "region {{n}}",
+    "intro": "Regions let you give part of the mini (cloak, armour, skin) its own colours.",
+    "draw_hint": "Drag around a part of the mini. You can draw several outlines — they join into one region. Click “Add region” when done."
   },
   "gallery": {
     "heading": "All Angles",
@@ -190,5 +193,35 @@
   "upload": {
     "button": "Upload photo",
     "or_sample": "Or start from a sample:"
+  },
+  "intro": {
+    "headline": "See where to highlight — on your mini",
+    "sub": "Works best on primed (black/grey) minis.",
+    "step1": "Upload a photo",
+    "step2": "Pick your colours",
+    "step3": "Follow the painting steps"
+  },
+  "tips": {
+    "title": "How to photograph your mini",
+    "raking": "Raking side light matters most: light the mini from one side at about 45° so the sculpt casts soft shadows. That shading is what the tool reads.",
+    "no_flash": "No frontal flash. A flash pointing straight at the mini fills the recesses and flattens the form — the #1 cause of a flat result.",
+    "fill": "Fill the frame: get close (or crop) so the mini takes up most of the photo.",
+    "background": "Use a plain, neutral background so the mini is easy to separate.",
+    "focus": "Keep it sharp: focus on the mini and use a timer or brace your hands.",
+    "primed": "Black or grey primer works best — the tool reads the lighting, so a raking side light matters more than the primer colour.",
+    "painted": "On an already painted mini the automatic check can't tell flash from good lighting, so a raking side light matters even more."
+  },
+  "quality": {
+    "title": "This photo may give weaker results",
+    "tips": "Photo tips",
+    "dismiss": "Dismiss",
+    "lighting": "Lighting looks flat — use one raking light from the side (~45°) and turn off any flash.",
+    "exposure": "Part of the mini is crushed to black or blown out — adjust exposure or diffuse the light.",
+    "focus": "The photo looks soft — refocus on the mini and hold steady (use a timer).",
+    "resolution": "The mini is small in the frame — move closer or crop so it fills most of the photo.",
+    "input": "No mini detected — try a plainer background or a different photo."
+  },
+  "studio": {
+    "go_to_paint": "See painting steps →"
   }
 }
