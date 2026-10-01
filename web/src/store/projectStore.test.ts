@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useProjectStore, activeBookOf } from "./projectStore";
+import { useProjectStore, activeBookOf, anchorIndexOf } from "./projectStore";
 import type { PhotoResponse } from "../api/types";
 
 const reset = () => useProjectStore.setState(useProjectStore.getInitialState(), true);
@@ -342,5 +342,98 @@ describe("projectStore project persistence", () => {
     useProjectStore.getState().initFromProject(manifest);
     const drawn = useProjectStore.getState().angles[0].book.drawn;
     expect(drawn[0].blank).toBe(false);
+  });
+
+  it("initFromProject resets the ★ to whole mini even if a manifest carries anchor_id", () => {
+    const manifest = {
+      name: "Test", slug: "test", active_angle: 0, updated_at: "",
+      angles: [{
+        id: "a1", label: "angle 1", photo_id: "ph1",
+        book: {
+          whole: { palette: [], coverage: [], material: "matte" },
+          drawn: [{ id: "r1", name: "helm", rings: [], palette: [], coverage: [], material: "matte" }],
+          selected: 0, schemes: [], anchor_id: "r1",
+        },
+        settings: { edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false },
+      }],
+    } as unknown as import("../api/types").ProjectManifestDto;   // carries a field the DTO no longer allows
+    useProjectStore.getState().initFromProject(manifest);
+    const b = useProjectStore.getState().angles[0].book;
+    expect(b.anchor_id).toBeUndefined();
+    expect(anchorIndexOf(b)).toBe(0);
+  });
+});
+
+describe("projectStore settings + anchor", () => {
+  beforeEach(reset);
+  const tri = [[[10, 10], [20, 10], [20, 20]]];
+
+  it("setSettings merges into the active angle only", () => {
+    useProjectStore.getState().initFromPhoto(photo("p1"));
+    useProjectStore.getState().addAngle(photo("p2"));          // active = 1
+    useProjectStore.getState().setSettings({ edge_sens: 0.8 });
+    const s = useProjectStore.getState();
+    expect(s.angles[1].settings.edge_sens).toBe(0.8);
+    expect(s.angles[1].settings.edge_hl).toBe(true);
+    expect(s.angles[0].settings.edge_sens).toBe(0.5);
+  });
+
+  it("anchor defaults to whole mini and follows setAnchor", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addRegion(tri, "Cloak");
+    expect(anchorIndexOf(activeBookOf(useProjectStore.getState())!)).toBe(0);
+    const id = activeBookOf(useProjectStore.getState())!.drawn[0].id;
+    useProjectStore.getState().setAnchor(id);
+    expect(anchorIndexOf(activeBookOf(useProjectStore.getState())!)).toBe(1);
+    useProjectStore.getState().setAnchor(undefined);
+    expect(anchorIndexOf(activeBookOf(useProjectStore.getState())!)).toBe(0);
+  });
+
+  it("removing the starred region falls back to whole mini", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addRegion(tri, "Cloak");
+    const id = activeBookOf(useProjectStore.getState())!.drawn[0].id;
+    useProjectStore.getState().setAnchor(id);
+    useProjectStore.getState().removeRegion(1);
+    const b = activeBookOf(useProjectStore.getState())!;
+    expect(b.anchor_id).toBeUndefined();
+    expect(anchorIndexOf(b)).toBe(0);
+  });
+
+  it("removing a different region keeps the anchor and shifts its index", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addRegion(tri, "Cloak");
+    st.addRegion(tri, "Armour");
+    const armourId = activeBookOf(useProjectStore.getState())!.drawn[1].id;
+    useProjectStore.getState().setAnchor(armourId);
+    useProjectStore.getState().removeRegion(1);                 // remove Cloak
+    const b = activeBookOf(useProjectStore.getState())!;
+    expect(b.anchor_id).toBe(armourId);
+    expect(anchorIndexOf(b)).toBe(1);
+  });
+
+  it("renaming the starred region keeps the anchor", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addRegion(tri, "Cloak");
+    const id = activeBookOf(useProjectStore.getState())!.drawn[0].id;
+    useProjectStore.getState().setAnchor(id);
+    useProjectStore.getState().renameRegion(1, "Cape");
+    expect(anchorIndexOf(activeBookOf(useProjectStore.getState())!)).toBe(1);
+  });
+
+  it("a new angle starts with the anchor on whole mini but inherits settings", () => {
+    const st = useProjectStore.getState();
+    st.initFromPhoto(photo("p1"));
+    st.addRegion(tri, "Cloak");
+    useProjectStore.getState().setAnchor(activeBookOf(useProjectStore.getState())!.drawn[0].id);
+    useProjectStore.getState().setSettings({ edge_extreme: true });
+    useProjectStore.getState().addAngle(photo("p2"));
+    const s = useProjectStore.getState();
+    expect(anchorIndexOf(activeBookOf(s)!)).toBe(0);
+    expect(s.angles[1].settings.edge_extreme).toBe(true);
   });
 });

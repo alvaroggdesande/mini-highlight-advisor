@@ -46,4 +46,12 @@ describe("StudioPanel", () => {
     render(<MantineProvider><StudioPanel onGoToPaint={() => {}} /></MantineProvider>);
     expect(screen.getByText("quality.title")).toBeTruthy();
   });
+
+  it("shows the steps in order: regions → colour scheme → layers → save & share", () => {
+    render(<MantineProvider><StudioPanel onGoToPaint={() => {}} /></MantineProvider>);
+    const order = ["step-regions", "step-scheme", "step-layers", "save-share"].map((id) => screen.getByTestId(id));
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
 });

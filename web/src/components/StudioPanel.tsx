@@ -2,11 +2,10 @@ import { useTranslation } from "react-i18next";
 import { Box, Button, Group, Stack } from "@mantine/core";
 import { PreviewImage } from "./PreviewImage";
 import { QualityAlert } from "./QualityAlert";
-import { RegionHeader } from "./RegionHeader";
+import { RegionTable } from "./RegionTable";
 import { GeneratePanel } from "./colour/GeneratePanel";
 import { BandEditor } from "./colour/BandEditor";
-import { SchemeManager } from "./colour/SchemeManager";
-import { RecipeManager } from "./colour/RecipeManager";
+import { SaveSharePanel } from "./colour/SaveSharePanel";
 import { useProjectStore, activeAngleOf } from "../store/projectStore";
 
 export function StudioPanel({ onGoToPaint }: { onGoToPaint: () => void }) {
@@ -22,12 +21,11 @@ export function StudioPanel({ onGoToPaint }: { onGoToPaint: () => void }) {
           {t("studio.go_to_paint")}
         </Button>
       </Box>
-      <Stack data-testid="studio-editor" style={{ flex: 1 }} gap="md">
+      <Stack data-testid="studio-editor" style={{ flex: 1 }} gap="xl">
+        <RegionTable />
         <GeneratePanel />
-        <RegionHeader />
         <BandEditor />
-        <SchemeManager />
-        <RecipeManager />
+        <SaveSharePanel />
       </Stack>
     </Group>
   );

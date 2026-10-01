@@ -130,13 +130,15 @@ import type { ProjectMeta, ProjectManifestDto } from "./types";
 import type { Angle } from "../store/projectStore";
 
 function toProjectAngleDto(a: Angle): object {
+  // anchor_id (★) is runtime-only: a loaded project always starts with the ★ on whole mini.
+  const { anchor_id: _anchor, ...book } = a.book;
   return {
     id: a.id,
     label: a.label,
     photo_id: a.photoId,
     width: a.width,
     height: a.height,
-    book: a.book,
+    book,
     settings: a.settings,
   };
 }

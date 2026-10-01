@@ -81,3 +81,22 @@ describe("fetchPlanNames", () => {
     expect(fetchMock.mock.calls[0][0] as string).toContain("/api/plans?token=good-token");
   });
 });
+
+import { saveProjectApi } from "./client";
+import type { Angle } from "../store/projectStore";
+
+describe("saveProjectApi", () => {
+  it("never sends the runtime-only ★ anchor_id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ slug: "s", name: "n", updated_at: "" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const angle = {
+      id: "a1", label: "angle 1", photoId: "p1", qualityChecks: [],
+      book: { whole: { palette: [], coverage: [], material: "matte" }, drawn: [], selected: 0, schemes: [], anchor_id: "r1" },
+      settings: { edge_hl: true, edge_extreme: false, edge_sens: 0.5, relief_cap: true, per_region_norm: false },
+    } as unknown as Angle;
+    await saveProjectApi("n", 0, [angle]);
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(sent.angles[0].book).not.toHaveProperty("anchor_id");
+    expect(sent.angles[0].book.selected).toBe(0);
+  });
+});

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Box, ColorInput, ColorSwatch, Group, NativeSelect, Slider, Text } from "@mantine/core";
+import { ActionIcon, Box, ColorInput, ColorSwatch, Group, NativeSelect, Slider, Text, Tooltip } from "@mantine/core";
 import { useProjectStore } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import { matchPaint, generateRamp } from "../../api/client";
@@ -63,7 +63,7 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
       <Group justify="space-between" mb={4}>
         <Text size="xs" fw={600}>{role}</Text>
         {isAuto
-          ? <Text size="xs" c="dimmed">{pct}% ({t("colour.auto")})</Text>
+          ? <Text size="xs" c="dimmed">{pct}% · {t("colour.auto")}</Text>
           : <ActionIcon size="sm" variant="subtle" color="red" disabled={n <= 3}
               onClick={() => { if (n > 3) { snapshotUndo(); removeBand(i); } }} aria-label={t("colour.delete_band")}>✕</ActionIcon>}
       </Group>
@@ -86,8 +86,10 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
       {isCustom && matchResult && <Text size="xs" c="dimmed" ml={28}>{matchPhrase(matchResult, t)}</Text>}
       {!isAuto && (
         <Group gap="xs" align="center" wrap="nowrap" mt={6}>
-          <Text size="xs" miw={70}>{t("colour.coverage")}</Text>
-          <Slider value={pct} onChange={(v) => onCoverage(i, v)} min={0} max={100} step={1} size="sm" style={{ flex: 1 }} />
+          <Tooltip label={t("colour.coverage_hint")} withArrow>
+            <Text size="xs" miw={70} style={{ cursor: "help" }}>{t("colour.coverage")} ⓘ</Text>
+          </Tooltip>
+          <Slider thumbLabel={t("colour.coverage")} value={pct} onChange={(v) => onCoverage(i, v)} min={0} max={100} step={1} size="sm" style={{ flex: 1 }} />
           <Text size="xs" miw={32} ta="right">{pct}%</Text>
         </Group>
       )}

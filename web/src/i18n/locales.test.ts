@@ -17,3 +17,20 @@ it("no locale value contains markdown headings", () => {
     expect(String(v).startsWith("#")).toBe(false);
   }
 });
+
+it("no developer jargon (L2/L3, N2/N3, 'auto') in locale values", () => {
+  for (const loc of [en, es]) {
+    for (const k of keys(loc)) {
+      const v = String(k.split(".").reduce((o: any, s) => o[s], loc));
+      expect(v, k).not.toMatch(/\((L|N)[123]\)/);
+      expect(v, k).not.toMatch(/^auto$/);
+    }
+  }
+});
+
+it("has the Studio step keys", () => {
+  for (const k of ["studio.step_regions", "studio.step_scheme", "studio.step_layers",
+                   "studio.save_share", "edges.enabled", "studio.fill_from"]) {
+    expect(keys(en)).toContain(k);
+  }
+});

@@ -1,19 +1,19 @@
 import { it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { RecipeManager } from "./RecipeManager";
-import { useCatalogStore } from "../../store/catalogStore";
 import * as client from "../../api/client";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
-beforeEach(() => { vi.restoreAllMocks(); useCatalogStore.setState({ ownedCodes: new Set() }); });
+beforeEach(() => { vi.restoreAllMocks(); });
 
-it("collection import from Studio updates the owned set", async () => {
-  vi.spyOn(client, "importCollection").mockResolvedValue({ owned: ["V1", "V2"] } as any);
+it("offers recipe import/export only — no collection buttons", () => {
   const { container } = render(<MantineProvider><RecipeManager /></MantineProvider>);
-  const input = container.querySelector('input[data-kind="collection"]') as HTMLInputElement;
-  fireEvent.change(input, { target: { files: [new File(["{}"], "c.json")] } });
-  await waitFor(() => expect(useCatalogStore.getState().ownedCodes.has("V2")).toBe(true));
+  expect(screen.getByText("recipes.export")).toBeTruthy();
+  expect(screen.getByText("recipes.import")).toBeTruthy();
+  expect(screen.queryByText("recipes.collection_export")).toBeNull();
+  expect(screen.queryByText("recipes.collection_import")).toBeNull();
+  expect(container.querySelector('input[data-kind="collection"]')).toBeNull();
 });
 
 it("shows an error notice when an import fails", async () => {
