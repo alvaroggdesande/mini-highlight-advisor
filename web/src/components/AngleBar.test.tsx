@@ -43,4 +43,16 @@ describe("AngleBar", () => {
     await waitFor(() => expect(up).toHaveBeenCalledWith(small, "b.png"));
     expect(down).toHaveBeenCalled();
   });
+
+  it("clears the file input after picking, so the same file can be re-picked", () => {
+    useProjectStore.getState().initFromPhoto(photo("p0"));
+    vi.spyOn(ds, "downscaleImage").mockResolvedValue(new Blob(["s"]));
+    vi.spyOn(client, "uploadPhoto").mockRejectedValue(new Error("500"));
+    const { container } = render(<MantineProvider><AngleBar /></MantineProvider>);
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const setValue = vi.fn();
+    Object.defineProperty(input, "value", { set: setValue, get: () => "", configurable: true });
+    fireEvent.change(input, { target: { files: [new File(["x"], "a.png")] } });
+    expect(setValue).toHaveBeenCalledWith("");
+  });
 });

@@ -42,7 +42,7 @@ export function RecipeFooter({ g, n, onRecipeChanged }: Props) {
       <RecipeSaver onSaved={onRecipeChanged} />
       <Button size="xs" variant="subtle" onClick={resetCoverage}>{t("colour.reset_coverage")}</Button>
       <Button size="xs" variant="subtle" onClick={undo} disabled={!canUndo}
-        aria-label="undo">↺ {t("colour.undo")}</Button>
+        aria-label={t("colour.undo")}>↺ {t("colour.undo")}</Button>
     </Group>
   );
 }

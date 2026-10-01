@@ -33,7 +33,7 @@ export function AngleBar() {
         ))}
         <Button size="xs" variant="subtle" onClick={() => fileRef.current?.click()}>{t("angles.add")}</Button>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg" style={{ display: "none" }}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) onAdd(f); }} />
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onAdd(f); }} />
       </Group>
     </Stack>
   );

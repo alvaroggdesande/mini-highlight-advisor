@@ -1,5 +1,5 @@
 import { it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { PhotoUploader } from "./PhotoUploader";
 import { useProjectStore } from "../store/projectStore";
@@ -33,4 +33,15 @@ it("shows a friendly error when the upload fails before any angle exists", async
   (await screen.findByRole("button", { name: /Necron/ })).click();
   expect(await screen.findByText(/413 too big/)).toBeTruthy();
   expect(useProjectStore.getState().angles).toHaveLength(0);
+});
+
+it("clears the file input after picking, so the same file can be re-picked after a failure", async () => {
+  vi.spyOn(client, "listSamplePhotos").mockResolvedValue([]);
+  vi.spyOn(client, "uploadPhoto").mockRejectedValue(new Error("500"));
+  const { container } = render(<MantineProvider><PhotoUploader /></MantineProvider>);
+  const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+  const setValue = vi.fn();
+  Object.defineProperty(input, "value", { set: setValue, get: () => "", configurable: true });
+  fireEvent.change(input, { target: { files: [new File(["x"], "a.png")] } });
+  expect(setValue).toHaveBeenCalledWith("");
 });

@@ -34,7 +34,7 @@ export function PhotoUploader() {
         type="file"
         accept="image/png,image/jpeg"
         style={{ display: "none" }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBlob(f, f.name); }}
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleBlob(f, f.name); }}
       />
       {samples.length > 0 && (
         <>

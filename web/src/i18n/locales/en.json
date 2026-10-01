@@ -61,7 +61,7 @@
     "auto": "auto",
     "coverage": "Coverage",
     "undo": "Undo",
-    "owned_only_none": "You haven't marked any paints as owned yet — tick them in the Paint Collection tab.",
+    "owned_only_none": "You haven't marked any paints as owned yet, so the full catalogue will be used — tick your paints in the Paint Collection tab.",
     "toggle_generate": "Show or hide the scheme generator",
     "buy": "Buy: {{name}}"
   },
