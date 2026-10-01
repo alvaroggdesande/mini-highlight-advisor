@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Button, Checkbox, ColorInput, Group, NativeSelect, Stack, Text } from "@mantine/core";
-import { useProjectStore, activeBookOf } from "../../store/projectStore";
+import { ActionIcon, Button, Checkbox, ColorInput, Group, NativeSelect, Text } from "@mantine/core";
+import { useProjectStore, activeBookOf, anchorIndexOf } from "../../store/projectStore";
 import { useCatalogStore } from "../../store/catalogStore";
 import { generateScheme } from "../../api/client";
 import { MOODS, VARIANTS } from "../../api/types";
 import type { RegionColorSpec } from "../../api/types";
 import { ErrorNotice } from "../ErrorNotice";
+import { StepSection } from "../StepSection";
 
 const WHOLE_MINI_ID = "Whole Mini";   // API identifier — never translate
 
@@ -20,7 +21,6 @@ export function GeneratePanel() {
   const setVariant = useProjectStore((s) => s.setVariant);
   const snapshotUndo = useProjectStore((s) => s.snapshotUndo);
 
-  const [anchorIndex, setAnchorIndex] = useState(0);
   const [heroHex, setHeroHexLocal] = useState(() => book?.hero_hex ?? "#c0392b");
   const [mood, setMoodLocal] = useState(() => book?.mood ?? "neutral");
   const [variant, setVariantLocal] = useState(() => book?.variant ?? "complementary");
@@ -32,8 +32,8 @@ export function GeneratePanel() {
 
   if (!book) return null;
   const expanded = open ?? !book.hero_hex;
+  const anchorIndex = anchorIndexOf(book);
   const regionNames = [WHOLE_MINI_ID, ...book.drawn.map((r) => r.name)];
-  const regionLabels = [t("region.whole_mini"), ...book.drawn.map((r) => r.name)];
   const ownedCodes = ownedOnly ? Array.from(owned) : [];
   const surfaceOf = (i: number) => (i === 0 ? book.whole.surface : book.drawn[i - 1]?.surface) ?? "skin";
   const toneOf = (i: number) => (i === 0 ? book.whole.tone : book.drawn[i - 1]?.tone) || undefined;
@@ -57,21 +57,16 @@ export function GeneratePanel() {
   };
 
   return (
-    <Stack gap="xs">
-      <Group justify="space-between">
-        <Text size="sm" fw={500}>{t("colour.generate_whole_mini")}</Text>
+    <StepSection n={2} title={t("studio.step_scheme")} caption={t("studio.scheme_caption")} testId="step-scheme"
+      right={
         <ActionIcon size="sm" variant="subtle" data-testid="generate-toggle"
           onClick={() => setOpen(!expanded)} aria-label={t("colour.toggle_generate")}>
           {expanded ? "▾" : "▸"}
         </ActionIcon>
-      </Group>
+      }>
       {expanded && (
         <>
           <Group gap="xs" align="flex-end" wrap="wrap">
-            <NativeSelect label={t("colour.anchor_region")} size="xs"
-              value={anchorIndex} onChange={(e) => setAnchorIndex(Number(e.target.value))}>
-              {regionLabels.map((label, i) => <option key={i} value={i}>{label}</option>)}
-            </NativeSelect>
             <ColorInput label={t("colour.hero_colour")} value={heroHex} onChange={setHeroHexLocal}
               format="hex" size="xs" withEyeDropper={false} />
             <NativeSelect label={t("colour.mood")} size="xs" value={mood}
@@ -81,6 +76,7 @@ export function GeneratePanel() {
               onChange={(e) => setVariantLocal(e.target.value)}
               data={VARIANTS.map((v) => ({ value: v, label: t(`variants.${v}`) }))} />
           </Group>
+          <Text size="xs" c="dimmed">{t("studio.anchor_caption")}</Text>
           <Group gap="sm">
             <Checkbox size="xs" label={t("colour.owned_only")} checked={ownedOnly}
               onChange={(e) => setOwnedOnly(e.currentTarget.checked)} />
@@ -92,6 +88,6 @@ export function GeneratePanel() {
           {error && <ErrorNotice message={t("errors.generate")} detail={error} />}
         </>
       )}
-    </Stack>
+    </StepSection>
   );
 }

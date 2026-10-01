@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import * as client from "../../api/client";
 import { MantineProvider } from "@mantine/core";
 import { GeneratePanel } from "./GeneratePanel";
-import { useProjectStore } from "../../store/projectStore";
+import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import type { PhotoResponse } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
@@ -70,8 +70,32 @@ describe("GeneratePanel", () => {
     expect(screen.getByText("500 boom")).toBeTruthy();
   });
 
-  it("displays the translated whole-mini label in the anchor select", () => {
+  it("has no anchor dropdown and shows the ★ caption", () => {
     render(<MantineProvider><GeneratePanel /></MantineProvider>);
-    expect(screen.getByRole("option", { name: "region.whole_mini" })).toBeTruthy();
+    expect(screen.queryByLabelText("colour.anchor_region")).toBeNull();
+    expect(screen.getByText("studio.anchor_caption")).toBeTruthy();
+  });
+
+  it("anchors the request on the ★ region from the store", async () => {
+    useProjectStore.getState().addRegion([[[1, 1], [2, 2], [3, 1]]], "Cloak");
+    const id = activeBookOf(useProjectStore.getState())!.drawn[0].id;
+    useProjectStore.getState().setAnchor(id);
+    const spy = vi.spyOn(client, "generateScheme").mockResolvedValue({ palettes: {} } as any);
+    render(<MantineProvider><GeneratePanel /></MantineProvider>);
+    fireEvent.click(screen.getByText("colour.generate"));
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    const req = spy.mock.calls[0][0];
+    expect(req.anchor_name).toBe("Cloak");
+    expect(req.specs.map((s) => s.is_anchor)).toEqual([false, true]);
+  });
+
+  it("an unknown anchor id falls back to Whole Mini", async () => {
+    useProjectStore.getState().setAnchor("gone");
+    const spy = vi.spyOn(client, "generateScheme").mockResolvedValue({ palettes: {} } as any);
+    render(<MantineProvider><GeneratePanel /></MantineProvider>);
+    fireEvent.click(screen.getByText("colour.generate"));
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    expect(spy.mock.calls[0][0].anchor_name).toBe("Whole Mini");
+    expect(spy.mock.calls[0][0].specs[0].is_anchor).toBe(true);
   });
 });
