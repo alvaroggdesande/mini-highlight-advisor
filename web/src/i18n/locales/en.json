@@ -146,5 +146,19 @@
     "loading": "Rendering…",
     "preview_error": "Preview failed",
     "no_photo": "No photo"
+  },
+  "errors": {
+    "retry": "Try again",
+    "steps": "Couldn't load the painting steps.",
+    "analyze": "Couldn't update the preview.",
+    "upload": "Couldn't upload that photo. Try a PNG or JPEG.",
+    "generate": "Couldn't generate a colour scheme.",
+    "catalog": "Couldn't load the paint catalogue.",
+    "import": "Import failed.",
+    "project_save": "Save failed.",
+    "project_load": "Load failed.",
+    "project_delete": "Delete failed.",
+    "project_download": "Download failed.",
+    "project_upload": "Import failed."
   }
 }

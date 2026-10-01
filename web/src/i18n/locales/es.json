@@ -146,5 +146,19 @@
     "loading": "Renderizando…",
     "preview_error": "Error en la vista previa",
     "no_photo": "Sin foto"
+  },
+  "errors": {
+    "retry": "Reintentar",
+    "steps": "No se pudieron cargar los pasos de pintura.",
+    "analyze": "No se pudo actualizar la vista previa.",
+    "upload": "No se pudo subir esa foto. Prueba con PNG o JPEG.",
+    "generate": "No se pudo generar un esquema de color.",
+    "catalog": "No se pudo cargar el catálogo de pinturas.",
+    "import": "Error al importar.",
+    "project_save": "Error al guardar.",
+    "project_load": "Error al cargar.",
+    "project_delete": "Error al eliminar.",
+    "project_download": "Error al descargar.",
+    "project_upload": "Error al importar."
   }
 }
