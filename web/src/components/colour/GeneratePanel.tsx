@@ -23,6 +23,7 @@ export function GeneratePanel() {
   const snapshotUndo = useProjectStore((s) => s.snapshotUndo);
 
   const [heroHex, setHeroHexLocal] = useState(() => book?.hero_hex ?? "#c0392b");
+  const [heroPick, setHeroPick] = useState<{ code: string; hex: string } | null>(null);
   const [mood, setMoodLocal] = useState(() => book?.mood ?? "neutral");
   const [variant, setVariantLocal] = useState(() => book?.variant ?? "complementary");
   const [ownedOnly, setOwnedOnly] = useState(false);
@@ -68,9 +69,9 @@ export function GeneratePanel() {
       {expanded && (
         <>
           <Group gap="xs" align="flex-end" wrap="wrap">
-            <ColorInput label={t("colour.hero_colour")} value={heroHex} onChange={setHeroHexLocal}
+            <ColorInput label={t("colour.hero_colour")} value={heroHex} onChange={(hex) => { setHeroHexLocal(hex); if (heroPick && heroPick.hex.toLowerCase() !== hex.toLowerCase()) setHeroPick(null); }}
               format="hex" size="xs" withEyeDropper={false} />
-            <PaintSearch label={t("colour.or_pick_paint")} onPick={(p) => setHeroHexLocal(p.hex)} />
+            <PaintSearch label={t("colour.or_pick_paint")} value={heroPick?.code ?? null} onPick={(p) => { setHeroHexLocal(p.hex); setHeroPick({ code: p.code!, hex: p.hex }); }} />
             <NativeSelect label={t("colour.mood")} size="xs" value={mood}
               onChange={(e) => setMoodLocal(e.target.value)}
               data={MOODS.map((m) => ({ value: m, label: t(`moods.${m}`) }))} />

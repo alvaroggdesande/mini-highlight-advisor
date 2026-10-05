@@ -40,8 +40,10 @@ export interface RampGenerateRequest {
 }
 export interface RampGenerateResponse { hexes: string[]; }
 export interface MatchRequest { hex: string; finish: string; owned_codes: string[]; }
+export interface NearestPaint extends PaintColor { delta_e: number; owned: boolean; }
 export interface MatchResult {
   tier: string; phrase: string; name?: string; hex?: string; delta_e: number;
+  nearest: NearestPaint[];
 }
 export interface RecipeStep { label: string; hex: string; paint_ref?: string | null; }
 export interface Recipe { name: string; steps: RecipeStep[]; }

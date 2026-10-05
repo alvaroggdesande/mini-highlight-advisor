@@ -37,3 +37,15 @@ def test_match_response_has_required_fields():
     body = res.json()
     for field in ("tier", "phrase", "delta_e"):
         assert field in body
+
+
+def test_match_returns_nearest_catalogue_paints_with_owned_flag():
+    paint = _client.get("/api/catalog").json()["paints"][0]
+    res = _client.post("/api/match", json={"hex": paint["hex"], "finish": paint["finish"],
+                                           "owned_codes": [paint["code"]]})
+    nearest = res.json()["nearest"]
+    assert len(nearest) == 3
+    assert nearest[0]["delta_e"] <= nearest[1]["delta_e"] <= nearest[2]["delta_e"]
+    assert nearest[0]["delta_e"] == 0.0
+    assert any(n["code"] == paint["code"] and n["owned"] for n in nearest)
+    assert all({"name", "hex", "code", "brand"} <= n.keys() for n in nearest)
