@@ -179,6 +179,7 @@ def test_band_steps_carry_their_paint():
     assert [s["paint_name"] for s in bands] == ["p0", "p1", "p2"]
     assert [s["paint_code"] for s in bands] == ["C0", "C1", "C2"]
     assert all(s["paint_hex"].startswith("#") for s in bands)
+    assert all(s["paint_finish"] == "matte" for s in bands)
 
 
 def test_single_edge_step_uses_lightest_paint():

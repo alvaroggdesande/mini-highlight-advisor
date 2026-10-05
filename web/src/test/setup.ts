@@ -21,3 +21,6 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
   disconnect() {}
 } as any;
+
+// jsdom has no scrollIntoView; Mantine Combobox scrolls the selected option into view
+Element.prototype.scrollIntoView = () => {};

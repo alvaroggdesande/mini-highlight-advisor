@@ -183,6 +183,7 @@ def _plan_to_dto(plan) -> RegionPlanDto:
             paint_name=paint.name if paint else None,
             paint_hex=paint.hex if paint else None,
             paint_code=(paint.code or None) if paint else None,
+            paint_finish=getattr(paint, "finish", None) if paint else None,
         ))
     return RegionPlanDto(
         name=plan.name,
@@ -261,6 +262,21 @@ def get_catalog():
     return {"paints": [paint_to_dict(p) for p in _catalog()]}
 
 
+_NEAREST_K = 3
+
+
+def _nearest_catalogue(hexv: str, finish: str, owned_codes: set[str]) -> list[dict]:
+    """Top-k same-finish catalogue paints by ΔE00, owned or not — "which paint is this colour?"."""
+    from mini_highlight_advisor.color import delta_e00, lab_of_hex
+    t_lab = lab_of_hex(hexv)
+    scored = sorted(
+        ((delta_e00(t_lab, lab_of_hex(p.hex)), p) for p in _catalog() if p.finish == finish),
+        key=lambda dp: dp[0],
+    )[:_NEAREST_K]
+    return [{**paint_to_dict(p), "delta_e": round(d, 1), "owned": bool(p.code) and p.code in owned_codes}
+            for d, p in scored]
+
+
 @app.post("/api/match")
 def match_paint(req: MatchRequest):
     from mini_highlight_advisor.matching import Target, match
@@ -268,7 +284,15 @@ def match_paint(req: MatchRequest):
     owned = [p for p in catalog if p.code in set(req.owned_codes)]
     target = Target(hex=req.hex, finish=req.finish)
     result = match(target, owned, catalog)
+    mix = None
+    if result.tier == "mix":
+        # Structured recipe so the client can phrase it in the user's language.
+        tint = (req.finish == "metallic" and len(result.paints) == 2
+                and result.paints[1].finish != "metallic")
+        mix = {"parts": list(result.parts), "names": [p.name for p in result.paints], "tint": tint}
     return {
+        "nearest": _nearest_catalogue(req.hex, req.finish, set(req.owned_codes)),
+        "mix": mix,
         "tier": result.tier,
         "phrase": result.phrase,
         "name": result.paints[0].name if result.paints else None,

@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Box, Button, ColorInput, ColorSwatch, Group, Slider, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Button, ColorInput, ColorSwatch, Group, Popover, Slider, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { useProjectStore } from "../../store/projectStore";
-import { matchPaint, generateRamp } from "../../api/client";
-import type { TFunction } from "i18next";
-import type { PaintColor, MatchResult } from "../../api/types";
+import { generateRamp } from "../../api/client";
+import { useMatch } from "../../hooks/useMatch";
+import { matchPhrase } from "../../lib/matchPhrase";
+import type { PaintColor, MatchResult, NearestPaint } from "../../api/types";
 import { validHex } from "../../lib/color";
 import { PaintSearch } from "./PaintSearch";
 
@@ -14,12 +14,7 @@ interface Props {
   onCoverage: (i: number, val: number) => void;
 }
 
-function matchPhrase(r: MatchResult, t: TFunction): string {
-  if (r.tier === "exact") return `✓ ${r.name ?? ""}`;
-  if (r.tier === "close") return `≈ ${r.name ?? ""}`;
-  if (r.tier === "mix") return r.phrase;
-  return t("colour.buy", { name: r.name ?? "" });
-}
+function toPaint({ delta_e: _d, owned: _o, ...paint }: NearestPaint): PaintColor { return paint; }
 
 export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue, isAuto, onCoverage }: Props) {
   const { t } = useTranslation();
@@ -28,20 +23,10 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
   const removeBand = useProjectStore((s) => s.removeBand);
   const snapshotUndo = useProjectStore((s) => s.snapshotUndo);
   const isCustom = !paint.code;
-  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { result: matchResult, hasOwned, ownedCodes } = useMatch(isCustom ? validHex(paint.hex) : null, finish, 400);
   const pct = Math.round(coverageValue * 100);
 
-  useEffect(() => {
-    if (!isCustom) { setMatchResult(null); return; }
-    const normalizedHex = validHex(paint.hex);
-    if (!normalizedHex) { setMatchResult(null); return; }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try { setMatchResult(await matchPaint({ hex: normalizedHex, finish, owned_codes: [] })); } catch { /* ignore */ }
-    }, 400);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [paint.hex, isCustom, finish]);
+  const swatch = <ColorSwatch color={validHex(paint.hex) ?? "#808080"} size={22} />;
 
   const handleBlend = async () => {
     const left = palette[i - 1]; const right = palette[i + 1];
@@ -62,7 +47,22 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
               onClick={() => { if (n > 3) { snapshotUndo(); removeBand(i); } }} aria-label={t("colour.delete_band")}>✕</ActionIcon>}
       </Group>
       <Group gap={4} align="center" wrap="nowrap">
-        <ColorSwatch color={validHex(paint.hex) ?? "#808080"} size={22} style={{ flexShrink: 0 }} />
+        <Popover width={280} position="bottom-start" withArrow shadow="md">
+          <Popover.Target>
+            <UnstyledButton aria-label={t("colour.which_paint")} title={t("colour.which_paint")}
+              style={{ flexShrink: 0, lineHeight: 0 }}>{swatch}</UnstyledButton>
+          </Popover.Target>
+          <Popover.Dropdown>
+            {isCustom
+              ? <CustomInfo hex={paint.hex} result={matchResult} hasOwned={hasOwned}
+                  onUse={(p) => setPaletteSlot(g, i, p)} />
+              : <Stack gap={2}>
+                  <Text size="sm" fw={600}>{paint.name}</Text>
+                  <Text size="xs" c="dimmed">{[paint.brand, paint.paint_range, paint.code].filter(Boolean).join(" · ")}</Text>
+                  <Text size="xs">{paint.hex} · {ownedCodes.has(paint.code!) ? t("colour.owned") : t("colour.not_owned")}</Text>
+                </Stack>}
+          </Popover.Dropdown>
+        </Popover>
         {isCustom ? (
           <>
             <ColorInput value={paint.hex} onChange={(hex) => setHexSlot(g, i, hex)}
@@ -80,7 +80,7 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
           <ActionIcon size="sm" variant="subtle" onClick={handleBlend} title={t("colour.blend")}>↕</ActionIcon>
         )}
       </Group>
-      {isCustom && matchResult && <Text size="xs" c="dimmed" ml={28}>{matchPhrase(matchResult, t)}</Text>}
+      {isCustom && matchResult && <Text size="xs" c="dimmed" ml={28}>{matchPhrase(matchResult, hasOwned, t)}</Text>}
       {!isAuto && (
         <Group gap="xs" align="center" wrap="nowrap" mt={6}>
           <Tooltip label={t("colour.coverage_hint")} withArrow>
@@ -91,5 +91,31 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
         </Group>
       )}
     </Box>
+  );
+}
+
+function CustomInfo({ hex, result, hasOwned, onUse }: {
+  hex: string; result: MatchResult | null; hasOwned: boolean; onUse: (p: PaintColor) => void;
+}) {
+  const { t } = useTranslation();
+  if (!result) return <Text size="xs" c="dimmed">{hex}</Text>;
+  return (
+    <Stack gap={6}>
+      <Text size="xs" fw={600}>{t("colour.from_your_paints")}</Text>
+      <Text size="xs">{hasOwned ? matchPhrase(result, true, t) : t("colour.mark_owned_hint")}</Text>
+      <Text size="xs" fw={600} mt={4}>{t("colour.closest_in_catalogue")}</Text>
+      {result.nearest.map((p) => (
+        <Group key={p.code} gap={6} wrap="nowrap" justify="space-between">
+          <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+            <ColorSwatch color={p.hex} size={16} style={{ flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <Text size="xs" truncate>{p.owned ? "✓ " : ""}{p.name}</Text>
+              <Text size="xs" c="dimmed" truncate>{p.brand} · {p.code} · ΔE {p.delta_e}</Text>
+            </div>
+          </Group>
+          <Button size="compact-xs" variant="light" onClick={() => onUse(toPaint(p))}>{t("colour.use_paint")}</Button>
+        </Group>
+      ))}
+    </Stack>
   );
 }

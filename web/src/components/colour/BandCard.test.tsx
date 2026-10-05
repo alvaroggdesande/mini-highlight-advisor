@@ -1,15 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { BandCard } from "./BandCard";
 import type { PaintColor } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
-vi.mock("../../store/catalogStore", () => ({ useCatalogStore: (sel: any) => sel({ paints: [] }) }));
-const { removeBand, snapshotUndo } = vi.hoisted(() => ({ removeBand: vi.fn(), snapshotUndo: vi.fn() }));
+const { owned } = vi.hoisted(() => ({ owned: { codes: new Set<string>() } }));
+vi.mock("../../store/catalogStore", () => ({ useCatalogStore: (sel: any) => sel({ paints: [], ownedCodes: owned.codes }) }));
+const { matchPaint } = vi.hoisted(() => ({ matchPaint: vi.fn() }));
+vi.mock("../../api/client", () => ({ matchPaint, generateRamp: vi.fn() }));
+const { removeBand, snapshotUndo, setPaletteSlot } = vi.hoisted(() => ({ removeBand: vi.fn(), snapshotUndo: vi.fn(), setPaletteSlot: vi.fn() }));
 vi.mock("../../store/projectStore", () => ({
   useProjectStore: (sel: any) => sel({
-    setPaletteSlot: () => {}, setHexSlot: () => {}, setBandCount: () => {},
+    setPaletteSlot, setHexSlot: () => {}, setBandCount: () => {},
     removeBand, snapshotUndo,
   }),
 }));
@@ -58,5 +61,21 @@ describe("BandCard", () => {
   it("the last layer shows its share as '· fills the rest'", () => {
     renderCard({ isAuto: true, role: "Highlight", coverageValue: 0.13 });
     expect(screen.getByText("13% · colour.auto")).toBeTruthy();
+  });
+
+  it("custom band asks the matcher with the owned collection and offers the closest paints", async () => {
+    owned.codes = new Set(["70957"]);
+    const flatRed = { name: "Flat Red", hex: "#a01c1c", brand: "Vallejo", code: "70957", finish: "matte" };
+    matchPaint.mockResolvedValue({ tier: "close", phrase: "", name: "Flat Red", delta_e: 3, nearest: [
+      { ...flatRed, delta_e: 3, owned: true },
+    ] });
+    renderCard({ paint: { name: "custom", hex: "#a51e1e", code: "" } });
+    await waitFor(() => expect(matchPaint).toHaveBeenCalled(), { timeout: 2000 });
+    expect(matchPaint.mock.calls[0][0].owned_codes).toEqual(["70957"]);
+    await screen.findByText("≈ Flat Red");
+    fireEvent.click(screen.getByLabelText("colour.which_paint"));
+    fireEvent.click(await screen.findByText("colour.use_paint"));
+    expect(setPaletteSlot).toHaveBeenCalledWith(0, 1, flatRed);
+    owned.codes = new Set();
   });
 });
