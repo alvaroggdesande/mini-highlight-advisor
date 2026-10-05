@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Box, ColorInput, ColorSwatch, Group, NativeSelect, Slider, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Button, ColorInput, ColorSwatch, Group, Slider, Text, Tooltip } from "@mantine/core";
 import { useProjectStore } from "../../store/projectStore";
-import { useCatalogStore } from "../../store/catalogStore";
 import { matchPaint, generateRamp } from "../../api/client";
 import type { TFunction } from "i18next";
 import type { PaintColor, MatchResult } from "../../api/types";
 import { validHex } from "../../lib/color";
+import { PaintSearch } from "./PaintSearch";
 
 interface Props {
   g: number; i: number; paint: PaintColor; finish: string; n: number; palette: PaintColor[];
@@ -23,7 +23,6 @@ function matchPhrase(r: MatchResult, t: TFunction): string {
 
 export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue, isAuto, onCoverage }: Props) {
   const { t } = useTranslation();
-  const catalogPaints = useCatalogStore((s) => s.paints);
   const setPaletteSlot = useProjectStore((s) => s.setPaletteSlot);
   const setHexSlot = useProjectStore((s) => s.setHexSlot);
   const removeBand = useProjectStore((s) => s.removeBand);
@@ -43,11 +42,6 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
     }, 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [paint.hex, isCustom, finish]);
-
-  const handleCatalogChange = (code: string) => {
-    if (code === "__custom__") setHexSlot(g, i, paint.hex);
-    else { const found = catalogPaints.find((p) => p.code === code); if (found) setPaletteSlot(g, i, found); }
-  };
 
   const handleBlend = async () => {
     const left = palette[i - 1]; const right = palette[i + 1];
@@ -70,14 +64,17 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
       <Group gap={4} align="center" wrap="nowrap">
         <ColorSwatch color={validHex(paint.hex) ?? "#808080"} size={22} style={{ flexShrink: 0 }} />
         {isCustom ? (
-          <ColorInput value={paint.hex} onChange={(hex) => setHexSlot(g, i, hex)}
-            format="hex" size="xs" style={{ flex: 1 }} withEyeDropper={false} />
+          <>
+            <ColorInput value={paint.hex} onChange={(hex) => setHexSlot(g, i, hex)}
+              format="hex" size="xs" style={{ flex: 1 }} withEyeDropper={false} />
+            <PaintSearch onPick={(p) => setPaletteSlot(g, i, p)} style={{ flex: 1 }} />
+          </>
         ) : (
-          <NativeSelect value={paint.code} onChange={(e) => handleCatalogChange(e.target.value)}
-            size="xs" style={{ flex: 1 }}>
-            {catalogPaints.map((p) => <option key={p.code} value={p.code}>{p.code} — {p.name}</option>)}
-            <option value="__custom__">{t("colour.custom")}</option>
-          </NativeSelect>
+          <>
+            <PaintSearch value={paint.code} onPick={(p) => setPaletteSlot(g, i, p)} style={{ flex: 1 }} />
+            <Button size="compact-xs" variant="subtle" onClick={() => setHexSlot(g, i, paint.hex)}
+              title={t("colour.custom_hint")}>{t("colour.custom_short")}</Button>
+          </>
         )}
         {i > 0 && i < n - 1 && (
           <ActionIcon size="sm" variant="subtle" onClick={handleBlend} title={t("colour.blend")}>↕</ActionIcon>
