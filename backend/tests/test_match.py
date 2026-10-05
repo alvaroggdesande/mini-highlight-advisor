@@ -65,6 +65,7 @@ def test_match_mix_returns_structured_recipe_for_client_phrasing():
     assert body["tier"] == "mix"
     assert sorted(body["mix"]["names"]) == sorted([a["name"], b["name"]])
     assert len(body["mix"]["parts"]) == 2
+    assert len(body["mix"]["brands"]) == 2
     assert body["mix"]["tint"] is False
 
 
@@ -73,3 +74,4 @@ def test_match_non_mix_has_null_mix():
     body = _client.post("/api/match", json={"hex": paint["hex"], "finish": paint["finish"],
                                             "owned_codes": [paint["code"]]}).json()
     assert body["mix"] is None
+    assert body["brand"] == paint["brand"]

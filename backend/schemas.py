@@ -119,6 +119,7 @@ class StepImageDto(BaseModel):
     paint_name: str | None = None
     paint_hex: str | None = None
     paint_code: str | None = None
+    paint_brand: str | None = None
     paint_finish: str | None = None
 
 

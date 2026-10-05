@@ -183,6 +183,7 @@ def _plan_to_dto(plan) -> RegionPlanDto:
             paint_name=paint.name if paint else None,
             paint_hex=paint.hex if paint else None,
             paint_code=(paint.code or None) if paint else None,
+            paint_brand=(paint.brand or None) if paint else None,
             paint_finish=getattr(paint, "finish", None) if paint else None,
         ))
     return RegionPlanDto(
@@ -289,13 +290,15 @@ def match_paint(req: MatchRequest):
         # Structured recipe so the client can phrase it in the user's language.
         tint = (req.finish == "metallic" and len(result.paints) == 2
                 and result.paints[1].finish != "metallic")
-        mix = {"parts": list(result.parts), "names": [p.name for p in result.paints], "tint": tint}
+        mix = {"parts": list(result.parts), "names": [p.name for p in result.paints],
+               "brands": [p.brand for p in result.paints], "tint": tint}
     return {
         "nearest": _nearest_catalogue(req.hex, req.finish, set(req.owned_codes)),
         "mix": mix,
         "tier": result.tier,
         "phrase": result.phrase,
         "name": result.paints[0].name if result.paints else None,
+        "brand": result.paints[0].brand if result.paints else None,
         "hex": result.paints[0].hex if result.paints else None,
         "delta_e": result.delta_e if math.isfinite(result.delta_e) else 999.0,
     }

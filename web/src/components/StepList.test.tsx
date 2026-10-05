@@ -50,10 +50,10 @@ describe("StepList", () => {
 
   it("shows the paint name, code and swatch when the step carries a paint", () => {
     const withPaint: RegionPlanDto = { ...plan, steps: [
-      { ...makeStep(0, true), paint_name: "Ivory", paint_hex: "#f0e8d0", paint_code: "70.918" },
+      { ...makeStep(0, true), paint_name: "Ivory", paint_hex: "#f0e8d0", paint_code: "70.918", paint_brand: "Vallejo" },
     ] };
     render(<MantineProvider><StepList plan={withPaint} /></MantineProvider>);
-    expect(screen.getByText(/Ivory/)).toBeTruthy();
+    expect(screen.getByText(/Ivory \(Vallejo\)/)).toBeTruthy();
     expect(screen.getByText(/70\.918/)).toBeTruthy();
     expect(screen.getByTestId("step-swatch")).toBeTruthy();
   });

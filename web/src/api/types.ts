@@ -42,10 +42,10 @@ export interface RampGenerateResponse { hexes: string[]; }
 export interface MatchRequest { hex: string; finish: string; owned_codes: string[]; }
 export interface NearestPaint extends PaintColor { delta_e: number; owned: boolean; }
 export interface MatchResult {
-  tier: string; phrase: string; name?: string; hex?: string; delta_e: number;
+  tier: string; phrase: string; name?: string; brand?: string | null; hex?: string; delta_e: number;
   nearest: NearestPaint[];
   /** Structured recipe for tier "mix" (the client phrases it); null otherwise. */
-  mix?: { parts: number[]; names: string[]; tint: boolean } | null;
+  mix?: { parts: number[]; names: string[]; brands?: (string | null)[]; tint: boolean } | null;
 }
 export interface RecipeStep { label: string; hex: string; paint_ref?: string | null; }
 export interface Recipe { name: string; steps: RecipeStep[]; }
@@ -71,6 +71,7 @@ export interface StepImageDto {
   paint_name?: string | null;
   paint_hex?: string | null;
   paint_code?: string | null;
+  paint_brand?: string | null;
   paint_finish?: string | null;
 }
 

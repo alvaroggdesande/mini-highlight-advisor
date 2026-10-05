@@ -21,4 +21,12 @@ describe("matchPhrase", () => {
   it("falls back to the backend phrase when no structured recipe is sent", () => {
     expect(matchPhrase({ ...r, tier: "mix", phrase: "Mix 1:1 A + B (approx)." }, true, t)).toBe("Mix 1:1 A + B (approx).");
   });
+  it("names the brand next to every paint", () => {
+    const close = { tier: "close", phrase: "", name: "Flat Red", brand: "Vallejo", delta_e: 3, nearest: [] } as any;
+    expect(matchPhrase(close, true, t)).toBe("≈ Flat Red (Vallejo)");
+    const mix = { ...r, tier: "mix", mix: { parts: [1, 1], names: ["A", "B"], brands: ["Citadel", "Vallejo"], tint: false } };
+    expect(matchPhrase(mix, true, t)).toBe("colour.mix:1:1|A (Citadel) + B (Vallejo)");
+    expect(matchPhrase({ ...r, nearest: [{ name: "Ivory", brand: "AK Interactive" }] }, false, t))
+      .toBe("colour.closest:Ivory (AK Interactive)");
+  });
 });

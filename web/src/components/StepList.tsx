@@ -3,7 +3,7 @@ import { ColorSwatch, Group, Image, Paper, SimpleGrid, Stack, Text } from "@mant
 import type { RegionPlanDto, StepImageDto } from "../api/types";
 import { ROLE_KEY } from "../lib/roles";
 import { useMatch } from "../hooks/useMatch";
-import { matchPhrase } from "../lib/matchPhrase";
+import { matchPhrase, withBrand } from "../lib/matchPhrase";
 import { validHex } from "../lib/color";
 
 /** Under a step's header: owned / not owned for a catalogue paint, or the mix
@@ -32,7 +32,7 @@ function StepHeader({ step }: { step: StepImageDto }) {
     <Group gap="xs" mb="xs" wrap="nowrap">
       {step.paint_hex && <ColorSwatch data-testid="step-swatch" color={step.paint_hex} size={20} />}
       <Text fw={600}>
-        {role} — {step.paint_name}
+        {role} — {withBrand(step.paint_name, step.paint_brand)}
         {step.paint_code && <Text span c="dimmed" fw={400}> · {step.paint_code}</Text>}
       </Text>
     </Group>
