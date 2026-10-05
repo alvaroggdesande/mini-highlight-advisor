@@ -5,6 +5,7 @@ import { useProjectStore, activeBookOf } from "../../store/projectStore";
 import { generateRamp } from "../../api/client";
 import { RAMP_VARIANTS } from "../../api/types";
 import { validHex } from "../../lib/color";
+import { PaintSearch } from "./PaintSearch";
 
 export function RampEditor() {
   const { t } = useTranslation();
@@ -44,6 +45,7 @@ export function RampEditor() {
       <Group gap="xs" align="flex-end">
         <ColorInput label={t("colour.midtone")} value={midtoneHex} onChange={setMidtoneHex}
           format="hex" size="xs" withEyeDropper={false} style={{ flex: 1 }} />
+        <PaintSearch label={t("colour.or_pick_paint")} onPick={(p) => setMidtoneHex(p.hex)} style={{ flex: 1 }} />
         {book.hero_hex && (
           <Button size="xs" variant="subtle" onClick={() => setMidtoneHex(book.hero_hex!)}>
             {t("colour.use_scheme_colour")}

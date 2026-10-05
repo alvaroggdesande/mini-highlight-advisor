@@ -49,7 +49,6 @@
     "apply_recipe": "Apply",
     "cancel": "Cancel",
     "select_recipe": "Select recipe…",
-    "custom": "(custom)",
     "blend": "Blend",
     "add_band": "+ Add layer",
     "delete_band": "Delete layer",
@@ -60,7 +59,12 @@
     "toggle_generate": "Show or hide the colour scheme",
     "buy": "Buy: {{name}}",
     "coverage_hint": "How much of the region this layer covers",
-    "tone_placeholder": "pale, dark…"
+    "tone_placeholder": "pale, dark…",
+    "search_paint": "Search paint by name…",
+    "no_paint_found": "No paint matches",
+    "or_pick_paint": "…or pick a paint",
+    "custom_short": "Hex",
+    "custom_hint": "Switch this layer to a custom hex colour"
   },
   "schemes": {
     "title": "Saved schemes",

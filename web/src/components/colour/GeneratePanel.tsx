@@ -8,6 +8,7 @@ import { MOODS, VARIANTS } from "../../api/types";
 import type { RegionColorSpec } from "../../api/types";
 import { ErrorNotice } from "../ErrorNotice";
 import { StepSection } from "../StepSection";
+import { PaintSearch } from "./PaintSearch";
 
 const WHOLE_MINI_ID = "Whole Mini";   // API identifier — never translate
 
@@ -69,6 +70,7 @@ export function GeneratePanel() {
           <Group gap="xs" align="flex-end" wrap="wrap">
             <ColorInput label={t("colour.hero_colour")} value={heroHex} onChange={setHeroHexLocal}
               format="hex" size="xs" withEyeDropper={false} />
+            <PaintSearch label={t("colour.or_pick_paint")} onPick={(p) => setHeroHexLocal(p.hex)} />
             <NativeSelect label={t("colour.mood")} size="xs" value={mood}
               onChange={(e) => setMoodLocal(e.target.value)}
               data={MOODS.map((m) => ({ value: m, label: t(`moods.${m}`) }))} />

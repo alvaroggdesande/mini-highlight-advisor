@@ -49,7 +49,6 @@
     "apply_recipe": "Aplicar",
     "cancel": "Cancelar",
     "select_recipe": "Seleccionar receta…",
-    "custom": "(personalizado)",
     "blend": "Mezclar",
     "add_band": "+ Añadir capa",
     "delete_band": "Eliminar capa",
@@ -60,7 +59,12 @@
     "toggle_generate": "Mostrar u ocultar el esquema de color",
     "buy": "Comprar: {{name}}",
     "coverage_hint": "Cuánto de la región cubre esta capa",
-    "tone_placeholder": "claro, oscuro…"
+    "tone_placeholder": "claro, oscuro…",
+    "search_paint": "Buscar pintura por nombre…",
+    "no_paint_found": "Ninguna pintura coincide",
+    "or_pick_paint": "…o elige una pintura",
+    "custom_short": "Hex",
+    "custom_hint": "Cambiar esta capa a un color hex personalizado"
   },
   "schemes": {
     "title": "Esquemas guardados",
