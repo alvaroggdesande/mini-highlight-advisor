@@ -66,6 +66,8 @@
     "custom_hint": "Cambiar esta capa a un color hex personalizado",
     "closest": "≈ pintura más cercana: {{name}}",
     "cant_mix": "No se puede mezclar con tus pinturas — más cercana: {{name}}",
+    "mix": "Mezcla {{ratio}} {{names}} (aprox.).",
+    "mix_tint": "Mezcla {{ratio}} {{metal}} + un toque de {{tint}} (tinte, aprox.).",
     "which_paint": "¿Qué pintura es?",
     "from_your_paints": "Con tus pinturas",
     "mark_owned_hint": "Marca las pinturas que tienes en la pestaña Colección de pinturas para recibir ideas de mezcla.",

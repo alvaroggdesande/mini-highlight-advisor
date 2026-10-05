@@ -1,10 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { StepList } from "./StepList";
 import type { RegionPlanDto } from "../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
+const { owned } = vi.hoisted(() => ({ owned: { codes: new Set<string>() } }));
+vi.mock("../store/catalogStore", () => ({ useCatalogStore: (sel: any) => sel({ ownedCodes: owned.codes }) }));
+const { matchPaint } = vi.hoisted(() => ({ matchPaint: vi.fn() }));
+vi.mock("../api/client", () => ({ matchPaint }));
 
 const makeStep = (index: number, isLast: boolean) => ({
   index,
@@ -62,5 +66,28 @@ describe("StepList", () => {
   it("renders the steps hint once", () => {
     render(<MantineProvider><StepList plan={plan} /></MantineProvider>);
     expect(screen.getAllByText("paint.steps_hint")).toHaveLength(1);
+  });
+
+  it("catalogue-paint step says whether you own it", () => {
+    owned.codes = new Set(["70.918"]);
+    const withPaint: RegionPlanDto = { ...plan, steps: [
+      { ...makeStep(0, true), paint_name: "Ivory", paint_hex: "#f0e8d0", paint_code: "70.918" },
+    ] };
+    render(<MantineProvider><StepList plan={withPaint} /></MantineProvider>);
+    expect(screen.getByTestId("step-guide").textContent).toContain("colour.owned");
+    expect(matchPaint).not.toHaveBeenCalled();
+    owned.codes = new Set();
+  });
+
+  it("custom-hex step shows the mix guide from your collection", async () => {
+    owned.codes = new Set(["A1", "B1"]);
+    matchPaint.mockResolvedValue({ tier: "close", phrase: "", name: "Flat Red", delta_e: 3, nearest: [] });
+    const custom: RegionPlanDto = { ...plan, steps: [
+      { ...makeStep(0, true), paint_name: "custom", paint_hex: "#a51e1e", paint_code: null, paint_finish: "metallic" },
+    ] };
+    render(<MantineProvider><StepList plan={custom} /></MantineProvider>);
+    await waitFor(() => expect(matchPaint).toHaveBeenCalledWith({ hex: "#a51e1e", finish: "metallic", owned_codes: ["A1", "B1"] }));
+    expect((await screen.findByTestId("step-guide")).textContent).toBe("≈ Flat Red");
+    owned.codes = new Set();
   });
 });

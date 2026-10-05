@@ -66,6 +66,8 @@
     "custom_hint": "Switch this layer to a custom hex colour",
     "closest": "≈ closest paint: {{name}}",
     "cant_mix": "Can't mix from your paints — closest: {{name}}",
+    "mix": "Mix {{ratio}} {{names}} (approx).",
+    "mix_tint": "Mix {{ratio}} {{metal}} + a touch of {{tint}} (tint, approx).",
     "which_paint": "Which paint is this?",
     "from_your_paints": "From your paints",
     "mark_owned_hint": "Tick the paints you own in the Paint Collection tab to get mixing ideas.",

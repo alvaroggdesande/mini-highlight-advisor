@@ -2,6 +2,27 @@ import { useTranslation } from "react-i18next";
 import { ColorSwatch, Group, Image, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import type { RegionPlanDto, StepImageDto } from "../api/types";
 import { ROLE_KEY } from "../lib/roles";
+import { useMatch } from "../hooks/useMatch";
+import { matchPhrase } from "../lib/matchPhrase";
+import { validHex } from "../lib/color";
+
+/** Under a step's header: owned / not owned for a catalogue paint, or the mix
+ *  guide from your collection for a custom hex (as the Streamlit Paint tab did). */
+function StepPaintGuide({ step }: { step: StepImageDto }) {
+  const { t } = useTranslation();
+  const isCustom = !step.paint_code;
+  const { result, hasOwned, ownedCodes } = useMatch(
+    isCustom ? validHex(step.paint_hex) : null, step.paint_finish ?? "matte");
+  if (!isCustom) {
+    return <Text size="xs" c="dimmed" mt={-6} mb="xs" data-testid="step-guide">
+      {step.paint_hex} · {ownedCodes.has(step.paint_code!) ? t("colour.owned") : t("colour.not_owned")}
+    </Text>;
+  }
+  if (!result) return null;
+  return <Text size="xs" c="dimmed" mt={-6} mb="xs" data-testid="step-guide">
+    {matchPhrase(result, hasOwned, t)}
+  </Text>;
+}
 
 function StepHeader({ step }: { step: StepImageDto }) {
   const { t } = useTranslation();
@@ -23,6 +44,7 @@ function StepCard({ step }: { step: StepImageDto }) {
   return (
     <Paper p="sm" withBorder mb="sm">
       <StepHeader step={step} />
+      {step.paint_hex && <StepPaintGuide step={step} />}
       <SimpleGrid cols={step.is_last ? 2 : 3} spacing="xs">
         <Stack gap={4}>
           <Image src={step.zone_png} alt={t("paint.step_zone")} />

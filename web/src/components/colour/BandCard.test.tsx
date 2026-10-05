@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
-import { BandCard, matchPhrase } from "./BandCard";
+import { BandCard } from "./BandCard";
 import type { PaintColor } from "../../api/types";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
@@ -77,19 +77,5 @@ describe("BandCard", () => {
     fireEvent.click(await screen.findByText("colour.use_paint"));
     expect(setPaletteSlot).toHaveBeenCalledWith(0, 1, flatRed);
     owned.codes = new Set();
-  });
-});
-
-describe("matchPhrase", () => {
-  const t = ((k: string, o?: any) => (o ? `${k}:${o.name}` : k)) as any;
-  const r = { tier: "unreachable", phrase: "", delta_e: 20, nearest: [{ name: "Ivory" }] } as any;
-  it("without a collection, names the closest catalogue paint", () => {
-    expect(matchPhrase(r, false, t)).toBe("colour.closest:Ivory");
-  });
-  it("with a collection but no mix, says it can't be mixed", () => {
-    expect(matchPhrase(r, true, t)).toBe("colour.cant_mix:Ivory");
-  });
-  it("shows the mix recipe when one exists", () => {
-    expect(matchPhrase({ ...r, tier: "mix", phrase: "Mix 1:1 A + B (approx)." }, true, t)).toBe("Mix 1:1 A + B (approx).");
   });
 });

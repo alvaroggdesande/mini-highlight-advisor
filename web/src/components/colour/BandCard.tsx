@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ActionIcon, Box, Button, ColorInput, ColorSwatch, Group, Popover, Slider, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { useProjectStore } from "../../store/projectStore";
-import { useCatalogStore } from "../../store/catalogStore";
-import { matchPaint, generateRamp } from "../../api/client";
-import type { TFunction } from "i18next";
+import { generateRamp } from "../../api/client";
+import { useMatch } from "../../hooks/useMatch";
+import { matchPhrase } from "../../lib/matchPhrase";
 import type { PaintColor, MatchResult, NearestPaint } from "../../api/types";
 import { validHex } from "../../lib/color";
 import { PaintSearch } from "./PaintSearch";
@@ -15,16 +14,6 @@ interface Props {
   onCoverage: (i: number, val: number) => void;
 }
 
-/** One-line guide under a custom band: how to get this colour from YOUR paints. */
-export function matchPhrase(r: MatchResult, hasOwned: boolean, t: TFunction): string {
-  const closest = r.nearest[0]?.name ?? "";
-  if (!hasOwned) return t("colour.closest", { name: closest });
-  if (r.tier === "exact") return `✓ ${r.name ?? ""}`;
-  if (r.tier === "close") return `≈ ${r.name ?? ""}`;
-  if (r.tier === "mix") return r.phrase;
-  return t("colour.cant_mix", { name: closest });
-}
-
 function toPaint({ delta_e: _d, owned: _o, ...paint }: NearestPaint): PaintColor { return paint; }
 
 export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue, isAuto, onCoverage }: Props) {
@@ -33,27 +22,10 @@ export function BandCard({ g, i, paint, finish, n, palette, role, coverageValue,
   const setHexSlot = useProjectStore((s) => s.setHexSlot);
   const removeBand = useProjectStore((s) => s.removeBand);
   const snapshotUndo = useProjectStore((s) => s.snapshotUndo);
-  const ownedCodes = useCatalogStore((s) => s.ownedCodes);
-  const ownedList = useMemo(() => [...ownedCodes].sort(), [ownedCodes]);
-  const ownedKey = ownedList.join(",");
   const isCustom = !paint.code;
-  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { result: matchResult, hasOwned, ownedCodes } = useMatch(isCustom ? validHex(paint.hex) : null, finish, 400);
   const pct = Math.round(coverageValue * 100);
 
-  useEffect(() => {
-    if (!isCustom) { setMatchResult(null); return; }
-    const normalizedHex = validHex(paint.hex);
-    if (!normalizedHex) { setMatchResult(null); return; }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try { setMatchResult(await matchPaint({ hex: normalizedHex, finish, owned_codes: ownedList })); } catch { /* ignore */ }
-    }, 400);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paint.hex, isCustom, finish, ownedKey]);
-
-  const hasOwned = ownedList.length > 0;
   const swatch = <ColorSwatch color={validHex(paint.hex) ?? "#808080"} size={22} />;
 
   const handleBlend = async () => {
